@@ -1,0 +1,735 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<ACAML xmlns="urn:schemas-agilent-com:acaml13" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
+	<Checksum Algorithm="SHA1">
+    <Value>eZJIlkcFqFzUGijkBPLlElSsSbo=</Value>
+  </Checksum>
+  <Doc ContentVersioned="false">
+		<DocID>11acc3aa-ccbf-46be-9629-7b656b84b7d1</DocID>
+		<DocInfo>
+			<Description>ACAML Export</Description>
+			<CreatedByUser>GC128-LCMS-1\LCMS_user</CreatedByUser>
+			<CreatedByApplication>
+				<AgilentApp>
+					<Name>ChemStation</Name>
+					<Version>2.105.0.0</Version>
+				</AgilentApp>
+			</CreatedByApplication>
+			<CreationDate>2014-03-13T17:37:47.917-04:00</CreationDate>
+			<ClientName>GC128-LCMS-1</ClientName>
+		</DocInfo>
+		<Content>
+			<Resources>
+				<Instrument xsi:type="InstrumentType" id="7b76da24-b91c-4c46-85d0-eaaaa9774df8" ver="0">
+					<Name>LCMS</Name>
+					<Technique>LiquidChromatography</Technique>
+					<Module>
+						<Name>Column Comp.</Name>
+						<Type>Column compartment</Type>
+						<PartNo>G1316A</PartNo>
+						<SerialNo>DE60555403</SerialNo>
+						<FirmwareRevision>A.06.32 [005]</FirmwareRevision>
+					</Module>
+					<Module>
+						<Name>Sampler</Name>
+						<Type>Auto sampler</Type>
+						<PartNo>G1329A</PartNo>
+						<SerialNo>DE64766506</SerialNo>
+						<FirmwareRevision>A.06.36 [007]</FirmwareRevision>
+					</Module>
+					<Module>
+						<Name>Binary Pump</Name>
+						<Type>Pump</Type>
+						<PartNo>G1312A</PartNo>
+						<SerialNo>DE63058173</SerialNo>
+						<FirmwareRevision>A.06.32 [011]</FirmwareRevision>
+					</Module>
+					<Module>
+						<Name>Agilent G6130A MSD</Name>
+						<Type>Detector</Type>
+						<PartNo>G6130A</PartNo>
+						<SerialNo>US72950242</SerialNo>
+						<FirmwareRevision>3.02.42</FirmwareRevision>
+					</Module>
+				</Instrument>
+				<SeparationMedium xsi:type="SeparationMediumType" id="aa23f177-6351-4c84-9c6e-b50b1c87e86c" ver="0">
+					<Name>AgTCM</Name>
+					<Type>
+						<Column>
+							<SerialNo>11-13343</SerialNo>
+							<ProdNo>993967-902</ProdNo>
+							<BatchNo />
+							<DeadVolume val="0.742" unit="ml" />
+							<Diameter val="3" unit="mm" />
+							<Length val="150" unit="mm" />
+							<ParticleSize val="3" unit="µm" />
+							<MaxTemp val="60" unit="°C" />
+							<MaxPressure val="400" unit="bar" />
+							<MaxPH val="9" />
+						</Column>
+					</Type>
+				</SeparationMedium>
+			</Resources>
+			<Method xsi:type="MethodType" id="3327e94d-a3f4-4c1a-bdf4-9041d7eb0d14" ver="0">
+				<Info>
+					<LastModifiedBy>
+						<Username />
+					</LastModifiedBy>
+					<LastModifiedDate>2014-03-13T21:03:17Z</LastModifiedDate>
+				</Info>
+				<BinaryData>
+					<DirItem>
+						<Name>JD_MANUAL_ISOCRATIC.M</Name>
+						<OriginalFilePath>C:\CHEM32\1\METHODS\JD_MANUAL_ISOCRATIC.M</OriginalFilePath>
+					</DirItem>
+				</BinaryData>
+				<Name>JD_MANUAL_ISOCRATIC.M</Name>
+				<QuantitationMethod>Unknown</QuantitationMethod>
+				<Integrator>Agilent, TwelveTone</Integrator>
+				<MethodConfigurationLink>
+					<MethodConfiguration_ID xsi:type="MethodConfigurationRefType" id="5f43b56b-20c0-4aef-96fb-d57b3cae324d" ver="0" />
+				</MethodConfigurationLink>
+			</Method>
+			<MethodConfiguration xsi:type="MethodConfigurationType" id="5f43b56b-20c0-4aef-96fb-d57b3cae324d" ver="0">
+				<MethodDescription>
+					<Name>Method Configuration</Name>
+					<ID>Method_Configuration</ID>
+					<Section>
+						<Name>Method Information</Name>
+						<ID>Method_Information</ID>
+						<Parameter>
+							<Name>Method</Name>
+							<ID>ID_Method_Original</ID>
+							<Unit />
+							<Value>C:\CHEM32\1\METHODS\JD_MANUAL_ISOCRATIC.M</Value>
+						</Parameter>
+						<Parameter>
+							<Name>Modified</Name>
+							<ID>ID_Method_Modified</ID>
+							<Unit />
+							<Value>3/13/2014 at 5:03:17 PM</Value>
+						</Parameter>
+						<Parameter>
+							<Name>Description</Name>
+							<ID>ID_Method_Description</ID>
+							<Unit />
+							<Value />
+						</Parameter>
+						<Table>
+							<Name>Method Audit Trail</Name>
+							<ID>ID_Method_Audit_Trail</ID>
+							<Row>
+								<Parameter>
+									<Name>Date</Name>
+									<ID>ID_Method_Audit_Trail_Date1</ID>
+									<Unit />
+									<Value>3/11/2014 4:11:48 PM</Value>
+								</Parameter>
+								<Parameter>
+									<Name>Change Information</Name>
+									<ID>ID_Method_Audit_Trail_Change_Info1</ID>
+									<Unit />
+									<Value>This method was created at 3/11/2014 4:11:48 PM and based on method C:\CHEM32\1\METHODS\JAMES_ALKENONE\STANDARD_TAG_BLANK.M</Value>
+								</Parameter>
+								<Parameter>
+									<Name>Operator</Name>
+									<ID>ID_Method_Audit_Trail_Operator1</ID>
+									<Unit />
+									<Value>SYSTEM</Value>
+								</Parameter>
+							</Row>
+							<Row>
+								<Parameter>
+									<Name>Date</Name>
+									<ID>ID_Method_Audit_Trail_Date2</ID>
+									<Unit />
+									<Value>3/11/2014 4:11:49 PM</Value>
+								</Parameter>
+								<Parameter>
+									<Name>Change Information</Name>
+									<ID>ID_Method_Audit_Trail_Change_Info2</ID>
+									<Unit />
+									<Value>Method saved. User comment: ""</Value>
+								</Parameter>
+								<Parameter>
+									<Name>Operator</Name>
+									<ID>ID_Method_Audit_Trail_Operator2</ID>
+									<Unit />
+									<Value>SYSTEM</Value>
+								</Parameter>
+							</Row>
+							<Row>
+								<Parameter>
+									<Name>Date</Name>
+									<ID>ID_Method_Audit_Trail_Date3</ID>
+									<Unit />
+									<Value>3/11/2014 6:03:30 PM</Value>
+								</Parameter>
+								<Parameter>
+									<Name>Change Information</Name>
+									<ID>ID_Method_Audit_Trail_Change_Info3</ID>
+									<Unit />
+									<Value>Method saved. User comment: ""</Value>
+								</Parameter>
+								<Parameter>
+									<Name>Operator</Name>
+									<ID>ID_Method_Audit_Trail_Operator3</ID>
+									<Unit />
+									<Value>SYSTEM</Value>
+								</Parameter>
+							</Row>
+							<Row>
+								<Parameter>
+									<Name>Date</Name>
+									<ID>ID_Method_Audit_Trail_Date4</ID>
+									<Unit />
+									<Value>3/12/2014 3:12:57 PM</Value>
+								</Parameter>
+								<Parameter>
+									<Name>Change Information</Name>
+									<ID>ID_Method_Audit_Trail_Change_Info4</ID>
+									<Unit />
+									<Value>Method saved. User comment: ""</Value>
+								</Parameter>
+								<Parameter>
+									<Name>Operator</Name>
+									<ID>ID_Method_Audit_Trail_Operator4</ID>
+									<Unit />
+									<Value>SYSTEM</Value>
+								</Parameter>
+							</Row>
+							<Row>
+								<Parameter>
+									<Name>Date</Name>
+									<ID>ID_Method_Audit_Trail_Date5</ID>
+									<Unit />
+									<Value>3/13/2014 1:50:09 PM</Value>
+								</Parameter>
+								<Parameter>
+									<Name>Change Information</Name>
+									<ID>ID_Method_Audit_Trail_Change_Info5</ID>
+									<Unit />
+									<Value>Method saved. User comment: ""</Value>
+								</Parameter>
+								<Parameter>
+									<Name>Operator</Name>
+									<ID>ID_Method_Audit_Trail_Operator5</ID>
+									<Unit />
+									<Value>SYSTEM</Value>
+								</Parameter>
+							</Row>
+							<Row>
+								<Parameter>
+									<Name>Date</Name>
+									<ID>ID_Method_Audit_Trail_Date6</ID>
+									<Unit />
+									<Value>3/13/2014 2:04:41 PM</Value>
+								</Parameter>
+								<Parameter>
+									<Name>Change Information</Name>
+									<ID>ID_Method_Audit_Trail_Change_Info6</ID>
+									<Unit />
+									<Value>Method saved. User comment: ""</Value>
+								</Parameter>
+								<Parameter>
+									<Name>Operator</Name>
+									<ID>ID_Method_Audit_Trail_Operator6</ID>
+									<Unit />
+									<Value>SYSTEM</Value>
+								</Parameter>
+							</Row>
+							<Row>
+								<Parameter>
+									<Name>Date</Name>
+									<ID>ID_Method_Audit_Trail_Date7</ID>
+									<Unit />
+									<Value>3/13/2014 2:05:18 PM</Value>
+								</Parameter>
+								<Parameter>
+									<Name>Change Information</Name>
+									<ID>ID_Method_Audit_Trail_Change_Info7</ID>
+									<Unit />
+									<Value>Method saved. User comment: ""</Value>
+								</Parameter>
+								<Parameter>
+									<Name>Operator</Name>
+									<ID>ID_Method_Audit_Trail_Operator7</ID>
+									<Unit />
+									<Value>SYSTEM</Value>
+								</Parameter>
+							</Row>
+							<Row>
+								<Parameter>
+									<Name>Date</Name>
+									<ID>ID_Method_Audit_Trail_Date8</ID>
+									<Unit />
+									<Value>3/13/2014 2:29:37 PM</Value>
+								</Parameter>
+								<Parameter>
+									<Name>Change Information</Name>
+									<ID>ID_Method_Audit_Trail_Change_Info8</ID>
+									<Unit />
+									<Value>Method saved. User comment: ""</Value>
+								</Parameter>
+								<Parameter>
+									<Name>Operator</Name>
+									<ID>ID_Method_Audit_Trail_Operator8</ID>
+									<Unit />
+									<Value>SYSTEM</Value>
+								</Parameter>
+							</Row>
+							<Row>
+								<Parameter>
+									<Name>Date</Name>
+									<ID>ID_Method_Audit_Trail_Date9</ID>
+									<Unit />
+									<Value>3/13/2014 2:59:48 PM</Value>
+								</Parameter>
+								<Parameter>
+									<Name>Change Information</Name>
+									<ID>ID_Method_Audit_Trail_Change_Info9</ID>
+									<Unit />
+									<Value>Method saved. User comment: ""</Value>
+								</Parameter>
+								<Parameter>
+									<Name>Operator</Name>
+									<ID>ID_Method_Audit_Trail_Operator9</ID>
+									<Unit />
+									<Value>SYSTEM</Value>
+								</Parameter>
+							</Row>
+							<Row>
+								<Parameter>
+									<Name>Date</Name>
+									<ID>ID_Method_Audit_Trail_Date10</ID>
+									<Unit />
+									<Value>3/13/2014 3:42:11 PM</Value>
+								</Parameter>
+								<Parameter>
+									<Name>Change Information</Name>
+									<ID>ID_Method_Audit_Trail_Change_Info10</ID>
+									<Unit />
+									<Value>Method saved. User comment: ""</Value>
+								</Parameter>
+								<Parameter>
+									<Name>Operator</Name>
+									<ID>ID_Method_Audit_Trail_Operator10</ID>
+									<Unit />
+									<Value>SYSTEM</Value>
+								</Parameter>
+							</Row>
+							<Row>
+								<Parameter>
+									<Name>Date</Name>
+									<ID>ID_Method_Audit_Trail_Date11</ID>
+									<Unit />
+									<Value>3/13/2014 4:20:24 PM</Value>
+								</Parameter>
+								<Parameter>
+									<Name>Change Information</Name>
+									<ID>ID_Method_Audit_Trail_Change_Info11</ID>
+									<Unit />
+									<Value>Method saved. User comment: ""</Value>
+								</Parameter>
+								<Parameter>
+									<Name>Operator</Name>
+									<ID>ID_Method_Audit_Trail_Operator11</ID>
+									<Unit />
+									<Value>SYSTEM</Value>
+								</Parameter>
+							</Row>
+							<Row>
+								<Parameter>
+									<Name>Date</Name>
+									<ID>ID_Method_Audit_Trail_Date12</ID>
+									<Unit />
+									<Value>3/13/2014 5:03:17 PM</Value>
+								</Parameter>
+								<Parameter>
+									<Name>Change Information</Name>
+									<ID>ID_Method_Audit_Trail_Change_Info12</ID>
+									<Unit />
+									<Value>Method saved. User comment: ""</Value>
+								</Parameter>
+								<Parameter>
+									<Name>Operator</Name>
+									<ID>ID_Method_Audit_Trail_Operator12</ID>
+									<Unit />
+									<Value>SYSTEM</Value>
+								</Parameter>
+							</Row>
+						</Table>
+					</Section>
+					<Section>
+						<Name>Run Time Checklist</Name>
+						<ID>Method_Run_Time_Checklist</ID>
+						<Parameter>
+							<Name>Pre-Run Cmd/Macro</Name>
+							<ID>ID_Pre_Run_Cmd_Macro</ID>
+							<Unit />
+							<Value>OFF</Value>
+						</Parameter>
+						<Parameter>
+							<Name>Data Acquisition</Name>
+							<ID>ID_Data_Acquisition</ID>
+							<Unit />
+							<Value>ON</Value>
+						</Parameter>
+						<Parameter>
+							<Name>Standard Data Analysis</Name>
+							<ID>ID_Standard_Data_Analysis</ID>
+							<Unit />
+							<Value>OFF</Value>
+						</Parameter>
+						<Parameter>
+							<Name>Customized Data Analysis</Name>
+							<ID>ID_Customized_Data_Analysis</ID>
+							<Unit />
+							<Value>OFF</Value>
+						</Parameter>
+						<Parameter>
+							<Name>Save GLP Data</Name>
+							<ID>ID_Save_GLP_Data</ID>
+							<Unit />
+							<Value>OFF</Value>
+						</Parameter>
+						<Parameter>
+							<Name>Post-Run Cmd/Macro</Name>
+							<ID>ID_Post_Run_Cmd_Macro</ID>
+							<Unit />
+							<Value>OFF</Value>
+						</Parameter>
+						<Parameter>
+							<Name>Save Method with Data</Name>
+							<ID>ID_Save_Method_with_Data</ID>
+							<Unit />
+							<Value>OFF</Value>
+						</Parameter>
+					</Section>
+				</MethodDescription>
+			</MethodConfiguration>
+			<SampleContexts>
+				<Setup xsi:type="SampleSetupContextType" id="bd666070-29cf-470d-b4c4-cfd589db5bb5" ver="0">
+					<IdentParam_ID xsi:type="SampleContextIdentParamRefType" id="6fc2f3b6-00c2-48d7-af4c-43f4cb3af43a" />
+					<AcqParam_ID xsi:type="SampleContextAcquisitionParamRefType" id="68afa940-90cd-44fc-ae2d-d5f8e738ac29" />
+					<DAParam_ID xsi:type="SampleContextDataAnalysisParamRefType" id="632967c7-2981-4ed5-954d-38dc06b83479" />
+					<SampleSetup_ID xsi:type="SampleSetupRefType" id="f723f8cc-62ce-4268-8aed-3c780d474da9" ver="0" />
+				</Setup>
+				<MeasData xsi:type="SampleMeasDataContextType" id="8d8e4603-f678-47d4-ab04-e3c76f6f06b8" ver="0">
+					<Info>
+						<CreatedBy>
+							<Username />
+						</CreatedBy>
+						<CreatedDate>2014-03-13T21:05:10Z</CreatedDate>
+						<LastModifiedBy>
+							<Username>SYSTEM</Username>
+						</LastModifiedBy>
+					</Info>
+					<SampleSetupContext_ID xsi:type="SampleSetupContextRefType" id="bd666070-29cf-470d-b4c4-cfd589db5bb5" ver="0" />
+					<IdentParam_ID xsi:type="SampleContextIdentParamRefType" id="6fc2f3b6-00c2-48d7-af4c-43f4cb3af43a" />
+					<AcqParam_ID xsi:type="SampleContextAcquisitionParamRefType" id="68afa940-90cd-44fc-ae2d-d5f8e738ac29" />
+					<SampleMeasData_ID xsi:type="SampleMeasDataRefType" id="b51f1122-623e-4ecc-94d9-4ef36816eee7" ver="0" />
+				</MeasData>
+				<Result xsi:type="SampleResultContextType" id="621d5876-dfa4-4a31-89b2-faa303ed4df1" ver="0">
+					<Info>
+						<LastModifiedBy>
+							<Username>SYSTEM</Username>
+						</LastModifiedBy>
+					</Info>
+					<IdentParam_ID xsi:type="SampleContextIdentParamRefType" id="6fc2f3b6-00c2-48d7-af4c-43f4cb3af43a" />
+					<DAParam_ID xsi:type="SampleContextDataAnalysisParamRefType" id="632967c7-2981-4ed5-954d-38dc06b83479" />
+					<SampleSetupContext_ID xsi:type="SampleSetupContextRefType" id="bd666070-29cf-470d-b4c4-cfd589db5bb5" ver="0" />
+					<SampleMeasDataContext_ID xsi:type="SampleMeasDataContextRefType" id="8d8e4603-f678-47d4-ab04-e3c76f6f06b8" ver="0" />
+					<SampleResult_ID xsi:type="SampleResultRefType" id="484b809c-e666-4897-a8a5-3d2db0677726" ver="0" />
+					<DataAnalysisSoftware>ChemStation Rev. C.01.03 [37] Copyright © Agilent Technologies</DataAnalysisSoftware>
+				</Result>
+			</SampleContexts>
+			<SampleContextParams>
+				<IdentParam xsi:type="SampleContextIdentParamType" id="6fc2f3b6-00c2-48d7-af4c-43f4cb3af43a">
+					<Name>SingleSample</Name>
+					<Description />
+					<ContextInfo>
+						<ContentType>SingleSample</ContentType>
+						<SourceType>Undefined</SourceType>
+						<ContentIntegrity>Undefined</ContentIntegrity>
+					</ContextInfo>
+				</IdentParam>
+				<AcqParam xsi:type="SampleContextAcquisitionParamType" id="68afa940-90cd-44fc-ae2d-d5f8e738ac29">
+					<Instrument_ID xsi:type="InstrumentRefType" id="7b76da24-b91c-4c46-85d0-eaaaa9774df8" ver="0" />
+				</AcqParam>
+				<DAParam xsi:type="SampleContextDataAnalysisParamType" id="632967c7-2981-4ed5-954d-38dc06b83479">
+					<BracketingMode>None</BracketingMode>
+				</DAParam>
+			</SampleContextParams>
+			<Samples>
+				<Setup xsi:type="SampleSetupType" id="f723f8cc-62ce-4268-8aed-3c780d474da9" ver="0">
+					<IdentParam_ID xsi:type="SampleIdentParamRefType" id="30ceb569-636c-4bef-b58b-e43e89014ae9" />
+					<AcqParam_ID xsi:type="SampleAcquisitionParamRefType" id="804bd3d2-3364-4ba8-9475-2bf7a46da9a2" />
+					<DAParam_ID xsi:type="SampleDataAnalysisParamRefType" id="3cb5fe3d-3f2e-4aa3-9ba1-e576eef3f42f" />
+					<InjectionSetup_ID xsi:type="InjectionSetupRefType" id="b547bb17-b1b8-4415-8eae-edd57e5ffb8a" ver="0" />
+				</Setup>
+				<MeasData xsi:type="SampleMeasDataType" id="b51f1122-623e-4ecc-94d9-4ef36816eee7" ver="0">
+					<Info>
+						<CreatedBy>
+							<Username />
+						</CreatedBy>
+						<CreatedDate>2014-03-13T21:05:10Z</CreatedDate>
+					</Info>
+					<IdentParam_ID xsi:type="SampleIdentParamRefType" id="30ceb569-636c-4bef-b58b-e43e89014ae9" />
+					<AcqParam_ID xsi:type="SampleAcquisitionParamRefType" id="804bd3d2-3364-4ba8-9475-2bf7a46da9a2" />
+					<SampleSetup_ID xsi:type="SampleSetupRefType" id="f723f8cc-62ce-4268-8aed-3c780d474da9" ver="0" />
+					<InjectionMeasData_ID xsi:type="InjectionMeasDataRefType" id="4e9abc7b-d2f8-46a4-b39f-d07818d9d17c" ver="0" />
+				</MeasData>
+				<Result xsi:type="SampleResultType" id="484b809c-e666-4897-a8a5-3d2db0677726" ver="0">
+					<IdentParam_ID xsi:type="SampleIdentParamRefType" id="30ceb569-636c-4bef-b58b-e43e89014ae9" />
+					<DAParam_ID xsi:type="SampleDataAnalysisParamRefType" id="33487c94-19f3-4629-afed-e71d19dac7e1" />
+					<SampleSetup_ID xsi:type="SampleSetupRefType" id="f723f8cc-62ce-4268-8aed-3c780d474da9" ver="0" />
+					<SampleMeasData_ID xsi:type="SampleMeasDataRefType" id="b51f1122-623e-4ecc-94d9-4ef36816eee7" ver="0" />
+					<InjectionResult_ID xsi:type="InjectionResultRefType" id="f47470aa-55df-4f55-a10b-2f1c8c2189e5" ver="0" />
+				</Result>
+			</Samples>
+			<SampleParams>
+				<IdentParam xsi:type="SampleIdentParamType" id="30ceb569-636c-4bef-b58b-e43e89014ae9">
+					<Name>FAEE Fish Oil</Name>
+					<Description />
+					<LimsID key="" />
+					<LimsID key="" />
+					<LimsID key="" />
+					<Barcode />
+				</IdentParam>
+				<AcqParam xsi:type="SampleAcquisitionParamType" id="804bd3d2-3364-4ba8-9475-2bf7a46da9a2">
+					<OrderNo val="1" />
+					<VialNumber />
+					<NumberOfInjections val="1" />
+					<InjectionVolume val="0" />
+					<InjectorPosition>Front</InjectorPosition>
+				</AcqParam>
+				<DAParam xsi:type="SampleDataAnalysisParamType" id="3cb5fe3d-3f2e-4aa3-9ba1-e576eef3f42f">
+					<Type>Unspecified</Type>
+					<OrderNo val="1" />
+					<SampleAmount val="0" />
+					<DilutionFactor>
+						<CorrectionFactor val="1" />
+					</DilutionFactor>
+					<DilutionFactor>
+						<CorrectionFactor val="0" />
+					</DilutionFactor>
+					<DilutionFactor>
+						<CorrectionFactor val="0" />
+					</DilutionFactor>
+					<DilutionFactor>
+						<CorrectionFactor val="0" />
+					</DilutionFactor>
+					<DilutionFactor>
+						<CorrectionFactor val="0" />
+					</DilutionFactor>
+					<Multiplier>
+						<CorrectionFactor val="1" />
+					</Multiplier>
+					<Multiplier>
+						<CorrectionFactor val="0" />
+					</Multiplier>
+					<Multiplier>
+						<CorrectionFactor val="0" />
+					</Multiplier>
+					<Multiplier>
+						<CorrectionFactor val="0" />
+					</Multiplier>
+					<Multiplier>
+						<CorrectionFactor val="0" />
+					</Multiplier>
+				</DAParam>
+				<DAParam xsi:type="SampleDataAnalysisParamType" id="33487c94-19f3-4629-afed-e71d19dac7e1">
+					<Type>Unspecified</Type>
+					<OrderNo val="1" />
+					<SampleAmount val="0" />
+					<DilutionFactor>
+						<CorrectionFactor val="0" />
+					</DilutionFactor>
+					<DilutionFactor>
+						<CorrectionFactor val="0" />
+					</DilutionFactor>
+					<DilutionFactor>
+						<CorrectionFactor val="0" />
+					</DilutionFactor>
+					<DilutionFactor>
+						<CorrectionFactor val="0" />
+					</DilutionFactor>
+					<DilutionFactor>
+						<CorrectionFactor val="0" />
+					</DilutionFactor>
+					<Multiplier>
+						<CorrectionFactor val="0" />
+					</Multiplier>
+					<Multiplier>
+						<CorrectionFactor val="0" />
+					</Multiplier>
+					<Multiplier>
+						<CorrectionFactor val="0" />
+					</Multiplier>
+					<Multiplier>
+						<CorrectionFactor val="0" />
+					</Multiplier>
+					<Multiplier>
+						<CorrectionFactor val="0" />
+					</Multiplier>
+				</DAParam>
+			</SampleParams>
+			<Injections>
+				<Setup xsi:type="InjectionSetupType" id="b547bb17-b1b8-4415-8eae-edd57e5ffb8a" ver="0">
+					<AcqParam_ID xsi:type="InjectionAcquisitionParamRefType" id="6a005fa8-88f1-4825-bd28-3955c46fc72b" />
+					<DAParam_ID xsi:type="InjectionDataAnalysisParamRefType" id="1643e985-c352-4cd3-8a19-a61cb5094114" />
+				</Setup>
+				<MeasData xsi:type="InjectionMeasDataType" id="4e9abc7b-d2f8-46a4-b39f-d07818d9d17c" ver="0">
+					<Info>
+						<CreatedBy>
+							<Username />
+						</CreatedBy>
+						<CreatedDate>2014-03-13T21:05:10Z</CreatedDate>
+					</Info>
+					<ComplexCustomFields>
+						<CustomField Name="LogFileCheckSum">
+							<Value type="String">3u8Z8U8kRbqzj4LYIgi07yy0LrY=</Value>
+						</CustomField>
+						<CustomField Name="LogFileLength">
+							<Value type="String">624</Value>
+						</CustomField>
+					</ComplexCustomFields>
+					<BinaryData>
+						<DirItem>
+							<Name>FAEE_H85_A15_T3.D</Name>
+							<OriginalFilePath>E:\2014\20140313_JD_DIMERCAPTOTRIAZINE_TAGS</OriginalFilePath>
+							<DataItem>
+								<Name>acq.macaml</Name>
+								<Data>
+									<DataFileReference>
+										<Path>acq.macaml</Path>
+									</DataFileReference>
+								</Data>
+							</DataItem>
+							<DataItem>
+								<Name>acq.txt</Name>
+								<Data>
+									<DataFileReference>
+										<Path>acq.txt</Path>
+									</DataFileReference>
+								</Data>
+							</DataItem>
+							<DataItem>
+								<Name>ACQRES.REG</Name>
+								<Data>
+									<DataFileReference>
+										<Path>ACQRES.REG</Path>
+									</DataFileReference>
+								</Data>
+							</DataItem>
+							<DataItem>
+								<Name>LCDIAG.REG</Name>
+								<Data>
+									<DataFileReference>
+										<Path>LCDIAG.REG</Path>
+									</DataFileReference>
+								</Data>
+							</DataItem>
+							<DataItem>
+								<Name>MSACQINF.REG</Name>
+								<Data>
+									<DataFileReference>
+										<Path>MSACQINF.REG</Path>
+									</DataFileReference>
+								</Data>
+							</DataItem>
+							<DataItem>
+								<Name>MSD1.MS</Name>
+								<Data>
+									<DataFileReference>
+										<Path>MSD1.MS</Path>
+									</DataFileReference>
+								</Data>
+							</DataItem>
+							<DataItem>
+								<Name>MSDIAG.REG</Name>
+								<Data>
+									<DataFileReference>
+										<Path>MSDIAG.REG</Path>
+									</DataFileReference>
+								</Data>
+							</DataItem>
+							<DataItem>
+								<Name>MSPARMS.txt</Name>
+								<Data>
+									<DataFileReference>
+										<Path>MSPARMS.txt</Path>
+									</DataFileReference>
+								</Data>
+							</DataItem>
+							<DataItem>
+								<Name>RUN.LOG</Name>
+								<Data>
+									<DataFileReference>
+										<Path>RUN.LOG</Path>
+									</DataFileReference>
+								</Data>
+							</DataItem>
+							<DataItem>
+								<Name>SAMPLE.XML</Name>
+								<Data>
+									<DataFileReference>
+										<Path>SAMPLE.XML</Path>
+									</DataFileReference>
+								</Data>
+							</DataItem>
+							<DataItem>
+								<Name>SAMPLE.XML.bak</Name>
+								<Data>
+									<DataFileReference>
+										<Path>SAMPLE.XML.bak</Path>
+									</DataFileReference>
+								</Data>
+							</DataItem>
+							<DataItem>
+								<Name>SINGLE.B</Name>
+								<Data>
+									<DataFileReference>
+										<Path>SINGLE.B</Path>
+									</DataFileReference>
+								</Data>
+							</DataItem>
+						</DirItem>
+					</BinaryData>
+					<AcqParam_ID xsi:type="InjectionAcquisitionParamRefType" id="6a005fa8-88f1-4825-bd28-3955c46fc72b" />
+					<InjectionSetup_ID xsi:type="InjectionSetupRefType" id="b547bb17-b1b8-4415-8eae-edd57e5ffb8a" ver="0" />
+					<InjectionSeparationMedium>
+						<AutoDetect>false</AutoDetect>
+						<Position>Unknown</Position>
+						<InjectionCount val="1841" />
+						<UsedForInjection>true</UsedForInjection>
+						<SeparationMedium_ID xsi:type="SeparationMediumRefType" id="aa23f177-6351-4c84-9c6e-b50b1c87e86c" ver="0" />
+					</InjectionSeparationMedium>
+					<ActualInjVolume val="0" />
+					<AcquisitionSoftware>ChemStation Rev. C.01.03 [37] Copyright © Agilent Technologies</AcquisitionSoftware>
+				</MeasData>
+				<Result xsi:type="InjectionResultType" id="f47470aa-55df-4f55-a10b-2f1c8c2189e5" ver="0">
+					<Info>
+						<CreatedDate>2014-03-13T21:05:10Z</CreatedDate>
+						<LastModifiedBy>
+							<Username>SYSTEM</Username>
+						</LastModifiedBy>
+						<LastModifiedDate>2014-03-13T21:37:47.921Z</LastModifiedDate>
+					</Info>
+					<DAParam_ID xsi:type="InjectionDataAnalysisParamRefType" id="1643e985-c352-4cd3-8a19-a61cb5094114" />
+					<InjectionSetup_ID xsi:type="InjectionSetupRefType" id="b547bb17-b1b8-4415-8eae-edd57e5ffb8a" ver="0" />
+					<InjectionMeasData_ID xsi:type="InjectionMeasDataRefType" id="4e9abc7b-d2f8-46a4-b39f-d07818d9d17c" ver="0" />
+				</Result>
+			</Injections>
+			<InjectionParams>
+				<AcqParam xsi:type="InjectionAcquisitionParamType" id="6a005fa8-88f1-4825-bd28-3955c46fc72b">
+					<Method_ID xsi:type="MethodRefType" id="3327e94d-a3f4-4c1a-bdf4-9041d7eb0d14" ver="0" />
+					<OrderNo val="1" />
+				</AcqParam>
+				<DAParam xsi:type="InjectionDataAnalysisParamType" id="1643e985-c352-4cd3-8a19-a61cb5094114">
+					<OrderNo val="1" />
+				</DAParam>
+			</InjectionParams>
+		</Content>
+	</Doc>
+</ACAML>
