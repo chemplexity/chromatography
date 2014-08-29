@@ -1,7 +1,11 @@
-#Chromatography Tools
+#Chromatography Toolbox
 
 |Open-source code for processing chromatography data in the MATLAB programming environment.|![Imgur](http://i.imgur.com/K25Rfsa.png)|
 |:--|--:|
+
+##Download
+
+Select the [`Download ZIP`](https://github.com/chemplexity/chromatography/archive/master.zip) button on this page or visit the [MATLAB File Exchange](http://www.mathworks.com/matlabcentral/fileexchange/47696-chromatography-toolbox) to download a copy of the current release.
 
 ##Features
 
