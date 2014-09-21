@@ -4,10 +4,10 @@
 obj = FileIO;
 
 % Import sample data
-data = obj.import('.D');
+data = obj.import('FileExtension', '.D');
 
 % Print the amount of time spent converting the raw data
-sprintf([num2str(sum([data.processing_time_import]), '%6.3f'), ' seconds'])
+sprintf(['Processing time: ', num2str(sum([data.processing_time_import]), '%6.3f'), ' seconds'])
 
 % Plot the total ion chromatograms from each file
 for i = 1:length(data)

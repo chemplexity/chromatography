@@ -1,5 +1,3 @@
-% James Dillon @ Brown University (2014)
-%
 % Method: ImportAgilent
 % Description: Extract LC/MS data from Agilent (.MS) files
 %
@@ -7,8 +5,7 @@
 %   data = ImportAgilent(file);   
 %
 % Examples:
-%   Import LC/MS data into the MATLAB workspace.
-%       data = ImportAgilent('MSD1.MS');
+%   data = ImportAgilent('MSD1.MS');
 
 function data = ImportAgilent(file)
 

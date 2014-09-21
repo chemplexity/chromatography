@@ -1,5 +1,3 @@
-% James Dillon @ Brown University (2014)
-%
 % Method: ImportCDF
 % Description: Extract LC/MS data from netCDF (.CDF) files
 %
@@ -7,8 +5,7 @@
 %   data = ImportCDF(file);   
 %
 % Examples:
-%   Import LC/MS data into the MATLAB workspace.
-%       data = ImportCDF('001-0510.CDF');
+%   data = ImportCDF('001-0510.CDF');
 
 function data = ImportCDF(file)
 
