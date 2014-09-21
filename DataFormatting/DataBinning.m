@@ -12,9 +12,9 @@
 %   data = DataBinning(data)
 %   data = DataBinning(data, 'Samples', [1:6, 9, 12])
 %   data = DataBinning(data, 'BinSize', 0.5)
-%   data = DataBinning(data, 'Samples', 'all', 'BinSize', 1.0)
+%   data = DataBinning(data, 'Samples', 'all', 'BinSize', 0.25)
 
-function data = DataBinning(data, varargin)
+function varargout = DataBinning(data, varargin)
 
 % Check number of inputs
 if nargin < 2
@@ -30,7 +30,7 @@ if nargin < 2
     samples = 1:length(data);
     binsize = 0.50;
     
-elseif narargin > 2
+elseif nargin > 2
 
     % Check options
     samples_index = find(strcmp(varargin, 'Samples'));
@@ -49,14 +49,23 @@ elseif narargin > 2
     else
         binsize = 0.50;
     end
+    
+    % Check sample values
+    if strcmp(samples, 'all')
+        samples = 1:length(data);
+        
+    % Check for invalid index values
+    elseif any(samples > length(data))
+        samples = samples(samples < length(data));
+    end 
 end
 
 % Bin intensity values
 for i = 1:length(samples)
     
     % Bin data
-    mass_values = data(i).mass_values;
-    intensity_values = data(i).intensity_values;
+    mass_values = data(samples(i)).mass_values;
+    intensity_values = data(samples(i)).intensity_values;
     
     % Round mass values
     mass_values_bin = unique(round(mass_values / 1.0) * 1.0);
@@ -76,7 +85,9 @@ for i = 1:length(samples)
     end
     
     % Update intensity values
-    data(i).intensity_values = intensity_values_bin;
-    data(i).mass_values = mass_values_bin;
+    data(samples(i)).intensity_values = intensity_values_bin;
+    data(samples(i)).mass_values = mass_values_bin;
 end
+
+varargout{1} = data;
 end
