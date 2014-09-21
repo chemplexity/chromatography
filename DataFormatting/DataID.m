@@ -1,14 +1,16 @@
 % Method: DataID
-% Description: Create a database of ion names
+% Description: Apply names to available ions
 %
 % Syntax:
-%   data = DataID(data, 'OptionName', optionvalue...)
+%   data = DataID(data, names)
 %
-%   Options:
-%       ID : {name1, mz1; name2, mz2...}
+%       data: structure 
+%       names: {name1, mz1; name2, mz2...}, library, DataLibrary
 %
 % Examples:
-%   data = DataStructure(data, 'ID', {'C18:1', 311; 'C18:2', 309})
+%   data = DataID(data, {'C18:1', 311; 'C18:2', 309})
+%   data = DataID(data, library)
+%   data = DataID(data, DataLibrary)
 
 function data = DataID(data, varargin)
 
@@ -18,36 +20,60 @@ if nargin < 2
     
 elseif nargin >= 2
     
-    % Check input
-    id_index = find(strcmp(varargin, 'ID'));
-    
-    % Check for empty values
-    if ~isempty(id_index)
-        id = varargin{id_index + 1};
+    % Check data for correct fields
+    if isstruct(data)
+        data = DataStructure('Validate', data);
     else
+        disp('[Error] Invalid input (Data)');
         return
     end
     
+    % Check for empty values
+    if ~isempty(varargin{1})
+        id = varargin{1};
+    else
+        disp('[Error] Invalid input (IDs)');
+        return
+    end
+    
+    % Check if input is library structure
+    if isstruct(id) && isfield(id, 'compound') && isfield(id, 'mz')
+        
+        % Extract values
+        id_values(:,1) = {id.compound};
+        id_values(:,2) = {id.mz};
+        
+    % Check if input is user defined cell
+    elseif iscell(id)
+        id_values = id;
+    
+    else
+        disp('[Error] Invalid format (IDs)');
+        return
+    end
+
     % Check values are correctly formatted
-    if ~isnumeric([id{:,2}])
-        sprintf('Illegal formatting')
+    if ~isnumeric([id_values{:,2}])
+        disp('[Error] Invalid format (m/z values)');
         return
     end
     
     for i = 1:length(data)
         
-        % Check for empty ID field
+        % Check for empty ID fields
         if length(data(i).mass_values) > length(data(i).mass_values_id)
-            data(i).mass_values_id{length(data(i).mass_values)} = '';        
+            data(i).mass_values_id{length(data(i).mass_values)} = '';      
+            
+        % Check for excess ID fields
         elseif length(data(i).mass_values) < length(data(i).mass_values_id)
             data(i).mass_values_id = [];
             data(i).mass_values_id{length(data(i).mass_values)} = '';
         end
         
         % Find column index of input
-        [data_index, id_index] = ismember(data(i).mass_values, [id{:,2}]);
-                
+        [data_index, id_index] = ismember(data(i).mass_values, [id_values{:,2}]);
+
         % Update ion names
-        data(i).mass_values_id(data_index) = id(id_index(id_index>0),1);    
+        data(i).mass_values_id(data_index) = id_values(id_index(id_index>0),1);    
     end
 end
