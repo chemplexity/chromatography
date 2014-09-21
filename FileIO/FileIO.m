@@ -9,7 +9,7 @@
 %
 %   Options:
 %       Data : dataset
-%       Extension : extension
+%       FileExtension : extension
 %
 %   File Extensions:
 %       Agilent : .D, .MS
