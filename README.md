@@ -9,16 +9,29 @@ Select the [`Download ZIP`](https://github.com/chemplexity/chromatography/archiv
 
 ##Features
 
-Check out our [in-depth guide](https://github.com/chemplexity/chromatography/wiki/) for a full overview of features.
+Check out the [in-depth guide](https://github.com/chemplexity/chromatography/wiki/) for a full overview of features.
 
 ####File Conversion
 
 Import raw signal data into the MATLAB workspace. Supported file types include:
 
 **LC/MS Files**
-  *  Agilent (.D)
+  *  Agilent (.D, .MS)
   *  netCDF (.CDF)  
 
+####Data Processing
+
+Available methods for data processing include:
+
+**Preprocessing**
+  * Baseline Correction
+
+**Peak Detection**
+  * Derivative Filter
+ 
+**Peak Area**
+  * Curve Fitting
+ 
 ####System Requirements
 
 Current release stable on the following systems:
@@ -41,17 +54,19 @@ obj = FileIO
 Import files using the `import` method. For example, the following command will prompt you to select Agilent (.D) files to import into the MATLAB workspace:
 
 ````matlab
-data = obj.import('.D')
+data = obj.import('FileType', '.D')
 ````
 
-Append an existing data structure with additional files of any supported file type. Just include the name of your data structure when using the `import` method.
+####Baseline Correction
+
+Use the `BaselineCorrection` class for baseline correction. Intialize the `BaselineCorrection` class with the command:
 
 ````matlab
-data = obj.import('.D', data)
+obj = BaselineCorrection
 ````
 
-Need more help using the `FileIO` class? Use the `help` method on the MATLAB command line to print available methods and syntax for the `FileIO` class.
+Calculate baselines with the `baseline` method. For example, determine the baseline for each ion chromatogram in your LC/MS dataset:
 
 ````matlab
-obj.help
+data = obj.baseline(data, 'Samples', 'all', 'Ions', 'all')
 ````
