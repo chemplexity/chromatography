@@ -9,7 +9,7 @@
 %
 %   Options:
 %       Data : dataset
-%       FileType : extension
+%       Filetype : extension
 %
 %   File Extensions:
 %       Agilent : .D, .MS
@@ -19,10 +19,10 @@
 %   obj.help
 %
 % Examples:
-%   data = obj.import('FileType', '.D')
-%   data = obj.import('FileType', '.CDF')
-%   data = obj.import('Data', data, 'FileExtension', '.D')
-%   data = obj.import('Data', data, 'FileExtension', '.CDF')
+%   data = obj.import('Filetype', '.D')
+%   data = obj.import('Filetype', '.CDF')
+%   data = obj.import('Data', data, 'Filetype', '.D')
+%   data = obj.import('Data', data, 'Filetype', '.CDF')
 
 classdef FileIO
     
@@ -54,14 +54,20 @@ classdef FileIO
             elseif nargin >= 2
                 
                 % Check options
-                extension_index = find(strcmp(varargin, 'FileType'));
+                extension_index = find(strcmp(varargin, 'Filetype'));
+                extension_index_backup = find(strcmp(varargin, 'FileType'));
                 data_index = find(strcmp(varargin, 'Data'));
                 
                 % Check file extension options
                 if ~isempty(extension_index)
                     file_extension = varargin{extension_index + 1};
                 else
-                    return
+                    % Check alternative case
+                    if ~isempty(extension_index_backup)
+                        file_extension = varargin{extension_index_backup + 1};
+                    else
+                        return
+                    end
                 end
                 
                 % Check data options
@@ -140,7 +146,7 @@ classdef FileIO
             for j = 1:length(id)
                 import_data(j).id = id(j);
                 import_data(j).file_type = file_extension;
-                import_data(j).processing_time_import = processing_time(j);
+                import_data(j).diagnostics.processing_time_import = processing_time(j);
             end
             
             % Concatenate imported data with existing data
@@ -156,7 +162,7 @@ classdef FileIO
                 '   Initialize    : obj = FileIO \n'...
                 '   Import        : obj.import(''OptionName'', optionvalue) \n'...
                 '   Help          : obj.help \n\n'...
-                'Options \n'...
+                'Import \n'...
                 '   Data          : data \n'...
                 '   FileType      : type \n\n'...
                 'File Extensions \n'...

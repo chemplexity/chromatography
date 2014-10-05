@@ -10,9 +10,9 @@
 %       ShowAll  : 'classes', 'subclasses', 'compounds'
 %
 % Examples:
-%   list = DataLibrary('Class', 'FAEEs')
+%   list = DataLibrary('Subclass', 'FAEEs')
 %   list = DataLibrary('Class', 'Alkenones')
-%   list = DataLibrary('Class', 'All')
+%   list = DataLibrary('ShowAll', 'subclasses')
 
 function varargout = DataLibrary(varargin)
 

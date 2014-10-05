@@ -1,5 +1,5 @@
 % Method: DataBinning
-% Description: LC/MS data binning for full scan spectra
+% Description: LC/MS data binning of full scan spectra
 %
 % Syntax:
 %   data = DataBinning(data, 'OptionName', optionvalue...)

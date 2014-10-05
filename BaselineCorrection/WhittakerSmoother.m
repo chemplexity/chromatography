@@ -6,7 +6,7 @@
 %
 %   Options:
 %       Smoothness : 10^3 to 10^9
-%       Asymmetry  : 10^1 to 10^-5
+%       Asymmetry  : 10^1 to 10^-6
 %
 % Examples:
 %   baseline = WhittakerSmoother(y)
@@ -17,12 +17,12 @@
 % References:
 %   -P.H.C. Eilers, Analytical Chemistry, 75 (2003) 3631
 
-function baseline = WhittakerSmoother(y, varargin)
+function varargout = WhittakerSmoother(y, varargin)
 
 % Check input
 if nargin == 1
-    smoothness = 10^5;
-    asymmetry = 10^-3;
+    smoothness = 10^6;
+    asymmetry = 10^-6;
     
 % Check options
 elseif nargin > 2
@@ -55,7 +55,19 @@ end
 
 % Ensure y is double precision
 y = double(y);
+
+% Check following conditions
+for i = 1:length(y(1,:))
     
+    % Correct for negative y-values
+    if min(y(:,i)) < 0
+        correction(i) = abs(min(y(:,i)));
+        y(:,i) = y(:,i) + correction(i);
+    else
+        correction(i) = 0;
+    end
+end
+
 % Perform baseline calculation on each vector
 for i = 1:length(y(1,:))
     
@@ -89,4 +101,16 @@ for i = 1:length(y(1,:))
         end
     end
 end
+
+% Format output
+for i = 1:length(y(1,:))
+    
+    % Correct for negative y-values
+    if correction(i) > 0
+        baseline(:,i) = baseline(:,i) - correction(i);
+    end
+end
+
+% Output
+varargout{1} = baseline;
 end
