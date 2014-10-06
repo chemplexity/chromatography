@@ -99,3 +99,29 @@ Calculate peak area using the `integrate` method. Use the following command to a
 data = obj.integrate(data, 'Samples', 'all', 'Ions', 'all')
 ````
 
+####Misc.
+
+Use the `Normalize` method to normalize a signal between 0 and 1:
+
+````matlab
+y = Normalize(y)
+````
+
+Take the derivative of a signal using the `Derivative` method:
+
+````matlab
+dy = Derivative(y)
+````
+
+Calculate the derivative of a signal to the n<sup>th</sup> degree with the `Degree` option. For example, to return the fourth derivative of a signal, issue the following command:
+
+````matlab
+dy = Derivative(y, 'Degree', 4)
+````
+
+Obtain better results when determining the derivative signal by including the `Smoothing` option:
+
+````matlab
+dy = Derivative(y, 'Degree', 4, 'Smoothing', true)
+````
+
