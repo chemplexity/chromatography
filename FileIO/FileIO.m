@@ -22,11 +22,12 @@
 %   data = obj.import('Filetype', '.D')
 %   data = obj.import('Filetype', '.CDF')
 %   data = obj.import('Data', data, 'Filetype', '.D')
-%   data = obj.import('Data', data, 'Filetype', '.CDF')
+%   data = obj.import('Data', data, 'Filetype', '.MS')
 
 classdef FileIO
     
     properties (SetAccess = private)
+        
         % File extensions
         extensions
     end
@@ -54,20 +55,19 @@ classdef FileIO
             elseif nargin >= 2
                 
                 % Check options
-                extension_index = find(strcmp(varargin, 'Filetype'));
-                extension_index_backup = find(strcmp(varargin, 'FileType'));
-                data_index = find(strcmp(varargin, 'Data'));
+                extension_index = find(strcmpi(varargin, 'filetype'));
+                data_index = find(strcmpi(varargin, 'data'));
                 
                 % Check file extension options
                 if ~isempty(extension_index)
                     file_extension = varargin{extension_index + 1};
-                else
-                    % Check alternative case
-                    if ~isempty(extension_index_backup)
-                        file_extension = varargin{extension_index_backup + 1};
-                    else
-                        return
+                    
+                    % Check valid file extension
+                    if ~any(strcmp(file_extension, obj.extensions))
+                        error('Undefined file type');
                     end
+                else
+                    error('Undefined file type');
                 end
                 
                 % Check data options
@@ -146,7 +146,12 @@ classdef FileIO
             for j = 1:length(id)
                 import_data(j).id = id(j);
                 import_data(j).file_type = file_extension;
+                
+                % Update diagnostics
                 import_data(j).diagnostics.processing_time_import = processing_time(j);
+                import_data(j).diagnostics.system_os = computer;
+                import_data(j).diagnostics.system_version = version;
+                import_data(j).diagnostics.system_date = now;
             end
             
             % Concatenate imported data with existing data
@@ -165,7 +170,7 @@ classdef FileIO
                 'Import \n'...
                 '   Data          : data \n'...
                 '   FileType      : type \n\n'...
-                'File Extensions \n'...
+                'FileType Options \n'...
                 '   Agilent       : .D, .MS \n'...
                 '   netCDF        : .CDF \n\n'...
                 'Examples \n'...
