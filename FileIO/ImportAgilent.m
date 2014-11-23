@@ -1,16 +1,78 @@
 % Method: ImportAgilent
-% Description: Extract LC/MS data from Agilent (.MS) files
+% Description: Extract LC/MS data from Agilent (.D, .MS) files
 %
 % Syntax:
 %   data = ImportAgilent(file);   
 %
 % Examples:
 %   data = ImportAgilent('MSD1.MS');
+%   data = ImportAgilent('Trial1.D');
 
 function data = ImportAgilent(file)
 
+% Check input
+if ~ischar(file)
+    error('Input must be a string')
+end
+
 % Read file_name
 data.file_name = file;
+
+% Check file extension
+[~, file] = fileattrib(data.file_name);
+[~, ~, extension] = fileparts(file.Name);
+
+% Read .MS files
+if strcmp(extension, '.MS')
+    file = file.Name;
+
+% Read .D files
+elseif strcmp(extension, '.D')
+    
+    % Set folder path
+    path(file.Name, path);
+    
+    % List folder contents
+    foldercontents = ls(file.Name);
+    
+    % Format folder contents
+    if length(foldercontents(:,1)) == 1 || length(foldercontents(1,:)) == 1
+        foldercontents = strsplit(foldercontents);
+    else
+        foldercontents = cellstr(foldercontents);
+    end
+    
+    % Check for any input
+    if ~length([foldercontents{:}]) > 0
+        error('Data not found')
+    end
+            
+    % Parse folder contents
+    for i = 1:length(foldercontents)
+                
+        % List all files
+        [files{i,1}, files{i,2}, files{i,3}] = ...
+            fileparts(fullfile(file.Name, foldercontents{i}));
+
+        % List all paths
+        files{i,4} = fullfile(file.Name, foldercontents{i});
+    end
+    
+    % Remove entries with incorrect filetype
+    files(~strcmp(files(:,3), '.MS'), :) = [];
+    
+    % Check for any input
+    if isempty(files{1,3})
+        error('Data not found')
+    end
+            
+    % Output data file
+    file = files{1,4};
+
+% Incorrect file extension
+else
+    error('Incorrect file extension');
+end
 
 % Open file
 file = fopen(file);
@@ -74,6 +136,9 @@ for i = 1:scans
     fseek(file, position, 'bof');
 end
 
+% Close file
+fclose(file);
+
 % Reshape mixed_values (Row 1 = mass_values; Row 2 = intensity_values)
 mixed_values = reshape(mixed_values, 2, []);
 
@@ -121,6 +186,4 @@ else
     del_col = find(del_col == 0) + 1;
     data.intensity_values(:, del_col) = [];
 end
-
-fclose(file);
 end
