@@ -1,42 +1,51 @@
 % Method: PeakDerivative
-% Description: Find peak inflection points from derivative signal
+%  -Find peak inflection points from derivative signal
 %
-% Syntax:
-%   [edges, center] = PeakDerivative(x, y, 'OptionName', optionvalue...)
+% Syntax
+%   PeakDerivative(x, y)
+%   PeakDerivative(x, y, 'OptionName', optionvalue...)
 %
-%   Options:
-%       WindowCenter : center
-%       WindowSize   : width
-%       Extend     : amount
+% Options
+%   'center'   : value
+%   'width'    : value
+%   'coverage' : value
 %
-% Examples:
+% Description
+%   x          : array
+%   y          : array or matrix
+%   'center'   : search for peak at center value -- (default: x at max(y))
+%   'width'    : search for peak at center +/- width/2 -- (default: 2)
+%   'coverage' : amount to extend past inflection points to search peak boundaries (default: 1)
+%
+% Examples
 %   [edges, center] = PeakDerivative(x, y)
-%   [edges, center] = PeakDerivative(x, y, 'WindowCenter', 10.5, 'WindowSize', 5)
-%   [edges, center] = PeakDerivative(x, y, 'WindowSize', 4, 'Extended', 0.50)
+%   [edges, center] = PeakDerivative(x, y, 'center', 22.10)
+%   [edges, center] = PeakDerivative(x, y, 'center', 12.44, 'width', 0.24)
 
 function varargout = PeakDerivative(x, y, varargin)
 
 % Check input type
 if ~isnumeric(x) || ~isnumeric(y)
-    fprintf('[Error] Invalid format (non-array)');
-    return
-% Check input vector length
+    error('Undefined input arguments of type ''xy''');
 elseif length(x(:,1)) ~= length(y(:,1))
-    fprintf('[Error] Invalid format (x,y unequal lengths)');
-    return
+    error('Index of input arguments unequal');
 else
     x = double(x);
     y = double(y);
 end
     
 % Check for window center input
-if ~isempty(find(strcmp(varargin, 'WindowCenter'), 1))
-    center = varargin{find(strcmp(varargin, 'WindowCenter')) + 1};
+if ~isempty(find(strcmp(varargin, 'center'), 1))
+    center = varargin{find(strcmp(varargin, 'center')) + 1};
     
-    % Allow empty input
+    % Check user input
     if isempty(center)
         [~, index] = max(y);
-        center = x(index);
+        center = x(index);    
+    elseif ~isnumeric(center)
+        error('Undefined input arguments of type ''center''');
+    elseif center > max(x) || center < min(x)
+        center = [];
     end
 else
     [~, index] = max(y);
@@ -44,20 +53,24 @@ else
 end
     
 % Check for window size input
-if ~isempty(find(strcmp(varargin, 'WindowSize'), 1))
-    width = varargin{find(strcmp(varargin, 'WindowSize')) + 1};
+if ~isempty(find(strcmp(varargin, 'width'), 1))
+    width = varargin{find(strcmp(varargin, 'width')) + 1};
     
     % Allow empty input
     if isempty(width)
-        width = 2.5;
+        width = 3;
+    elseif ~isnumeric(width)
+        error('Undefined input arguments of type ''width''');
+    elseif width > max(x) || width < 0
+        width = [];
     end
 else
-    width = 2.5;
+    width = 3;
 end
     
 % Check for extend input
-if ~isempty(find(strcmp(varargin, 'Extend'), 1))
-    extend = varargin{find(strcmp(varargin, 'Extend')) + 1};
+if ~isempty(find(strcmp(varargin, 'coverage'), 1))
+    extend = varargin{find(strcmp(varargin, 'coverage')) + 1};
 else
     extend = 1;
 end

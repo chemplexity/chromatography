@@ -1,11 +1,14 @@
 % Method: ImportCDF
-% Description: Extract LC/MS data from netCDF (.CDF) files
+%  -Extract LC/MS data from netCDF (.CDF) files
 %
 % Syntax:
-%   data = ImportCDF(file);   
+%   data = ImportCDF(file)
+%
+% Description:
+%   file: name of data file with valid extension (.CDF)
 %
 % Examples:
-%   data = ImportCDF('001-0510.CDF');
+%   data = ImportCDF('001-0510.CDF')
 
 function data = ImportCDF(file)
 

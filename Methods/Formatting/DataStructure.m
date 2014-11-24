@@ -1,17 +1,20 @@
 % Method: DataStructure
-% Description: Create or validate a chromatography data structure 
+%  -Create or validate a chromatography data structure 
 %
-% Syntax:
+% Syntax
 %   data = DataStructure('OptionName', optionvalue...)
 %
-%   Options:
-%       Validate : data
+% Options
+%   'validate' : data
 %
-% Examples:
+% Description
+%   'validate' : check fields of an existing data structure
+% 
+% Examples
 %   data = DataStructure()
-%   data = DataStructure('Validate', data)
+%   data = DataStructure('validate', data)
 
-function varargout = DataStructure(varargin)
+function data = DataStructure(varargin)
 
 % Field names
 basic_fields = {...
@@ -49,9 +52,15 @@ diagnostic_fields = {...
     'system_os',...
     'system_version',...
     'system_date',...
-    'processing_time_import',...
-    'processing_time_baseline',...
-    'processing_time_peaks'...
+    'import',...
+    'baseline',...
+    'integration'
+    };
+
+processing_fields = {...
+    'processing_time',...
+    'processing_spectra',...
+    'processing_spectra_length'...
     };
 
 % Check number of inputs
@@ -59,15 +68,15 @@ if nargin < 2
     
     % Create an empty data structure
     values{length(basic_fields)} = [];
-    varargout{1} = cell2struct(values, basic_fields, 2);
+    data = cell2struct(values, basic_fields, 2);
     
     % Clear first line
-    varargout{1}(1) = [];
+    data(1) = [];
 
 elseif nargin >= 2
     
     % Check input
-    data_index = find(strcmp(varargin, 'Validate'));
+    data_index = find(strcmpi(varargin, 'validate'));
     
     % Check for empty values
     if ~isempty(data_index)
@@ -88,14 +97,15 @@ elseif nargin >= 2
     % Check for processing time fields
     for i = 1:length(data)
         data(i).diagnostics = check(data(i).diagnostics, diagnostic_fields);
+        data(i).diagnostics.import = check(data(i).diagnostics.import, processing_fields);
+        data(i).diagnostics.baseline = check(data(i).diagnostics.baseline, processing_fields);
+        data(i).diagnostics.integration = check(data(i).diagnostics.integration, processing_fields);
     end
-    
-    varargout{1} = data;
 end
 end
 
 % Validate structure
-function varargout = check(structure, fields)
+function structure = check(structure, fields)
 
 % Check structure input
 if ~isstruct(structure)
@@ -125,7 +135,4 @@ else
         end
     end
 end
-
-% Output modified structure
-varargout{1} = structure;
 end

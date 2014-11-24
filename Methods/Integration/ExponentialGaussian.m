@@ -1,48 +1,71 @@
 % Method: ExponentialGaussian
-% Description: Curve fitting with the exponentially modified gaussian equation.
+%  -Curve fitting with the exponentially modified gaussian equation
 %
-% Syntax:
-%   peaks = ExponentialGaussian(x, y, 'OptionName', optionvalue...)
+% Syntax
+%   ExponentialGaussian(x, y)
+%   ExponentialGaussian(x, y, 'OptionName', optionvalue...)
 %
-%   Options:
-%       WindowCenter : center
-%       WindowSize   : width
+% Options
+%   'center' : value
+%   'width'  : value
 %
-% Examples:
+% Description
+%   x        : array
+%   y        : array or matrix
+%   'center' : search for peak at center value -- (default: x at max(y))
+%   'width'  : search for peak at center +/- width/2 -- (default: 2)
+%
+% Examples
 %   peaks = ExponentialGaussian(x, y)
-%   peaks = ExponentialGaussian(x, y, 'WindowCenter', 22.10)
-%   peaks = ExponentialGaussian(x, y, 'WindowCenter', 12.44, 'WindowSize', 0.24)
+%   peaks = ExponentialGaussian(x, y, 'center', 22.10)
+%   peaks = ExponentialGaussian(x, y, 'center', 12.44, 'width', 0.24)
 %   
-% References:
-%   -Y. Kalambet, et.al., J. Chemometrics, 25 (2011) 352
+% References
+%   Y. Kalambet, et.al, Journal of Chemometrics, 25 (2011) 352
 
-function varargout = ExponentialGaussian(x, y, varargin)
+function peaks = ExponentialGaussian(x, y, varargin)
 
 % Check input type, length, precision
 if ~isnumeric(x) || ~isnumeric(y)
-    fprintf('[Error] Invalid format (non-array)');
-    return
+    error('Undefined input arguments of type ''xy''');
 elseif length(x(:,1)) ~= length(y(:,1))
-    fprintf('[Error] Invalid format (x,y unequal lengths)');
-    return
+    error('Index of input arguments unequal');
 else
     x = double(x);
     y = double(y);
 end
     
-% Check for window center input
-if ~isempty(find(strcmp(varargin, 'WindowCenter'),1))
-    window_center = varargin{find(strcmp(varargin, 'WindowCenter'),1) + 1};
+% Check window center options
+if ~isempty(find(strcmp(varargin, 'center'),1))
+    window_center = varargin{find(strcmp(varargin, 'center'),1) + 1};
+    
+    % Check user input
+    if isempty(window_center)
+        window_center = [];
+    elseif ~isnumeric(window_center)
+        error('Undefined input arguments of type ''center''');
+    elseif window_center > max(x) || window_center < min(x)
+        window_center = [];
+    end
 else
-    % Default to empty window center
+    % Default window center
     window_center = [];
 end
     
-% Check for window size input
-if ~isempty(find(strcmp(varargin, 'WindowSize'),1))
-    window_size = varargin{find(strcmp(varargin, 'WindowSize'),1) + 1};
+% Check window size options
+if ~isempty(find(strcmp(varargin, 'width'),1))
+    window_size = varargin{find(strcmp(varargin, 'width'),1) + 1};
+    
+    % Check user input
+    if isempty(window_size)
+        window_size = [];
+    elseif ~isnumeric(window_size)
+        error('Undefined input arguments of type ''width''');
+    elseif window_size > max(x) || window_size < min(x)
+        window_size = [];
+    end
 else
-    % Default to empty window size
+    % Default window size
     window_size = [];
 end
 
@@ -65,16 +88,16 @@ peaks = cell2struct(values, peak_fields, 2);
 exponential_gaussian = @(x,c,h,w,e) h * exp(-((c-x).^2) ./ (2*(w^2))) .* (w/e) .* ((pi/2)^0.5) .* erfcx((1/(2^0.5)) .* (((c-x) ./ w) + (w/e)));
 
 % Fetch peak locations
-[edges, center] = PeakDerivative(x,y,'WindowCenter', window_center,'WindowSize', window_size, 'Extend', 0.50);
+[edges, center] = PeakDerivative(x,y,'center', window_center,'width', window_size, 'coverage', 0.50);
 
-% Single vector or matrix input
+% Curve fitting algorithm
 for i = 1:length(y(1,:))
     
     % Define variables
     c = center(i);
     w = edges(i,2) - edges(i,1);
     h = y(find(x >= c, 1), i);
-    e = 0.1;
+    e = 0.5;
     
     % Proceed if peak center within limits
     if c ~= 0 && c-(w/2) > min(x) && c+(w/2) < max(x)
@@ -152,15 +175,15 @@ for i = 1:length(y(1,:))
 
             % Normalized RMSD
             norm_rmsd = rmsd / (max(y(left:right,i)) - min(y(left:right,i)));
-            error = norm_rmsd * 100;
+            fit_error = norm_rmsd * 100;
         else
             area = 0;
-            error = 0;
+            fit_error = 0;
         end
     else 
         opt = [0,0];
         area = 0;
-        error = 0;
+        fit_error = 0;
         fit = zeros(length(y(:,i)),1);
         residuals = zeros(length(y(:,i)),1);
     end
@@ -172,10 +195,7 @@ for i = 1:length(y(1,:))
     peaks.peak_area(i) = area;
     peaks.peak_fit(:,i) = fit;
     peaks.peak_fit_residuals(:,i) = residuals;
-    peaks.peak_fit_error(i) = error;
+    peaks.peak_fit_error(i) = fit_error;
     peaks.peak_fit_options(i) = opt(2);
 end
-
-% Set output
-varargout{1} = peaks;
 end
