@@ -1,12 +1,15 @@
 % Method: ImportAgilent
-% Description: Extract LC/MS data from Agilent (.D, .MS) files
+%  -Extract LC/MS data from Agilent (.D, .MS) files
 %
 % Syntax:
-%   data = ImportAgilent(file);   
+%   data = ImportAgilent(file)
+%
+% Description:
+%   file: name of data file with valid extension (.D, .MS)
 %
 % Examples:
-%   data = ImportAgilent('MSD1.MS');
-%   data = ImportAgilent('Trial1.D');
+%   data = ImportAgilent('MSD1.MS')
+%   data = ImportAgilent('Trial1.D')
 
 function data = ImportAgilent(file)
 
