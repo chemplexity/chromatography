@@ -32,7 +32,7 @@
 function data = integrate(obj, varargin)
 
 % Check number of inputs
-if nargin < 3
+if nargin < 2
     error('Not enough input arguments');
 elseif nargin > 10
     error('Too many input arguments');
@@ -93,7 +93,7 @@ if ~isempty(find(strcmpi(varargin, 'width'),1))
         error('Undefined input arguments of type ''width''');
     end
 else
-    % Default center options
+    % Default width options
     width = [];
 end
 

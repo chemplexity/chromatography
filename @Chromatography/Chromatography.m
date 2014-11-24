@@ -39,6 +39,9 @@ classdef Chromatography
             
             % Integration options
             obj.options.integration.type = 'exponential gaussian';
+            
+            % Visualization options
+            obj.options.visualization.position = [0.1, 0.15, 0.8, 0.7];
         end
 
         % Import method
@@ -49,5 +52,8 @@ classdef Chromatography
         
         % Integration method
         data = integrate(obj, varargin);
+        
+        % Visualize method
+        visualize(obj, varargin);
     end
 end
