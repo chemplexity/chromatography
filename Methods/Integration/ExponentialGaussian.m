@@ -69,6 +69,20 @@ else
     window_size = [];
 end
 
+% Check extra options
+if ~isempty(find(strcmp(varargin, 'extra'),1))
+    exponent = varargin{find(strcmp(varargin, 'extra'),1) + 1};
+else
+    exponent = 0.1;
+end
+
+% Check coverage options
+if ~isempty(find(strcmp(varargin, 'coverage'),1))
+    coverage = varargin{find(strcmp(varargin, 'coverage'),1) + 1};
+else
+    coverage = 1;
+end
+
 % Create output data structure 
 peak_fields = {...
     'peak_time',...
@@ -88,7 +102,7 @@ peaks = cell2struct(values, peak_fields, 2);
 exponential_gaussian = @(x,c,h,w,e) h * exp(-((c-x).^2) ./ (2*(w^2))) .* (w/e) .* ((pi/2)^0.5) .* erfcx((1/(2^0.5)) .* (((c-x) ./ w) + (w/e)));
 
 % Fetch peak locations
-[edges, center] = PeakDerivative(x,y,'center', window_center,'width', window_size, 'coverage', 0.50);
+[edges, center] = PeakDerivative(x,y,'center', window_center,'width', window_size, 'coverage', coverage);
 
 % Curve fitting algorithm
 for i = 1:length(y(1,:))
@@ -97,7 +111,7 @@ for i = 1:length(y(1,:))
     c = center(i);
     w = edges(i,2) - edges(i,1);
     h = y(find(x >= c, 1), i);
-    e = 0.5;
+    e = exponent;
     
     % Proceed if peak center within limits
     if c ~= 0 && c-(w/2) > min(x) && c+(w/2) < max(x)
@@ -134,11 +148,16 @@ for i = 1:length(y(1,:))
         % Optimize fit parameters within edge boundaries
         opt_x = x(left:right);
         opt_y = y(left:right, i);
-    
+        
+        % Resample xy with spline interpolation
+        resolution = (opt_x(end) - opt_x(1)) / length(opt_x);
+        opt_x_fine = transpose(opt_x(1):(resolution/10):opt_x(end));
+        opt_y_fine = spline(opt_x, opt_y, opt_x_fine);
+        
         % Optimize fit parameters
         opt = [w,e];
-        optimize = @(opt) sum((opt_y - exponential_gaussian(opt_x,c,h,opt(1),opt(2))).^2);
-        opt = fminsearch(optimize, opt, optimset('display', 'off'));
+        optimize = @(opt) sum((opt_y_fine - exponential_gaussian(opt_x_fine,c,h,opt(1),opt(2))).^2);
+        opt = fminsearch(optimize, opt, optimset('display', 'on'));
 
         % Calculate fit using optimized parameters
         fit = exponential_gaussian(x,c,h,opt(1),opt(2));

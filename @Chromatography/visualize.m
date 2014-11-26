@@ -49,30 +49,33 @@ else
     error('Undefined input arguments of type ''data''');
 end
 
+% Anonymous function to parse input
+check_key = @(arg) find(strcmpi(varargin, arg),1);
+
 % Check sample options
 if ~isempty(find(strcmpi(varargin, 'samples'),1))
-    samples = varargin{find(strcmpi(varargin, 'samples'),1) + 1};
+    options.samples = varargin{find(strcmpi(varargin, 'samples'),1) + 1};
                     
     % Check user input
-    if strcmpi(samples, 'all')
-        samples = 1:length(varargin{1});
-    elseif ~isnumeric(samples)
+    if strcmpi(options.samples, 'all')
+        options.samples = 1:length(varargin{1});
+    elseif ~isnumeric(options.samples)
         error('Undefined input arguments of type ''samples''');
-    elseif max(samples) > length(data) || min(samples) < 1
+    elseif max(options.samples) > length(data) || min(options.samples) < 1
         error('Index exceeds matrix dimensions')
     end
         
 else
     % Default samples options
-    samples = 1:length(varargin{1});
+    options.samples = 1:length(varargin{1});
 end
 
 % Check ion options
 if ~isempty(find(strcmpi(varargin, 'ions'),1))
-    ions = varargin{find(strcmpi(varargin, 'ions'),1) + 1};
+    options.ions = varargin{find(strcmpi(varargin, 'ions'),1) + 1};
 else
     % Default ions options
-    ions = 'tic';
+    options.ions = 'tic';
 end
 
 % Check baseline options
@@ -183,7 +186,7 @@ if ~isempty(find(strcmpi(varargin, 'legend'),1))
     end
 else
     % Default legend options
-    if strcmpi(ions, 'tic') 
+    if strcmpi(options.ions, 'tic') 
         options.legend = 'on';
     else
         options.legend = 'off';
@@ -194,13 +197,13 @@ end
 options = plot_axes(obj, options);
 
 % Determine y-limits
-for i = 1:length(samples)
-    if strcmpi(ions, 'tic')
-        y = data(samples(i)).total_intensity_values;
-    elseif strcmp(ions, 'all')
-        y = data(samples(i)).intensity_values;
+for i = 1:length(options.samples)
+    if strcmpi(options.ions, 'tic')
+        y = data(options.samples(i)).total_intensity_values;
+    elseif strcmp(options.ions, 'all')
+        y = data(options.samples(i)).intensity_values;
     else
-        y = data(samples(i)).intensity_values(:,ions);
+        y = data(options.samples(i)).intensity_values(:,options.ions);
     end                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                       
     % Update options
     options.i = i;
@@ -211,28 +214,28 @@ for i = 1:length(samples)
 end
 
 % Plot chromatograms
-for i = 1:length(samples)
+for i = 1:length(options.samples)
     
     % Counter
     options.i = i;
     
     % Determine x-values
-    x = data(samples(i)).time_values;
+    x = data(options.samples(i)).time_values;
     
     % Check ion options
-    if ~ischar(ions)
+    if ~ischar(options.ions)
         
         % Check user input
-        if max(ions) > length(data(samples(i)).mass_values)
+        if max(options.ions) > length(data(options.samples(i)).mass_values)
             error('Index exceeds matrix dimensions');
         end
         
         % Set y values
-        y = data(samples(i)).intensity_values(:, ions);
+        y = data(options.samples(i)).intensity_values(:, options.ions);
         
         % Check baseline
         if strcmpi(options.baseline, 'on') || strcmpi(options.baseline, 'corrected')
-            baseline = data(samples(i)).intensity_values_baseline(:,ions);
+            baseline = data(options.samples(i)).intensity_values_baseline(:,options.ions);
             if isempty(baseline)
                 options.baseline = 'off';
             end
@@ -242,7 +245,7 @@ for i = 1:length(samples)
         
         % Check peaks
         if strcmpi(options.peaks, 'on') || strcmpi(options.peaks, 'residuals')
-            peaks = data(samples(i)).intensity_values_peaks.peak_fit(1,ions);
+            peaks = data(options.samples(i)).intensity_values_peaks.peak_fit(1,options.ions);
             if isempty(peaks)
                 options.peaks = 'off';
             end
@@ -256,8 +259,8 @@ for i = 1:length(samples)
         end
         
         % Set legend name
-        for j = 1:length(ions)
-            options.name{j} = strcat(num2str(data(samples(i)).mass_values(ions(j))), ' - m/z');
+        for j = 1:length(options.ions)
+            options.name{j} = strcat(num2str(data(options.samples(i)).mass_values(options.ions(j))), ' - m/z');
         end
         
     else
@@ -267,11 +270,11 @@ for i = 1:length(samples)
             case 'tic'
                 
                 % Set y values
-                y = data(samples(i)).total_intensity_values;
+                y = data(options.samples(i)).total_intensity_values;
                 
                 % Check baseline
                 if strcmpi(options.baseline, 'on') || strcmpi(options.baseline, 'corrected')
-                    baseline = data(samples(i)).total_intensity_values_baseline;
+                    baseline = data(options.samples(i)).total_intensity_values_baseline;
                     if isempty(baseline)
                         options.baseline = 'off';
                     end
@@ -281,7 +284,7 @@ for i = 1:length(samples)
         
                 % Check peaks
                 if strcmpi(options.peaks, 'on') || strcmpi(options.peaks, 'residuals')
-                    peaks = data(samples(i)).total_intensity_values_peaks.peak_fit(1,1);
+                    peaks = data(options.samples(i)).total_intensity_values_peaks.peak_fit(1,1);
                     if isempty(peaks)
                         options.peaks = 'off';
                     end
@@ -301,11 +304,11 @@ for i = 1:length(samples)
             case 'all'
                 
                 % Set y values
-                y = data(samples(i)).intensity_values;
+                y = data(options.samples(i)).intensity_values;
                 
                 % Check baseline
                 if strcmpi(options.baseline, 'on') || strcmpi(options.baseline, 'corrected')
-                    baseline = data(samples(i)).intensity_values_baseline;
+                    baseline = data(options.samples(i)).intensity_values_baseline;
                     if isempty(baseline)
                         options.baseline = 'off';
                     end
@@ -315,7 +318,7 @@ for i = 1:length(samples)
         
                 % Check peaks
                 if strcmpi(options.peaks, 'on') || strcmpi(options.peaks, 'residuals')
-                    peaks = data(samples(i)).intensity_values_peaks.peak_fit(1,:);
+                    peaks = data(options.samples(i)).intensity_values_peaks.peak_fit(1,:);
                     if isempty(peaks)
                         options.peaks = 'off';
                     end
@@ -330,7 +333,7 @@ for i = 1:length(samples)
                 
                 % Set legend name
                 for j = 1:length(y(1,:))
-                    options.name{j} = strcat(num2str(data(samples(i)).mass_values(j)), ' - m/z');
+                    options.name{j} = strcat(num2str(data(options.samples(i)).mass_values(j)), ' - m/z');
                 end
         end
     end
@@ -380,7 +383,7 @@ end
 
 % Check layout options
 function y = plot_layout(y, options)
-    if strcmpi(options.layout, 'stacked')
+    if strcmpi(options.layout, 'stacked') && length(options.samples) > 1
         if strcmpi(options.scale, 'normalized')
             y = y - (options.i * 1.05);
         else
@@ -447,6 +450,12 @@ function plot_update(options)
     end
 end
 
+% Update plot zoom on scroll
+function plot_scroll(~, varargin)
+    scroll_count = varargin{1,1}.VerticalScrollCount;
+    scroll_amount = varargin{1,1}.VerticalScrollAmount;
+end
+
 % Initialize axes
 function options = plot_axes(obj, options)
 
@@ -457,6 +466,7 @@ options.figure = figure(...
     'name', 'Chromatography Toolbox',...
     'units', 'normalized',....
     'position', obj.options.visualization.position,...
+    'WindowScrollWheelFcn', @plot_scroll,...
     'visible', 'on');
 
 options.axes = axes(...

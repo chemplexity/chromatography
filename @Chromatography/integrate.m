@@ -97,6 +97,20 @@ else
     width = [];
 end
 
+% Check coverage options
+if ~isempty(find(strcmpi(varargin, 'coverage'),1))
+    coverage = varargin{find(strcmpi(varargin, 'coverage'),1) + 1};
+else
+    coverage = 1.5;
+end
+    
+% Check extra options
+if ~isempty(find(strcmp(varargin, 'extra'),1))
+    exponent = varargin{find(strcmp(varargin, 'extra'),1) + 1};
+else
+    exponent = 0.05;
+end
+    
 % Check previous options
 if ~isempty(find(strcmpi(varargin, 'results'),1))
     results = varargin{find(strcmpi(varargin, 'results'),1) + 1};
@@ -167,7 +181,7 @@ for i = 1:length(samples)
             tic;
                     
             % Calculate peaks
-            peaks = ExponentialGaussian(x, y, 'center', center, 'width', width);
+            peaks = ExponentialGaussian(x, y, 'center', center, 'width', width, 'coverage', coverage, 'extra', exponent);
                     
             % Stop timer
             processing_time = toc;
