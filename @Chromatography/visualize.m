@@ -235,8 +235,9 @@ for i = 1:length(options.samples)
         
         % Check baseline
         if strcmpi(options.baseline, 'on') || strcmpi(options.baseline, 'corrected')
-            baseline = data(options.samples(i)).intensity_values_baseline(:,options.ions);
-            if isempty(baseline)
+            if ~isempty(data(options.samples(i)).intensity_values_baseline)
+                baseline = data(options.samples(i)).intensity_values_baseline(:,options.ions);
+            else
                 options.baseline = 'off';
             end
         else
@@ -245,7 +246,9 @@ for i = 1:length(options.samples)
         
         % Check peaks
         if strcmpi(options.peaks, 'on') || strcmpi(options.peaks, 'residuals')
-            peaks = data(options.samples(i)).intensity_values_peaks.peak_fit(1,options.ions);
+           if ~isempty(data(options.samples(i)).intensity_values_peaks.peak_fit)
+               peaks = data(options.samples(i)).intensity_values_peaks.peak_fit(1,options.ions);
+           end
             if isempty(peaks)
                 options.peaks = 'off';
             end
@@ -264,7 +267,7 @@ for i = 1:length(options.samples)
         end
         
     else
-        switch ions
+        switch options.ions
             
             % Use total ion chromatograms
             case 'tic'

@@ -4,10 +4,15 @@
 % Syntax
 %   import(filetype)
 %   import(filetype, data)
+%   import(filetype, data, 'OptionName', optionvalue...)
+%
+% Options
+%   'progress' : 'show', 'hide'
 %
 % Description
-%   filetype : valid file extension (.D, .MS, .CDF)
-%   data     : append an existing data structure -- (default: none)
+%   filetype   : valid file extension (.D, .MS, .CDF)
+%   data       : append an existing data structure -- (default: none)
+%   'progress' : print current import progress to command window -- (default: 'show')
 %
 % Examples
 %   data = obj.import('.D')
@@ -19,8 +24,10 @@ function data = import(obj, varargin)
 % Check number of inputs
 if nargin < 2
     error('Not enough input arguments');
-elseif nargin > 3
-    error('Too many input arguments');
+elseif nargin >2 && isstruct(varargin{2})
+    data = DataStructure('validate', varargin{2});
+else
+    data = DataStructure();
 end
 
 % Check file extension
@@ -28,13 +35,20 @@ if ~any(find(strcmp(varargin{1}, obj.options.import)))
     error('Unknown file format');
 end
 
-% Check data structure
-if nargin == 3 && isstruct(varargin{2})
-    data = DataStructure('validate', varargin{2});
+% Check progress options
+if ~isempty(find(strcmpi(varargin, 'progress'),1))
+    options.progress = varargin{find(strcmpi(varargin, 'progress'),1) + 1};
+   
+    % Check user input
+    if strcmpi(options.progress, 'hide') || strcmpi(options.progress, 'off')
+        options.progress = 0;
+    else
+        options.progress = 1;
+    end
 else
-    data = DataStructure();
+    options.progress = 1;
 end
-
+    
 % Open file selection dialog
 files = dialog(obj, varargin{1});
 
@@ -48,6 +62,9 @@ files(~strcmp(files(:,3), varargin{1}), :) = [];
    
 % Set path to selected folder
 path(files{1,1}, path);
+
+% Store runtime information
+options.runtime = 0;
 
 % Import files
 switch varargin{1}
@@ -64,6 +81,10 @@ switch varargin{1}
             processing_time(i) = toc;
             % Assign a unique id
             id(i) = length(data) + i;
+            
+            % Display import progress
+            options.runtime = options.runtime + processing_time(i);
+            update(i, length(files(:,1)), options.runtime, options.progress); 
         end
 
     % Import data with the '*.MS' extension
@@ -80,6 +101,10 @@ switch varargin{1}
             processing_time(i) = toc;
             % Assign a unique id
             id(i) = length(data) + i;
+            
+            % Display import progress
+            options.runtime = options.runtime + processing_time(i);
+            update(i, length(files(:,1)), options.runtime, options.progress); 
         end
 
     % Import data with the '*.D' extension
@@ -98,10 +123,14 @@ switch varargin{1}
             id(i) = length(data) + i;
             % Remove file from path
             rmpath(file_path);
+            
+            % Display import progress
+            options.runtime = options.runtime + processing_time(i);
+            update(i, length(files(:,1)), options.runtime, options.progress); 
         end
 end
 
-% Validate import data structure
+% Add missing fields to data structure
 import_data = DataStructure('Validate', import_data);
 
 % Update data structure
@@ -171,4 +200,23 @@ end
 
 % Return selected files
 varargout{1} = files;
+end
+
+% Update console with progress
+function update(varargin)
+
+    % Check user options
+    if varargin{4} == 0
+        return
+    end
+
+    % Display progress
+    disp([...
+        num2str(varargin{1}),...
+        '/',...
+        num2str(varargin{2}),...
+        ' in ',...
+        num2str(varargin{3}, '% 10.3f'),...
+        ' sec.'...
+        ]);
 end
