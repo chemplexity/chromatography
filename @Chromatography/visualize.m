@@ -26,7 +26,7 @@
 %   'scale'    : display spectra on a normalized scale or full scale -- (default: 'full')
 %   'xlim'     : x-axis limits -- (default: 'auto')
 %   'ylim'     : y-axis limits -- (default: 'auto')
-%   'legend'   : add legend to plot -- (default: 'on')
+%   'legend'   : add legend to plot -- (default: 'off')
 %
 % Examples
 % obj.visualize(data, 'samples', [1:4], 'ions', 'tic', 'baseline', 'on')
@@ -48,9 +48,6 @@ if isstruct(varargin{1})
 else
     error('Undefined input arguments of type ''data''');
 end
-
-% Anonymous function to parse input
-check_key = @(arg) find(strcmpi(varargin, arg),1);
 
 % Check sample options
 if ~isempty(find(strcmpi(varargin, 'samples'),1))
@@ -129,7 +126,7 @@ if ~isempty(find(strcmpi(varargin, 'scale'),1))
     if strcmpi(options.scale, 'normalize')
         options.scale = 'normalized';
     elseif ~strcmpi(options.scale, 'normalized') && ~strcmpi(options.scale, 'full')
-        error('Undefined input arguments of type ''scale''');
+        options.scale = 'full';
     end
 else
     % Default scale options
@@ -179,7 +176,7 @@ if ~isempty(find(strcmpi(varargin, 'legend'),1))
     % Check user input
     if ~strcmpi(options.legend, 'on') && ~strcmpi(options.legend, 'off')
         if strcmpi(ions, 'tic') 
-            options.legend = 'on';
+            options.legend = 'off';
         else
             options.legend = 'off';
         end
@@ -187,7 +184,7 @@ if ~isempty(find(strcmpi(varargin, 'legend'),1))
 else
     % Default legend options
     if strcmpi(options.ions, 'tic') 
-        options.legend = 'on';
+        options.legend = 'off';
     else
         options.legend = 'off';
     end
@@ -261,9 +258,13 @@ for i = 1:length(options.samples)
             y = y - baseline;
         end
         
-        % Set legend name
-        for j = 1:length(options.ions)
-            options.name{j} = strcat(num2str(data(options.samples(i)).mass_values(options.ions(j))), ' - m/z');
+        % Check legend options
+        if strcmpi(options.legend, 'on')
+        
+            % Set legend name
+            for j = 1:length(options.ions)
+                options.name{j} = strcat(num2str(data(options.samples(i)).mass_values(options.ions(j))), ' - m/z');
+            end
         end
         
     else
@@ -300,8 +301,14 @@ for i = 1:length(options.samples)
                     y = y - baseline;
                 end
                 
-                % Set legend name
-                options.name{1} = strcat(num2str(i), ' - TIC');
+                % Check legend options
+                if strcmpi(options.legend, 'on')
+                    
+                    % Set legend name
+                    for j = 1:length(options.ions)
+                        options.name{1} = strcat(num2str(i), ' - TIC');
+                    end
+                end
                 
             % Use all ion chromatograms
             case 'all'
@@ -334,9 +341,13 @@ for i = 1:length(options.samples)
                     y = y - baseline;
                 end
                 
-                % Set legend name
-                for j = 1:length(y(1,:))
-                    options.name{j} = strcat(num2str(data(options.samples(i)).mass_values(j)), ' - m/z');
+                % Check legend options
+                if strcmpi(options.legend, 'on')
+                
+                    % Set legend name
+                    for j = 1:length(y(1,:))
+                        options.name{j} = strcat(num2str(data(options.samples(i)).mass_values(j)), ' - m/z');
+                    end
                 end
         end
     end
@@ -362,13 +373,23 @@ for i = 1:length(options.samples)
     options = plot_xlim(x, options);
     options = plot_ylim(y, options);
         
-    for j = 1:length(y(1,:))
+    % Check legend options
+    if strcmpi(options.legend, 'on')
+        for j = 1:length(y(1,:))
+        
+            % Plot data
+            plot(x, y(:,j), ...
+                'parent', options.axes, ...
+                'linewidth', 1.5, ...
+                'displayname', options.name{j});
+        end
+    else
+        set(0,'DefaultAxesColorOrder',winter(11))
         
         % Plot data
-        plot(x, y(:,j), ...
+        plot(x, y, ...
             'parent', options.axes, ...
-            'linewidth', 1.5, ...
-            'displayname', options.name{j});
+            'linewidth', 1.5);
     end
 end
 
@@ -453,12 +474,6 @@ function plot_update(options)
     end
 end
 
-% Update plot zoom on scroll
-function plot_scroll(~, varargin)
-    scroll_count = varargin{1,1}.VerticalScrollCount;
-    scroll_amount = varargin{1,1}.VerticalScrollAmount;
-end
-
 % Initialize axes
 function options = plot_axes(obj, options)
 
@@ -469,7 +484,6 @@ options.figure = figure(...
     'name', 'Chromatography Toolbox',...
     'units', 'normalized',....
     'position', obj.options.visualization.position,...
-    'WindowScrollWheelFcn', @plot_scroll,...
     'visible', 'on');
 
 options.axes = axes(...

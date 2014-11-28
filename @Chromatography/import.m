@@ -7,17 +7,21 @@
 %   import(filetype, data, 'OptionName', optionvalue...)
 %
 % Options
-%   'progress' : 'show', 'hide'
+%   'progress' : 'on', 'off'
+%   'centroid' : 'on', 'off'
 %
 % Description
 %   filetype   : valid file extension (.D, .MS, .CDF)
 %   data       : append an existing data structure -- (default: none)
-%   'progress' : print current import progress to command window -- (default: 'show')
+%   'progress' : print current import progress to command window -- (default: 'on')
+%   'centroid' : calculate the centroid spectrum of dataset -- (default: 'on')
 %
 % Examples
 %   data = obj.import('.D')
 %   data = obj.import('.CDF')
 %   data = obj.import('.D', data)
+%   data = obj.import('.MS', 'progress', 'off')
+%   data = obj.import('.D', 'centroid', 'off')
 
 function data = import(obj, varargin)
             
@@ -40,13 +44,27 @@ if ~isempty(find(strcmpi(varargin, 'progress'),1))
     options.progress = varargin{find(strcmpi(varargin, 'progress'),1) + 1};
    
     % Check user input
-    if strcmpi(options.progress, 'hide') || strcmpi(options.progress, 'off')
+    if strcmpi(options.progress, 'off') || strcmpi(options.progress, 'hide')
         options.progress = 0;
     else
         options.progress = 1;
     end
 else
     options.progress = 1;
+end
+
+% Check centroid options
+if ~isempty(find(strcmpi(varargin, 'centroid'),1))
+    options.centroid = varargin{find(strcmpi(varargin, 'centroid'),1) + 1};
+   
+    % Check user input
+    if strcmpi(options.centroid, 'off')
+        options.centroid = 0;
+    else
+        options.centroid = 1;
+    end
+else
+    options.centroid = 1;
 end
     
 % Open file selection dialog
@@ -151,6 +169,11 @@ end
             
 % Concatenate imported data with existing data
 data = [data, import_data];
+
+% Centroid data
+if options.centroid == 4
+    data = Centroid(data);
+end
 
 end
 
