@@ -22,7 +22,7 @@
 %   'ions'     : column index of ions in data structure -- (default: 'tic')
 %   'baseline' : display baseline/baseline corrected spectra -- (default: 'off')
 %   'peaks'    : display curve fitting results for available peaks -- (default: 'off')
-%   'layout'   : plot spectra in a stacked or overlaid format -- (default: 'stacked')
+%   'layout'   : plot spectra in a stacked or overlaid format -- (default: 'overlaid')
 %   'scale'    : display spectra on a normalized scale or full scale -- (default: 'full')
 %   'xlim'     : x-axis limits -- (default: 'auto')
 %   'ylim'     : y-axis limits -- (default: 'auto')
@@ -111,11 +111,11 @@ if ~isempty(find(strcmpi(varargin, 'layout'),1))
     elseif strcmpi(options.layout, 'stack')
         options.layout = 'stacked';
     elseif ~strcmpi(options.layout, 'stacked') && ~strcmpi(options.layout, 'overlaid')        
-        error('Undefined input arguments of type ''layout''');
+        options.layout = 'overlaid';
     end
 else
     % Default peak options
-    options.layout = 'stacked';
+    options.layout = 'overlaid';
 end
 
 % Check scale options
@@ -373,6 +373,8 @@ for i = 1:length(options.samples)
     options = plot_xlim(x, options);
     options = plot_ylim(y, options);
         
+    set(0,'DefaultAxesColorOrder',winter(11));
+    
     % Check legend options
     if strcmpi(options.legend, 'on')
         for j = 1:length(y(1,:))
@@ -384,8 +386,6 @@ for i = 1:length(options.samples)
                 'displayname', options.name{j});
         end
     else
-        set(0,'DefaultAxesColorOrder',winter(11))
-        
         % Plot data
         plot(x, y, ...
             'parent', options.axes, ...
