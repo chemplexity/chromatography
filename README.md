@@ -26,7 +26,7 @@ Check out the [in-depth guide](https://github.com/chemplexity/chromatography/wik
 </tr>
 <tr>
 <td align="center"><b>Baseline Correction</b></td>
-<td align="center"><a href="http://imgur.com/TJU9o9s"><img src="http://i.imgur.com/TJU9o9s.png" title="baseline" width="400" height="125"/></a></td>		
+<td align="center"><a href="https://raw.githubusercontent.com/chemplexity/chromatography/master/Examples/baseline.png"><img src="Examples/baseline.png" title="baseline" width="400" height="125"/></a></td>		
 </tr>
 <tr>
 <td colspan="2">
@@ -34,7 +34,7 @@ Check out the [in-depth guide](https://github.com/chemplexity/chromatography/wik
 </tr>
 <tr>
 <td align="center"><b>Peak Detection</b></td>
-<td align="center"><a href="http://imgur.com/hhHHgNO"><img src="http://i.imgur.com/hhHHgNO.png" title="peakdetection" width="275" height="125"/></a></center></td>
+<td align="center"><a href="https://raw.githubusercontent.com/chemplexity/chromatography/master/Examples/derivative.png"><img src="Examples/derivative.png" title="peakdetection" width="275" height="125"/></a></center></td>
 </tr>
 <tr>
 <td colspan="2">
@@ -42,7 +42,15 @@ Check out the [in-depth guide](https://github.com/chemplexity/chromatography/wik
 </tr>
 <tr>
 <td align="center"><b>Curve Fitting</b></td>
-<td align="center"><a href="http://imgur.com/HSbEmhi.png"><img src="http://imgur.com/HSbEmhi.png" title="curvefit" width="150" height="125"/></td>
+<td align="center"><a href="https://raw.githubusercontent.com/chemplexity/chromatography/master/Examples/integration.png"><img src="Examples/integration.png" title="curvefit" width="150" height="125"/></td>
+</tr>
+<tr>
+<td colspan="2">
+</td>
+</tr>
+<tr>
+<td align="center"><b>Visualization</b></td>
+<td align="center"><a href="https://raw.githubusercontent.com/chemplexity/chromatography/master/Examples/visualization.png"><img src="Examples/visualization.png" title="visualize" width="200" height="125"/></td>
 </tr>
 </table>
 
@@ -69,7 +77,7 @@ Import data into the MATLAB workspace with the `import` method.
 data = obj.import('.D')
 ```
 
-####Baselines
+####Baseline
 
 Perform baseline correction on a dataset with the `baseline` method.
 
