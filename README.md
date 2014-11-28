@@ -50,78 +50,50 @@ Check out the [in-depth guide](https://github.com/chemplexity/chromatography/wik
 
 Current release stable on the following systems:
 
-* OSX 10.9, Windows 7
+* OSX 10.9+, Windows 7
 * MATLAB >2013b
 
 ## Usage
 
-Run the following commands on the MATLAB command line or incorporate them into existing code.
-
-####Importing Data
-
-Use the `FileIO` class to import data into the MATLAB workspace. Initialize the `FileIO` class with the following command:
+Try the following commands on the MATLAB command line or incorporate them into existing projects. To get started, initialize the `Chromatography` class.
 
 ````matlab
-obj = FileIO
+obj = Chromatography
+````
+
+####Import
+
+Import data into the MATLAB workspace with the `import` method. 
+
+````matlab
+data = obj.import('.D')
 ```
 
-Import files using the `import` method. For example, the following command will prompt you to select Agilent (.D) files to import into the MATLAB workspace:
+####Baselines
+
+Perform baseline correction on a dataset with the `baseline` method.
 
 ````matlab
-data = obj.import('FileType', '.D')
+data = obj.baseline(data)
 ````
 
-####Baseline Correction
+####Integration
 
-Use the `BaselineCorrection` class for baseline correction. Intialize the `BaselineCorrection` class with the command:
+Locate peaks and determine peak area using the `integrate` method.
 
 ````matlab
-obj = BaselineCorrection
+data = obj.integrate(data)
 ````
 
-Calculate baselines with the `baseline` method. For example, determine the baseline for each ion chromatogram in your LC/MS dataset:
+####Visualize
+
+Explore data and view results with the `visualize` method.
 
 ````matlab
-data = obj.baseline(data, 'Samples', 'all', 'Ions', 'all')
+obj.visualize(data) 
 ````
 
-####Peak Integration
+###Documentation
 
-Use the `PeakProcessing` class for peak detection and peak area determination. Initialize the `PeakProcessing` class with the following:
-
-````matlab
-obj = PeakProcessing
-````
-
-Calculate peak area using the `integrate` method. Use the following command to automatically detect and integrate the largest peak in each ion chromatogram in your LC/MS dataset:
-
-````matlab
-data = obj.integrate(data, 'Samples', 'all', 'Ions', 'all')
-````
-
-####Misc.
-
-Use the `Normalize` method to normalize a signal between 0 and 1:
-
-````matlab
-y = Normalize(y)
-````
-
-Take the derivative of a signal using the `Derivative` method:
-
-````matlab
-dy = Derivative(y)
-````
-
-Calculate the derivative of a signal to the n<sup>th</sup> degree with the `Degree` option. For example, to return the fourth derivative of a signal, issue the following command:
-
-````matlab
-dy = Derivative(y, 'Degree', 4)
-````
-
-Obtain better results when determining the derivative signal by including the `Smoothing` option:
-
-````matlab
-dy = Derivative(y, 'Degree', 4, 'Smoothing', true)
-````
+Visit the [wiki](https://github.com/chemplexity/chromatography/wiki/) for a full list of methods and options.
 
