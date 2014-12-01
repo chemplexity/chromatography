@@ -29,9 +29,9 @@ else
     error('Undefined input arguments of type ''data''');
 end
     
-    % Default options
-    samples = 1:length(data);
-    binsize = 0.50;
+% Default options
+samples = 1:length(data);
+binsize = 0.50;
     
 % Check sample options
 if ~isempty(find(strcmpi(varargin, 'samples'),1))
@@ -66,7 +66,7 @@ if ~isempty(find(strcmpi(varargin, 'width'),1))
         
 else
     % Default centroid width options
-    options.width = 0.5;
+    options.width = 0.25;
 end
 
 % Calculate centroid data
