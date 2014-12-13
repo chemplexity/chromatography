@@ -59,7 +59,7 @@ Check out the [in-depth guide](https://github.com/chemplexity/chromatography/wik
 Current release stable on the following systems:
 
 * OSX 10.9+, Windows 7
-* MATLAB >2013b
+* MATLAB >2013b+
 
 ## Usage
 
