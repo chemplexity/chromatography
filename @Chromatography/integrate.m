@@ -140,10 +140,10 @@ for i = 1:length(samples)
         end
         
         y = data(samples(i)).intensity_values(:, ions);
-        baseline = data(samples(i)).intensity_values_baseline(:, ions);
-        
+                
         % Perform baseline correction
-        if ~isempty(baseline)
+        if ~isempty(data(samples(i)).intensity_values_baseline)
+            baseline = data(samples(i)).intensity_values_baseline(:, ions);
             y = y - baseline;
         end        
     else
@@ -152,20 +152,20 @@ for i = 1:length(samples)
             % Use total ion chromatograms
             case 'tic'
                 y = data(samples(i)).total_intensity_values;
-                baseline = data(samples(i)).total_intensity_values_baseline;
-
+                
                 % Perform baseline correction
-                if ~isempty(baseline)
+                if ~isempty(data(samples(i)).total_intensity_values_baseline)
+                    baseline = data(samples(i)).total_intensity_values_baseline;
                     y = y - baseline;
                 end
             
             % Use all ion chromatograms
             case 'all'
                 y = data(samples(i)).intensity_values;
-                baseline = data(samples(i)).intensity_values_baseline;
                 
                 % Perform baseline correction
-                if ~isempty(baseline)
+                if ~isempty(data(samples(i)).intensity_values_baseline)
+                    baseline = data(samples(i)).intensity_values_baseline;
                     y = y - baseline;
                 end
         end

@@ -127,58 +127,70 @@ for i = 1:length(y(1,:))
 
         % Set edges to equal height
         if left_y < right_y
-           right = find(y(left+1:end, i) < left_y, 1) + left - 1;
+           right = find(y(left+1:end, i) <= left_y, 1) + left - 1;
         elseif left_y < right_y
-           left = right - find(flipud(y(1:right-1, i)) < right_y, 1) - 1 ;
+           left = right - find(flipud(y(1:right-1, i)) <= right_y, 1) - 1 ;
         end
         
         % Distance of edges from center
         a = c - x(left);
         b = x(right) - c;
         
-        % Check for incorrect peak edges (e.g. in cases of peak overlap)
-        if c / abs(b-a) < 50
-            if b > a
-                right = middle + (middle - left);
-            elseif a > b
-                left = middle - (right - middle);
+        % Check for center point between edges
+        if b > 0 && a > 0
+        
+            % Check for incorrect peak edges (e.g. in cases of peak overlap)
+            if c / abs(b-a) < 50
+                if b > a
+                    right = middle + (middle - left);
+                elseif a > b
+                    left = middle - (right - middle);
+                end
             end
-        end
             
-        % Optimize fit parameters within edge boundaries
-        opt_x = x(left:right);
-        opt_y = y(left:right, i);
+            % Optimize fit parameters within edge boundaries
+            opt_x = x(left:right);
+            opt_y = y(left:right, i);
+    
+            % Upsample xy with spline interpolation
+            resolution = (opt_x(end) - opt_x(1)) / length(opt_x);
+            opt_x_fine = transpose(opt_x(1):(resolution/10):opt_x(end));
+            opt_y_fine = spline(opt_x, opt_y, opt_x_fine);
         
-        % Resample xy with spline interpolation
-        resolution = (opt_x(end) - opt_x(1)) / length(opt_x);
-        opt_x_fine = transpose(opt_x(1):(resolution/10):opt_x(end));
-        opt_y_fine = spline(opt_x, opt_y, opt_x_fine);
+            % Optimize fit parameters
+            opt = [w,e];
+            optimize = @(opt) sum((opt_y_fine - exponential_gaussian(opt_x_fine,c,h,opt(1),opt(2))).^2);
+            opt = fminsearch(optimize, opt, optimset('display', 'on'));
+
+            % Calculate fit using optimized parameters
+            fit_y = exponential_gaussian(x,c,h,opt(1),opt(2));
+            residuals = y(:,i) - fit_y;
+
+            % Replace any NaNs with zero
+            fit_y(isnan(fit_y)) = 0;
+            residuals(isnan(residuals)) = 0;
+
+            % Replace any Infs with zero
+            fit_y(isinf(fit_y)) = 0;
+            residuals(isinf(residuals)) = 0;
         
-        % Optimize fit parameters
-        opt = [w,e];
-        optimize = @(opt) sum((opt_y_fine - exponential_gaussian(opt_x_fine,c,h,opt(1),opt(2))).^2);
-        opt = fminsearch(optimize, opt, optimset('display', 'on'));
+            % Find edges of integration by looking at derivative signal
+            dy = fit_y(2:end) - fit_y(1:end-1);
+            [~, dy_min] = min(dy);
+            [~, dy_max] = max(dy);
 
-        % Calculate fit using optimized parameters
-        fit = exponential_gaussian(x,c,h,opt(1),opt(2));
-        residuals = y(:,i) - fit;
-
-        % Replace any NaNs with zero
-        fit(isnan(fit)) = 0;
-        residuals(isnan(residuals)) = 0;
-
-        % Replace any Infs with zero
-        fit(isinf(fit)) = 0;
-        residuals(isinf(residuals)) = 0;
+            right = find(dy(dy_min:end) >= -10^-2, 1) + dy_min - 1;
+            left = dy_max - find(flipud(dy(1:dy_max)) <= 10^-2, 1) - 1;    
+        else
+            opt = [0,0];
+            fit_y = zeros(length(y(:,i)),1);
+            residuals = zeros(length(y(:,i)),1);
+            
+            % Clear peak boundaries
+            right = [];
+            left = [];
+        end
         
-        % Find edges of integration by looking at derivative signal
-        dy = fit(2:end) - fit(1:end-1);
-        [~, dy_min] = min(dy);
-        [~, dy_max] = max(dy);
-
-        right = find(dy(dy_min:end) >= -10^-2, 1) + dy_min - 1;
-        left = dy_max - find(flipud(dy(1:dy_max)) <= 10^-2, 1) - 1;
-
         % Proceed if values exist
         if ~isempty(right) && ~isempty(left) && left < right
         
@@ -191,7 +203,7 @@ for i = 1:length(y(1,:))
 
             % Calculate root-mean-square deviations of fit
             rmsd = sqrt(sum(residuals(left:right).^2)/(right-left+1));
-
+    
             % Normalized RMSD
             norm_rmsd = rmsd / (max(y(left:right,i)) - min(y(left:right,i)));
             fit_error = norm_rmsd * 100;
@@ -203,8 +215,17 @@ for i = 1:length(y(1,:))
         opt = [0,0];
         area = 0;
         fit_error = 0;
-        fit = zeros(length(y(:,i)),1);
+        fit_y = zeros(length(y(:,i)),1);
         residuals = zeros(length(y(:,i)),1);
+    end
+    
+    % Check results
+    if area == 0
+        
+        % Clear values
+        c = 0;
+        w = 0;
+        h = 0;
     end
     
     % Update output data
@@ -212,7 +233,7 @@ for i = 1:length(y(1,:))
     peaks.peak_width(i) = w;
     peaks.peak_height(i) = h;
     peaks.peak_area(i) = area;
-    peaks.peak_fit(:,i) = fit;
+    peaks.peak_fit(:,i) = fit_y;
     peaks.peak_fit_residuals(:,i) = residuals;
     peaks.peak_fit_error(i) = fit_error;
     peaks.peak_fit_options(i) = opt(2);
