@@ -23,7 +23,7 @@
 % References
 %   P.H.C. Eilers, Analytical Chemistry, 75 (2003) 3631
 
-function baseline = WhittakerSmoother(y, varargin)
+function [baseline, weights] = WhittakerSmoother(y, varargin)
 
 % Check number of inputs
 if nargin < 1

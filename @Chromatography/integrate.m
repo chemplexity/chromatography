@@ -34,7 +34,7 @@ function data = integrate(obj, varargin)
 % Check number of inputs
 if nargin < 2
     error('Not enough input arguments');
-elseif nargin > 10
+elseif nargin > 12
     error('Too many input arguments');
 end          
   
