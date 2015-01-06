@@ -13,8 +13,8 @@
 % Integration
 %   obj.integrate(data, 'OptionName', OptionValue...)
 %
-% Help
-%   obj.help
+% Visualize
+%   obj.visualize(data, 'OptionName', OptionValue...)
 
 classdef Chromatography
 
