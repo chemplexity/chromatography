@@ -65,14 +65,14 @@ if ~isempty(find(strcmp(varargin, 'width'), 1))
         width = [];
     end
 else
-    width = 3;
+    width = 2;
 end
     
 % Check for extend input
 if ~isempty(find(strcmp(varargin, 'coverage'), 1))
     extend = varargin{find(strcmp(varargin, 'coverage')) + 1};
 else
-    extend = 1;
+    extend = 0.1;
 end
         
 % Initialize functions

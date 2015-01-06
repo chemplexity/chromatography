@@ -3,7 +3,7 @@
 %
 % Syntax
 %   baseline(data)
-%   baseline(data, 'OptionName', OptionValue...)
+%   baseline(data, 'OptionName', optionvalue...)
 %
 % Options
 %   'samples'    : 'all', [sampleindex]

@@ -8,7 +8,7 @@
 %   'validate' : data
 %
 % Description
-%   'validate' : check fields of an existing data structure
+%   'validate' : check data structure for missing fields
 % 
 % Examples
 %   data = DataStructure()

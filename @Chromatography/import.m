@@ -4,23 +4,34 @@
 % Syntax
 %   import(filetype)
 %   import(filetype, data)
+%   import(filetype, data, 'OptionName', optionvalue...)
+%
+% Options
+%   'progress' : 'on', 'off'
+%   'centroid' : 'on', 'off'
 %
 % Description
-%   filetype : valid file extension (.D, .MS, .CDF)
-%   data     : append an existing data structure -- (default: none)
+%   filetype   : valid file extension (.D, .MS, .CDF)
+%   data       : append an existing data structure -- (default: none)
+%   'progress' : print current import progress to command window -- (default: 'on')
+%   'centroid' : calculate the centroid spectrum of dataset -- (default: 'on')
 %
 % Examples
 %   data = obj.import('.D')
 %   data = obj.import('.CDF')
 %   data = obj.import('.D', data)
+%   data = obj.import('.MS', 'progress', 'off')
+%   data = obj.import('.D', 'centroid', 'off')
 
 function data = import(obj, varargin)
             
 % Check number of inputs
 if nargin < 2
     error('Not enough input arguments');
-elseif nargin > 3
-    error('Too many input arguments');
+elseif nargin >2 && isstruct(varargin{2})
+    data = DataStructure('validate', varargin{2});
+else
+    data = DataStructure();
 end
 
 % Check file extension
@@ -28,13 +39,34 @@ if ~any(find(strcmp(varargin{1}, obj.options.import)))
     error('Unknown file format');
 end
 
-% Check data structure
-if nargin == 3 && isstruct(varargin{2})
-    data = DataStructure('validate', varargin{2});
+% Check progress options
+if ~isempty(find(strcmpi(varargin, 'progress'),1))
+    options.progress = varargin{find(strcmpi(varargin, 'progress'),1) + 1};
+   
+    % Check user input
+    if strcmpi(options.progress, 'off') || strcmpi(options.progress, 'hide')
+        options.progress = 0;
+    else
+        options.progress = 1;
+    end
 else
-    data = DataStructure();
+    options.progress = 1;
 end
 
+% Check centroid options
+if ~isempty(find(strcmpi(varargin, 'centroid'),1))
+    options.centroid = varargin{find(strcmpi(varargin, 'centroid'),1) + 1};
+   
+    % Check user input
+    if strcmpi(options.centroid, 'off')
+        options.centroid = 0;
+    else
+        options.centroid = 1;
+    end
+else
+    options.centroid = 1;
+end
+    
 % Open file selection dialog
 files = dialog(obj, varargin{1});
 
@@ -48,6 +80,9 @@ files(~strcmp(files(:,3), varargin{1}), :) = [];
    
 % Set path to selected folder
 path(files{1,1}, path);
+
+% Store runtime information
+options.runtime = 0;
 
 % Import files
 switch varargin{1}
@@ -64,6 +99,10 @@ switch varargin{1}
             processing_time(i) = toc;
             % Assign a unique id
             id(i) = length(data) + i;
+            
+            % Display import progress
+            options.runtime = options.runtime + processing_time(i);
+            update(i, length(files(:,1)), options.runtime, options.progress); 
         end
 
     % Import data with the '*.MS' extension
@@ -80,6 +119,10 @@ switch varargin{1}
             processing_time(i) = toc;
             % Assign a unique id
             id(i) = length(data) + i;
+            
+            % Display import progress
+            options.runtime = options.runtime + processing_time(i);
+            update(i, length(files(:,1)), options.runtime, options.progress); 
         end
 
     % Import data with the '*.D' extension
@@ -98,10 +141,14 @@ switch varargin{1}
             id(i) = length(data) + i;
             % Remove file from path
             rmpath(file_path);
+            
+            % Display import progress
+            options.runtime = options.runtime + processing_time(i);
+            update(i, length(files(:,1)), options.runtime, options.progress); 
         end
 end
 
-% Validate import data structure
+% Add missing fields to data structure
 import_data = DataStructure('Validate', import_data);
 
 % Update data structure
@@ -122,6 +169,11 @@ end
             
 % Concatenate imported data with existing data
 data = [data, import_data];
+
+% Centroid data
+if options.centroid == 4
+    data = Centroid(data);
+end
 
 end
 
@@ -171,4 +223,23 @@ end
 
 % Return selected files
 varargout{1} = files;
+end
+
+% Update console with progress
+function update(varargin)
+
+    % Check user options
+    if varargin{4} == 0
+        return
+    end
+
+    % Display progress
+    disp([...
+        num2str(varargin{1}),...
+        '/',...
+        num2str(varargin{2}),...
+        ' in ',...
+        num2str(varargin{3}, '% 10.3f'),...
+        ' sec.'...
+        ]);
 end

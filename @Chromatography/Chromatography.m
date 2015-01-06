@@ -41,7 +41,7 @@ classdef Chromatography
             obj.options.integration.type = 'exponential gaussian';
             
             % Visualization options
-            obj.options.visualization.position = [0.1, 0.15, 0.8, 0.7];
+            obj.options.visualization.position = [0.1, 0.4, 0.4, 0.4];
         end
 
         % Import method

@@ -34,7 +34,7 @@ function data = integrate(obj, varargin)
 % Check number of inputs
 if nargin < 2
     error('Not enough input arguments');
-elseif nargin > 10
+elseif nargin > 12
     error('Too many input arguments');
 end          
   
@@ -97,6 +97,20 @@ else
     width = [];
 end
 
+% Check coverage options
+if ~isempty(find(strcmpi(varargin, 'coverage'),1))
+    coverage = varargin{find(strcmpi(varargin, 'coverage'),1) + 1};
+else
+    coverage = 1.5;
+end
+    
+% Check extra options
+if ~isempty(find(strcmp(varargin, 'extra'),1))
+    exponent = varargin{find(strcmp(varargin, 'extra'),1) + 1};
+else
+    exponent = 0.05;
+end
+    
 % Check previous options
 if ~isempty(find(strcmpi(varargin, 'results'),1))
     results = varargin{find(strcmpi(varargin, 'results'),1) + 1};
@@ -126,10 +140,10 @@ for i = 1:length(samples)
         end
         
         y = data(samples(i)).intensity_values(:, ions);
-        baseline = data(samples(i)).intensity_values_baseline(:, ions);
-        
+                
         % Perform baseline correction
-        if ~isempty(baseline)
+        if ~isempty(data(samples(i)).intensity_values_baseline)
+            baseline = data(samples(i)).intensity_values_baseline(:, ions);
             y = y - baseline;
         end        
     else
@@ -138,20 +152,20 @@ for i = 1:length(samples)
             % Use total ion chromatograms
             case 'tic'
                 y = data(samples(i)).total_intensity_values;
-                baseline = data(samples(i)).total_intensity_values_baseline;
-
+                
                 % Perform baseline correction
-                if ~isempty(baseline)
+                if ~isempty(data(samples(i)).total_intensity_values_baseline)
+                    baseline = data(samples(i)).total_intensity_values_baseline;
                     y = y - baseline;
                 end
             
             % Use all ion chromatograms
             case 'all'
                 y = data(samples(i)).intensity_values;
-                baseline = data(samples(i)).intensity_values_baseline;
                 
                 % Perform baseline correction
-                if ~isempty(baseline)
+                if ~isempty(data(samples(i)).intensity_values_baseline)
+                    baseline = data(samples(i)).intensity_values_baseline;
                     y = y - baseline;
                 end
         end
@@ -167,7 +181,7 @@ for i = 1:length(samples)
             tic;
                     
             % Calculate peaks
-            peaks = ExponentialGaussian(x, y, 'center', center, 'width', width);
+            peaks = ExponentialGaussian(x, y, 'center', center, 'width', width, 'coverage', coverage, 'extra', exponent);
                     
             % Stop timer
             processing_time = toc;

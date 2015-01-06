@@ -36,7 +36,7 @@ data.total_intensity_values = ncread(file, 'total_intensity');
 
 % Read mass_values
 mass_values = roundn(ncread(file, 'mass_values'), -1);
-data.mass_values = unique(mass_values);
+data.mass_values = transpose(unique(mass_values));
 
 % Read intensity_values
 intensity_values = ncread(file, 'intensity_values');
