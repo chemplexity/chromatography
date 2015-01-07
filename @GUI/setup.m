@@ -30,13 +30,13 @@ function obj = setup(obj, varargin)
         obj.menu.load = uimenu(obj.menu.file, 'Label', 'Load');
             
         % File --> Load --> Agilent 
-        obj.menu.agilent{1,1} = uimenu(obj.menu.load, 'Label', 'Agilent');
-        obj.menu.agilent{1,2} = uimenu(obj.menu.agilent{1,1}, 'Label', '.D');
-        obj.menu.agilent{1,3} = uimenu(obj.menu.agilent{1,1}, 'Label', '.MS');
+        obj.menu.agilent{1} = uimenu(obj.menu.load, 'Label', 'Agilent');
+        obj.menu.agilent{2} = uimenu(obj.menu.agilent{1}, 'Label', '.D');
+        obj.menu.agilent{3} = uimenu(obj.menu.agilent{1}, 'Label', '.MS');
 
         % File --> Load --> netCDF
-        obj.menu.netcdf{1,1} = uimenu(obj.menu.load, 'Label', 'netCDF');
-        obj.menu.netcdf{1,2} = uimenu(obj.menu.netcdf{1,1}, 'Label', '.CDF');
+        obj.menu.netcdf{1} = uimenu(obj.menu.load, 'Label', 'netCDF');
+        obj.menu.netcdf{2} = uimenu(obj.menu.netcdf{1}, 'Label', '.CDF');
     end
 
 
@@ -75,7 +75,7 @@ function obj = setup(obj, varargin)
     function obj = set_tables(obj, varargin)
 
         % Create tables
-        obj.figure.table.files = uitable(obj.figure.tabs.main{2}, 'Position', [0.02,0.02, 0.96, 0.96]);
+        obj.figure.tables.files = uitable(obj.figure.tabs.main{2}, 'Position', [0.02,0.02, 0.96, 0.96]);
     end
      
 
@@ -83,8 +83,8 @@ function obj = setup(obj, varargin)
     function obj = set_listboxes(obj, varargin)
 
         % Create listboxes
-        obj.figure.listbox{1} = uicontrol(obj.figure.tabs.options{2}, 'Style', 'List', 'Position', [0.02, 0.45, 0.47, 0.53]);
-        obj.figure.listbox{2} = uicontrol(obj.figure.tabs.options{2}, 'Style', 'List', 'Position', [0.51, 0.45, 0.47, 0.53]);
+        obj.figure.listbox.samples = uicontrol(obj.figure.tabs.options{2}, 'Style', 'List', 'Position', [0.02, 0.45, 0.47, 0.53]);
+        obj.figure.listbox.ions = uicontrol(obj.figure.tabs.options{2}, 'Style', 'List', 'Position', [0.51, 0.45, 0.47, 0.53]);
     end
       
 

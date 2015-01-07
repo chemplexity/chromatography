@@ -18,12 +18,12 @@ if ~ischar(file)
     error('Input must be a string')
 end
 
-% Read file_name
-data.file_name = file;
-
 % Check file extension
-[~, file] = fileattrib(data.file_name);
-[~, ~, extension] = fileparts(file.Name);
+[~, file] = fileattrib(file);
+[~, file_name, extension] = fileparts(file.Name);
+
+% Set file name
+data.file_name = strcat(file_name, extension);
 
 % Read .MS files
 if strcmp(extension, '.MS')
