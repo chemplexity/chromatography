@@ -1,5 +1,8 @@
 % Method: tables
 %  -Update user interface tables
+%
+% Commands
+%   'update.files' : update file table with new file information
 
 function obj = tables(obj, varargin)
 

@@ -1,5 +1,9 @@
 % Method: listboxes
 %  -Update user interface listboxes
+%
+% Commands
+%   'update.samples' : update listbox with available file names
+%   'update.ions'    : update listbox with available ion chromatograms
 
 function obj = listbox(obj, varargin)
 
