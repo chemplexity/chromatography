@@ -35,8 +35,8 @@ else
 end
     
 % Check for window center input
-if ~isempty(find(strcmp(varargin, 'center'), 1))
-    center = varargin{find(strcmp(varargin, 'center')) + 1};
+if ~isempty(find(strcmpi(varargin, 'center'), 1))
+    center = varargin{find(strcmpi(varargin, 'center')) + 1};
     
     % Check user input
     if isempty(center)
@@ -53,8 +53,8 @@ else
 end
     
 % Check for window size input
-if ~isempty(find(strcmp(varargin, 'width'), 1))
-    width = varargin{find(strcmp(varargin, 'width')) + 1};
+if ~isempty(find(strcmpi(varargin, 'width'), 1))
+    width = varargin{find(strcmpi(varargin, 'width')) + 1};
     
     % Allow empty input
     if isempty(width)
@@ -69,8 +69,8 @@ else
 end
     
 % Check for extend input
-if ~isempty(find(strcmp(varargin, 'coverage'), 1))
-    extend = varargin{find(strcmp(varargin, 'coverage')) + 1};
+if ~isempty(find(strcmpi(varargin, 'coverage'), 1))
+    extend = varargin{find(strcmpi(varargin, 'coverage')) + 1};
 else
     extend = 0.1;
 end

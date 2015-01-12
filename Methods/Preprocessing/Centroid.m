@@ -2,21 +2,20 @@
 %  -Centroid mass spectrometer data
 %
 % Syntax
-%   Centroid(data)
-%   Centroid(data, 'OptionName', optionvalue...)
+%   Centroid(x, y)
+%   Centroid(x, y, 'OptionName', optionvalue...)
 %
 % Options
-%   'samples' : 'all', [sampleindex]
 %   'width'   : 0.001 to 1
 %
 % Description
-%   data      : an existing data structure
-%   'samples' : row index of samples in data structure -- (default: all)
-%   'width'   : mass resolution of centroid -- (default: 0.5)
+%   x       : vector with mass values
+%   y       : matrix with intensity values
+%   'width' : mass resolution of centroid -- (default: 0.5)
 %
 % Examples
-%   data = Centroid(data)
-%   data = Centroid(data, 'samples', [3:7], 'width', 0.1)
+%   Centroid(x, y)
+%   Centroid(x, y, 'width', 0.1)
 
 function varargout = Centroid(data, varargin)
 
@@ -78,7 +77,6 @@ for i = 1:length(options.samples)
     
     % Round mass values
     mass_values = round(mass_values / options.width) * options.width;
-    mass_values_centroid = 
     
     zeros(length(intensity_values(:,1)), length(mass_values_bin));
     

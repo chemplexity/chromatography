@@ -36,8 +36,8 @@ else
 end
     
 % Check window center options
-if ~isempty(find(strcmp(varargin, 'center'),1))
-    window_center = varargin{find(strcmp(varargin, 'center'),1) + 1};
+if ~isempty(find(strcmpi(varargin, 'center'),1))
+    window_center = varargin{find(strcmpi(varargin, 'center'),1) + 1};
     
     % Check user input
     if isempty(window_center)
@@ -53,8 +53,8 @@ else
 end
     
 % Check window size options
-if ~isempty(find(strcmp(varargin, 'width'),1))
-    window_size = varargin{find(strcmp(varargin, 'width'),1) + 1};
+if ~isempty(find(strcmpi(varargin, 'width'),1))
+    window_size = varargin{find(strcmpi(varargin, 'width'),1) + 1};
     
     % Check user input
     if isempty(window_size)
@@ -70,15 +70,15 @@ else
 end
 
 % Check extra options
-if ~isempty(find(strcmp(varargin, 'extra'),1))
-    exponent = varargin{find(strcmp(varargin, 'extra'),1) + 1};
+if ~isempty(find(strcmpi(varargin, 'extra'),1))
+    exponent = varargin{find(strcmpi(varargin, 'extra'),1) + 1};
 else
     exponent = 0.1;
 end
 
 % Check coverage options
-if ~isempty(find(strcmp(varargin, 'coverage'),1))
-    coverage = varargin{find(strcmp(varargin, 'coverage'),1) + 1};
+if ~isempty(find(strcmpi(varargin, 'coverage'),1))
+    coverage = varargin{find(strcmpi(varargin, 'coverage'),1) + 1};
 else
     coverage = 1;
 end
@@ -102,7 +102,7 @@ peaks = cell2struct(values, peak_fields, 2);
 exponential_gaussian = @(x,c,h,w,e) h * exp(-((c-x).^2) ./ (2*(w^2))) .* (w/e) .* ((pi/2)^0.5) .* erfcx((1/(2^0.5)) .* (((c-x) ./ w) + (w/e)));
 
 % Fetch peak locations
-[edges, center] = PeakDerivative(x,y,'center', window_center,'width', window_size, 'coverage', coverage);
+[edges, center] = PeakDerivative(x, y, 'center', window_center, 'width', window_size, 'coverage', coverage);
 
 % Curve fitting algorithm
 for i = 1:length(y(1,:))
