@@ -19,7 +19,6 @@ function obj = setup(obj, varargin)
         obj.figure.figure = figure('Name', '', 'Position', figure_position);
     end
 
-
     % Menus
     function obj = set_menu(obj, varargin)
  
@@ -30,26 +29,24 @@ function obj = setup(obj, varargin)
         obj.menu.load = uimenu(obj.menu.file, 'Label', 'Load');
             
         % File --> Load --> Agilent 
-        obj.menu.agilent{1,1} = uimenu(obj.menu.load, 'Label', 'Agilent');
-        obj.menu.agilent{1,2} = uimenu(obj.menu.agilent{1,1}, 'Label', '.D');
-        obj.menu.agilent{1,3} = uimenu(obj.menu.agilent{1,1}, 'Label', '.MS');
+        obj.menu.agilent{1} = uimenu(obj.menu.load, 'Label', 'Agilent');
+        obj.menu.agilent{2} = uimenu(obj.menu.agilent{1}, 'Label', '.D');
+        obj.menu.agilent{3} = uimenu(obj.menu.agilent{1}, 'Label', '.MS');
 
         % File --> Load --> netCDF
-        obj.menu.netcdf{1,1} = uimenu(obj.menu.load, 'Label', 'netCDF');
-        obj.menu.netcdf{1,2} = uimenu(obj.menu.netcdf{1,1}, 'Label', '.CDF');
+        obj.menu.netcdf{1} = uimenu(obj.menu.load, 'Label', 'netCDF');
+        obj.menu.netcdf{2} = uimenu(obj.menu.netcdf{1}, 'Label', '.CDF');
     end
-
 
     % Panels
     function obj = set_panels(obj, varargin)
 
-        % Create panels
+        % Create main panels
         obj.figure.panels{1} = uipanel(obj.figure.figure, 'Position', [0.01,0.61,0.37,0.37]);
         obj.figure.panels{2} = uipanel(obj.figure.figure, 'Position', [0.01,0.02,0.37,0.57]);
         obj.figure.panels{3} = uipanel(obj.figure.figure, 'Position', [0.39,0.02,0.60,0.96]);
     end
     
-
     % Tabs
     function obj = set_tabs(obj, varargin)
     
@@ -70,36 +67,41 @@ function obj = setup(obj, varargin)
         obj.figure.tabs.axes{3} = uitab(obj.figure.tabs.axes{1}, 'Title', 'SIM');
     end
 
-
     % Tables
     function obj = set_tables(obj, varargin)
 
         % Create tables
-        obj.figure.table.files = uitable(obj.figure.tabs.main{2}, 'Position', [0.02,0.02, 0.96, 0.96]);
+        obj.figure.tables.files = uitable(obj.figure.tabs.main{2}, 'Position', [0.02,0.02, 0.96, 0.96]);
     end
      
-
     % Listboxes
     function obj = set_listboxes(obj, varargin)
 
         % Create listboxes
-        obj.figure.listbox{1} = uicontrol(obj.figure.tabs.options{2}, 'Style', 'List', 'Position', [0.02, 0.45, 0.47, 0.53]);
-        obj.figure.listbox{2} = uicontrol(obj.figure.tabs.options{2}, 'Style', 'List', 'Position', [0.51, 0.45, 0.47, 0.53]);
+        obj.figure.listbox.samples = uicontrol(obj.figure.tabs.options{2}, 'Style', 'List', 'Position', [0.02, 0.45, 0.47, 0.53]);
+        obj.figure.listbox.ions = uicontrol(obj.figure.tabs.options{2}, 'Style', 'List', 'Position', [0.51, 0.45, 0.47, 0.53]);
     end
       
-
+    % Checkboxes
+    function obj = set_checkboxes(obj,varargin)
+    
+        % Create view options button group
+        obj.figure.checkbox.group{1} = uibuttongroup(obj.figure.tabs.options{2}, 'Position', [0.02, 0.20, 0.47, 0.20]);
+        obj.figure.checkbox.stacked = uicontrol(obj.figure.checkbox.group{1}, 'Style', 'checkbox', 'Position', [0.05, 0.60, 0.90, 0.35], 'String', 'Stacked', 'Backgroundcolor', [0.95, 0.95, 0.95]);
+        obj.figure.checkbox.normalized = uicontrol(obj.figure.checkbox.group{1}, 'Style', 'checkbox', 'Position', [0.05, 0.10, 0.90, 0.35], 'String', 'Normalized', 'Backgroundcolor', [0.95, 0.95, 0.95]);        
+    end
+    
     % Axes
     function obj = set_axes(obj, varargin)
     
         % Create axes
         obj.axes.tic = axes('Parent', obj.figure.tabs.axes{2}, 'Position', [0.05, 0.09, 0.9, 0.875]);
-        obj.axes.sim = axes('Parent', obj.figure.tabs.axes{3}, 'Position', [0.05, 0.09, 0.9, 0.875]);
+        obj.axes.xic = axes('Parent', obj.figure.tabs.axes{3}, 'Position', [0.05, 0.09, 0.9, 0.875]);
         
         % X-Axis
-        set(get(obj.axes.tic, 'XLabel'), 'String', 'Time (min)', 'FontSize', 11);
-        set(get(obj.axes.sim, 'XLabel'), 'String', 'Time (min)', 'FontSize', 11);
+        set(get(obj.axes.tic, 'XLabel'), 'String', 'Time (min)', 'FontSize', 14);
+        set(get(obj.axes.xic, 'XLabel'), 'String', 'Time (min)', 'FontSize', 14);
     end
-
 
 % Construct user interface
 obj = set_figure(obj);
@@ -108,6 +110,7 @@ obj = set_panels(obj);
 obj = set_tabs(obj);
 obj = set_tables(obj);
 obj = set_listboxes(obj);
+obj = set_checkboxes(obj);
 obj = set_axes(obj);
 
 % Create button containers
@@ -129,11 +132,6 @@ obj = set_axes(obj);
 %slider_position(obj.uifigure.slider{1}, position, [0.06,0.03,0.85,0.1]);
 %slider_position(obj.uifigure.slider{2}, position, [0.78,0.17,0.11,0.7]);
 %slider_position(obj.uifigure.slider{3}, position, [0.62,0.17,0.11,0.7]);
-
-% Create checkboxes
-%obj.uifigure.checkbox{1} = uicontrol(obj.uifigure.panels{4}, 'Style', 'checkbox', 'Position', [0.05, 0.775, 0.7, 0.125], 'String', 'Overlay', 'FontSize', 9, 'Value', 0);
-%obj.uifigure.checkbox{2} = uicontrol(obj.uifigure.panels{5}, 'Style', 'checkbox', 'Position', [0.05, 0.775, 0.7, 0.125], 'String', 'Normalize', 'FontSize', 9, 'Value', 1);
-%obj.uifigure.checkbox{3} = uicontrol(obj.uifigure.panels{5}, 'Style', 'checkbox', 'Position', [0.05, 0.61, 0.7, 0.125], 'String', 'Overlay', 'FontSize', 9, 'Value', 0);
 
 % Create static text
 %obj.uifigure.text{1} = uicontrol(obj.uifigure.panels{4}, 'Style', 'text', 'Position', [0.02, 0.05, 0.6, 0.1], 'String', 'Zoom:', 'FontSize', 9);
