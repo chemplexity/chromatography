@@ -2,20 +2,47 @@
 %  -Update user interface tables
 %
 % Commands
-%   'update.files' : update file table with new file information
+%   'initialize.files' : initialize table with file information
 
-function obj = tables(obj, varargin)
+function obj = tables(varargin)
 
-% Check input
+% Check for any input
 if isempty(varargin)
     return
 end
 
+% Check for valid input
+if isobject(varargin{1})
+    obj = varargin{1};
+else
+    return
+end
+
+% Check inputs
+switch length(varargin)
+    
+    % Command line input
+    case 2
+        if ischar(varargin{2})
+            options = varargin{2};
+        end
+        
+    % Callback input
+    case 4
+        if ischar(varargin{4})
+            options = varargin{4};
+        end
+        
+    % Invalid input
+    otherwise
+        return
+end
+
 % Determine function to perform
-switch varargin{1}
+switch options
             
-    % Update files table
-    case 'update.files'
+    % Initialize table with file information
+    case 'initialize.files'
         
         % Variables
         table = get(obj.figure.tables.files, 'data');
@@ -26,7 +53,7 @@ switch varargin{1}
         % Get table width
         position = get(obj.figure.tables.files, 'position');
         
-        % Column width
+        % Set column width
         col{1} = position(3) * 0.2;
         col{2} = position(3) * 0.4;
         col{3} = position(3) * 0.4;
@@ -45,7 +72,7 @@ switch varargin{1}
             start = length(table(1,:)) + 1;
         end
         
-        % Update table data
+        % Determine table data
         for i = start:length(obj.data)
             
             % Set first column to 'ID'
@@ -62,7 +89,7 @@ switch varargin{1}
             table{i,3} = strcat(table{i,2}, '_', num2str(i));
         end
         
-        % Update table data
+        % Set table data
         set(obj.figure.tables.files, 'data', table);
         
     otherwise

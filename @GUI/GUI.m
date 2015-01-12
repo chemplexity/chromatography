@@ -7,18 +7,15 @@
 classdef GUI < handle
 
     properties
-        data
-    end
-    
-    properties (SetAccess = private)
         
         % Frontend
         figure
-        axes
         menu
+        axes
         
         % Backend
         functions
+        data
         options
     end
 
@@ -39,10 +36,6 @@ classdef GUI < handle
             % GUI
             obj = setup(obj);
             obj = callbacks(obj);
-            
-            % Update
-            obj = tables(obj);
-            obj = listbox(obj);
         end
         
         % Load data       
@@ -54,17 +47,20 @@ classdef GUI < handle
             % Import data
             obj.data = obj.functions.import(filetype, obj.data, 'progress', 'off');
             
-            % Update GUI components
-            obj = tables(obj, 'update.files');
-            obj = listbox(obj, 'update.samples');
-            obj = listbox(obj, 'update.ions');
-            
-            % Initialize GUI plots
+            % Initialize GUI data
             if ~isfield(obj.axes, 'data')
                 obj.axes.data = [];
+                obj.axes.index = [];
                 obj.axes.options = [];
-                obj.plots(obj, 'initialize.all');
             end
+            
+            % Initialize GUI components
+            obj = obj.tables('initialize.files');
+            obj = obj.listbox('initialize.samples');
+            obj = obj.listbox('initialize.ions');
+            
+            % Initialize GUI plots
+            obj = obj.plots('initialize.all');
         end
     end
     
@@ -79,6 +75,10 @@ classdef GUI < handle
             
             % Menu - File --> Load --> netCDF
             set(obj.menu.netcdf{1,2}, 'callback', @obj.load); 
+            
+            % Listbox - Select Data
+            set(obj.figure.listbox.samples, 'callback', {@obj.listbox, 'update.samples'});
+            set(obj.figure.listbox.ions, 'callback', {@obj.listbox, 'update.ions'});
             
             % Checkbox - View Options
             set(obj.figure.checkbox.stacked, 'callback', {@obj.plots, 'options.stacked'});

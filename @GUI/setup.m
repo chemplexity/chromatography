@@ -67,11 +67,6 @@ function obj = setup(obj, varargin)
         obj.figure.tabs.axes{3} = uitab(obj.figure.tabs.axes{1}, 'Title', 'SIM');
     end
 
-    % Sub-panels
-    function obj = set_subpanels(obj, varargin)
-        
-    end
-
     % Tables
     function obj = set_tables(obj, varargin)
 
@@ -101,11 +96,11 @@ function obj = setup(obj, varargin)
     
         % Create axes
         obj.axes.tic = axes('Parent', obj.figure.tabs.axes{2}, 'Position', [0.05, 0.09, 0.9, 0.875]);
-        obj.axes.sim = axes('Parent', obj.figure.tabs.axes{3}, 'Position', [0.05, 0.09, 0.9, 0.875]);
+        obj.axes.xic = axes('Parent', obj.figure.tabs.axes{3}, 'Position', [0.05, 0.09, 0.9, 0.875]);
         
         % X-Axis
-        set(get(obj.axes.tic, 'XLabel'), 'String', 'Time (min)', 'FontSize', 13);
-        set(get(obj.axes.sim, 'XLabel'), 'String', 'Time (min)', 'FontSize', 13);
+        set(get(obj.axes.tic, 'XLabel'), 'String', 'Time (min)', 'FontSize', 14);
+        set(get(obj.axes.xic, 'XLabel'), 'String', 'Time (min)', 'FontSize', 14);
     end
 
 % Construct user interface
@@ -113,7 +108,6 @@ obj = set_figure(obj);
 obj = set_menu(obj);
 obj = set_panels(obj);
 obj = set_tabs(obj);
-obj = set_subpanels(obj);
 obj = set_tables(obj);
 obj = set_listboxes(obj);
 obj = set_checkboxes(obj);
