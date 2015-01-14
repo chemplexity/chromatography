@@ -1,71 +1,76 @@
 % Method: Centroid
-%  -Centroid mass spectrometer data
+%  -Centroid raw mass spectrometer data
 %
 % Syntax
 %   Centroid(x, y)
 %   Centroid(x, y, 'OptionName', optionvalue...)
 %
+% Input
+%   x       : array
+%   y       : array or matrix
+%
 % Options
-%   'width'   : 0.001 to 1
+%   'width' : 0.001 to 1
 %
 % Description
-%   x       : vector with mass values
-%   y       : matrix with intensity values
-%   'width' : mass resolution of centroid -- (default: 0.5)
+%   x       : array with mass values
+%   y       : array or matrix with intensity values
+%   'width' : desired m/z width of centroid filter
 %
 % Examples
 %   Centroid(x, y)
 %   Centroid(x, y, 'width', 0.1)
 
-function varargout = Centroid(data, varargin)
+function varargout = Centroid(x, y, varargin)
 
 % Check number of inputs
-if nargin < 1
+if nargin < 2
     error('Not enough input arguments');
-elseif isstruct(data)
-    data = DataStructure('Validate', data);
-else
-    error('Undefined input arguments of type ''data''');
+elseif ~isnumeric(x)
+    error('Undefined input arguments of type ''x''');
+elseif ~isnumeric(y)
+    error('Undefined input arguments of type ''y''');
+elseif length(x(:,1)) > 1 && length(x(1,:)) > 1
+    error('Undefined input arguments of type ''x''');
+elseif length(x(:,1)) ~= length(y(:,1)) && length(x(1,:)) ~= length(y(1,:))
+    error('Input arguments of unequal length');
 end
-    
-% Default options
-samples = 1:length(data);
-binsize = 0.50;
-    
-% Check sample options
-if ~isempty(find(strcmpi(varargin, 'samples'),1))
-    options.samples = varargin{find(strcmpi(varargin, 'samples'),1) + 1};
-                    
-    % Check user input
-    if strcmpi(options.samples, 'all')
-        options.samples = 1:length(data);
-    elseif ~isnumeric(options.samples)
-        error('Undefined input arguments of type ''samples''');
-    elseif max(options.samples) > length(data) || min(options.samples) < 1
-        error('Index exceeds matrix dimensions')
-    end
-        
-else
-    % Default samples options
-    options.samples = 1:length(data);
+   
+% Check input precision
+if ~isa(x, 'double')
+    x = double(x);
 end
+if ~isa(y, 'double')
+    y = double(y);
+end
+   
+% Check mass resolution
+options.resolution = (max(x) - min(x)) / length(x);
 
-% Check centroid width options
-if ~isempty(find(strcmpi(varargin, 'width'),1))
-    options.width = varargin{find(strcmpi(varargin, 'width'),1) + 1};
+% Predict data type
+if options.resolution > 1
+    options.type = 'sim';
+elseif options.resolution <= 1
+    options.type = 'full';
+end
+    
+% Check user input
+input = @(x) find(strcmpi(varargin, x),1);
+
+% Check width options
+if ~isempty(input('width'))
+    options.width = varargin{input('width') + 1};
                     
     % Check user input
     if ~isnumeric(options.width)
-        options.width = 0.5;
-    elseif options.width < 0.001
-        options.width = 0.001;
-    elseif options.width > 1
-        options.width = 1;
+        options.width = options.resolution * 2;
+    elseif options.width <= options.resolution
+        error('Invalid input arguments of type ''width''');
+    elseif options.width > (max(x) - min(x)) / 2;
+        error('Invalid input arguments of type ''width''');
     end
-        
 else
-    % Default centroid width options
-    options.width = 0.25;
+    options.width = options.resolution * 2;
 end
 
 % Calculate centroid data

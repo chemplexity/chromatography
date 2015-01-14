@@ -1,34 +1,38 @@
 % Method: import
-%  -Import raw LC/MS data into the MATLAB workspace
+%  -Import chromatography data into the MATLAB workspace
 %
 % Syntax
 %   import(filetype)
 %   import(filetype, data)
 %   import(filetype, data, 'OptionName', optionvalue...)
 %
+% Input
+%   filetype   : '.CDF', '.D', '.MS'
+%   data       : structure
+%
 % Options
 %   'progress' : 'on', 'off'
-%   'centroid' : 'on', 'off'
 %
 % Description
-%   filetype   : valid file extension (.D, .MS, .CDF)
+%   filetype   : valid file extension (e.g. '.D', '.MS', '.CDF')
 %   data       : append an existing data structure -- (default: none)
-%   'progress' : print current import progress to command window -- (default: 'on')
-%   'centroid' : calculate the centroid spectrum of dataset -- (default: 'on')
+%   'progress' : print current import progress in the command window -- (default: 'on')
 %
 % Examples
 %   data = obj.import('.D')
 %   data = obj.import('.CDF')
 %   data = obj.import('.D', data)
 %   data = obj.import('.MS', 'progress', 'off')
-%   data = obj.import('.D', 'centroid', 'off')
+%   data = obj.import('.D', data, 'progress', 'on')
 
 function data = import(obj, varargin)
             
 % Check number of inputs
 if nargin < 2
     error('Not enough input arguments');
-elseif nargin >2 && isstruct(varargin{2})
+elseif ~ischar(varargin{1})
+    error('Undefined input arguments of type ''filetype''');
+elseif nargin > 2 && isstruct(varargin{2})
     data = DataStructure('validate', varargin{2});
 else
     data = DataStructure();
@@ -36,49 +40,52 @@ end
 
 % Check file extension
 if ~any(find(strcmp(varargin{1}, obj.options.import)))
-    error('Unknown file format');
+    error('Unrecognized file format');
 end
 
+% Check user input
+input = @(x) find(strcmpi(varargin, x),1);
+
 % Check progress options
-if ~isempty(find(strcmpi(varargin, 'progress'),1))
-    options.progress = varargin{find(strcmpi(varargin, 'progress'),1) + 1};
+if ~isempty(input('progress'))
+    options.progress = varargin{input('progress') + 1};
    
     % Check user input
     if strcmpi(options.progress, 'off') || strcmpi(options.progress, 'hide')
-        options.progress = 0;
-    else
-        options.progress = 1;
+        options.progress = 'off';
+    elseif strcmpi(options.progress, 'on') || strcmpi(options.progress, 'show')
+        options.progress = 'on';
     end
 else
-    options.progress = 1;
+    options.progress = 'on';
 end
 
 % Check centroid options
-if ~isempty(find(strcmpi(varargin, 'centroid'),1))
-    options.centroid = varargin{find(strcmpi(varargin, 'centroid'),1) + 1};
+if ~isempty(input('centroid'))
+    options.centroid = varargin{input('centroid') + 1};
    
     % Check user input
-    if strcmpi(options.centroid, 'off')
-        options.centroid = 0;
+    if strcmpi(options.centroid, 'on')
+        options.centroid = 'on';
     else
-        options.centroid = 1;
+        options.centroid = 'off';
     end
 else
-    options.centroid = 1;
+    options.centroid = 'off';
 end
     
 % Open file selection dialog
 files = dialog(obj, varargin{1});
 
-% Check for any selections
+% Check for any file selections
 if isempty(files)
     return
 end
 
 % Remove entries with incorrect filetype
 files(~strcmp(files(:,3), varargin{1}), :) = [];
-   
-% Set path to selected folder
+
+% Set MATLAB path to selected folder
 path(files{1,1}, path);
 
 % Store runtime information
@@ -156,12 +163,12 @@ for i = 1:length(id)
     import_data(i).id = id(i);
     import_data(i).file_type = varargin{1};
 
-    % Update diagnostics
+    % Update global diagnostics
     import_data(i).diagnostics.system_os = computer;
     import_data(i).diagnostics.system_version = version;
     import_data(i).diagnostics.system_date = now;
     
-    % Update import diagnostics
+    % Update method diagnostics
     import_data(i).diagnostics.import.processing_time = processing_time(i);
     import_data(i).diagnostics.import.processing_spectra = length(import_data(i).mass_values);
     import_data(i).diagnostics.import.processing_spectra_length = length(import_data(i).time_values);
@@ -169,11 +176,6 @@ end
             
 % Concatenate imported data with existing data
 data = [data, import_data];
-
-% Centroid data
-if options.centroid == 4
-    data = Centroid(data);
-end
 
 end
 
@@ -229,7 +231,7 @@ end
 function update(varargin)
 
     % Check user options
-    if varargin{4} == 0
+    if strcmpi(varargin{4},'off')
         return
     end
 
