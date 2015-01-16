@@ -29,7 +29,7 @@ Check out the [in-depth guide](https://github.com/chemplexity/chromatography/wik
 	<b>File Conversion</b>
 </td>
 
-<td valign="middle" align="center">
+<td align="center">
 	<table style="width:100%">
 	<tr>
 		<th>Type</th>
@@ -40,7 +40,7 @@ Check out the [in-depth guide](https://github.com/chemplexity/chromatography/wik
 	</tr><tr></tr><tr>
 		<td align="center">netCDF</td>
 		<td align="center">.CDF</td>
-	</ul>
+	</tr>
 	</table>
 </td>
 
@@ -81,7 +81,7 @@ Check out the [in-depth guide](https://github.com/chemplexity/chromatography/wik
 
 Current release stable on the following systems:
 
-* OSX 10.9+, Windows 7
+* OSX >10.9, Windows 7
 * MATLAB >2013b
 
 ## Documentation
