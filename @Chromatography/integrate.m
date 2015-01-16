@@ -18,7 +18,7 @@
 %   'ions'      : column index of ions in data structure -- (default: all)
 %   'center'    : search for peak at center value -- (default: x at max(y))
 %   'width'     : search for peak at center +/- width/2 -- (default: 2)
-%   'results'   : replace, append or reset existing peak values -- (default: append)
+%   'results'   : replace, append or reset existing peak values -- (default: reset)
 %
 % Examples
 %   data = obj.integrate(data)
@@ -34,12 +34,7 @@ function data = integrate(obj, varargin)
 % Check number of inputs
 if nargin < 2
     error('Not enough input arguments');
-elseif nargin > 12
-    error('Too many input arguments');
-end          
-  
-% Check data structure
-if isstruct(varargin{1})
+elseif isstruct(varargin{1})
     data = DataStructure('validate', varargin{1});
 else
     error('Undefined input arguments of type ''data''');
@@ -122,7 +117,7 @@ if ~isempty(find(strcmpi(varargin, 'results'),1))
         error('Undefined input arguments of type ''results''');
     end
 else
-    results = 'append';
+    results = 'reset';
 end
 
 % Calculate peak area

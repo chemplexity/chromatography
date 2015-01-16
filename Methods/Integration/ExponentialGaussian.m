@@ -2,210 +2,247 @@
 %  -Curve fitting with the exponentially modified gaussian equation
 %
 % Syntax
+%   ExponentialGaussian(y)
 %   ExponentialGaussian(x, y)
 %   ExponentialGaussian(x, y, 'OptionName', optionvalue...)
+%
+% Input
+%   x        : array
+%   y        : array or matrix
 %
 % Options
 %   'center' : value
 %   'width'  : value
 %
 % Description
-%   x        : array
-%   y        : array or matrix
-%   'center' : search for peak at center value -- (default: x at max(y))
-%   'width'  : search for peak at center +/- width/2 -- (default: 2)
+%   x        : time values
+%   y        : intensity values
+%   'center' : location of peak center  -- (default: x at max(y))
+%   'width'  : estimated peak width  -- (default: %5 of x)
 %
 % Examples
-%   peaks = ExponentialGaussian(x, y)
+%   peaks = ExponentialGaussian(y)
+%   peaks = ExponentialGaussian(y, 'width', 1.5)
 %   peaks = ExponentialGaussian(x, y, 'center', 22.10)
 %   peaks = ExponentialGaussian(x, y, 'center', 12.44, 'width', 0.24)
 %   
 % References
 %   Y. Kalambet, et.al, Journal of Chemometrics, 25 (2011) 352
 
-function peaks = ExponentialGaussian(x, y, varargin)
+function peaks = ExponentialGaussian(varargin)
 
-% Check input type, length, precision
-if ~isnumeric(x) || ~isnumeric(y)
-    error('Undefined input arguments of type ''xy''');
-elseif length(x(:,1)) ~= length(y(:,1))
-    error('Index of input arguments unequal');
+% Check input
+if nargin < 1
+    error('Not enough input arguments');
+elseif nargin == 1 && isnumeric(varargin{1})
+    y = varargin{1};
+    x = 1:length(y(:,1));
+elseif nargin >1 && isnumeric(varargin{1}) && isnumeric(varargin{2}) 
+    x = varargin{1};
+    y = varargin{2};
+elseif nargin >1 && isnumeric(varargin{1})
+    y = varargin{1};
+    x = 1:length(y(:,1));
 else
+    error('Undefined input arguments of type ''xy''');
+end
+    
+% Check data precision
+if ~isa(x, 'double')
     x = double(x);
+end
+if ~isa(y, 'double')
     y = double(y);
 end
+
+% Check data orientation
+if length(x(1,:)) > length(x(:,1))
+    x = x';
+end
+if length(y(1,:)) == length(x(:,1))
+    y = y';
+end
+if length(x(:,1)) ~= length(y(:,1))
+    error('Input dimensions must aggree');
+end
     
-% Check window center options
-if ~isempty(find(strcmpi(varargin, 'center'),1))
-    window_center = varargin{find(strcmpi(varargin, 'center'),1) + 1};
+% Check user input
+input = @(x) find(strcmpi(varargin, x),1);
+
+% Check center options
+if ~isempty(input('center'))
+    options.center = varargin{input('center')+1};
+elseif ~isempty(input('time'))
+    options.center = varargin{input('time')+1};
+else
+    [~,index] = max(y);
+    options.center = x(index);
+end
+
+% Check for valid input
+if isempty(options.center)
+    [~,index] = max(y);
+    options.center = x(index);
+elseif ~isnumeric(options.center)
+    error('Undefined input arguments of type ''center''');
+end
+    
+% Check width options
+if ~isempty(input('width'))
+    options.width = varargin{input('width')+1};
+elseif ~isempty(input('time'))
+    options.width = varargin{input('window')+1};
+elseif max(options.center) > max(x) || min(options.center) < min(x)
+    error('Input arguments of type ''center'' exceeds matrix dimensions');
+else
+    options.width = max(x) * 0.05;
+end
+    
+% Check for valid input
+if isempty(options.width)
+    options.width = max(x) * 0.05;
+elseif ~isnumeric(options.width)
+    error('Undefined input arguments of type ''width''');
+end
+    
+% Check for valid range
+if options.center + (options.width/2) > max(x)
+    options.width = max(x) - (options.width/2);
+elseif options.center - (options.width/2) < min(x)
+    options.width = min(x) + (options.width/2);
+end
+
+% Check expoential factor options
+if ~isempty(input('extra'))
+    options.exponent = varargin{input('extra')+1};
     
     % Check user input
-    if isempty(window_center)
-        window_center = [];
-    elseif ~isnumeric(window_center)
-        error('Undefined input arguments of type ''center''');
-    elseif window_center > max(x) || window_center < min(x)
-        window_center = [];
+    if ~isnumeric(options.exponent)
+        options.exponent = 0.1;
+    elseif length(options.exponent) > 1
+        options.exponent = options.exponent(1);
+    elseif options.exponent > 1
+        options.exponent = 0.1;
     end
 else
-    % Default window center
-    window_center = [];
-end
-    
-% Check window size options
-if ~isempty(find(strcmpi(varargin, 'width'),1))
-    window_size = varargin{find(strcmpi(varargin, 'width'),1) + 1};
-    
-    % Check user input
-    if isempty(window_size)
-        window_size = [];
-    elseif ~isnumeric(window_size)
-        error('Undefined input arguments of type ''width''');
-    elseif window_size > max(x) || window_size < min(x)
-        window_size = [];
-    end
-else
-    % Default window size
-    window_size = [];
+    options.exponent = 0.1;
 end
 
-% Check extra options
-if ~isempty(find(strcmpi(varargin, 'extra'),1))
-    exponent = varargin{find(strcmpi(varargin, 'extra'),1) + 1};
-else
-    exponent = 0.1;
-end
+% Initialize output fields
+peak_fields = {'peak_time','peak_width','peak_height','peak_area','peak_fit','peak_fit_residuals','peak_fit_error','peak_fit_options'};
 
-% Check coverage options
-if ~isempty(find(strcmpi(varargin, 'coverage'),1))
-    coverage = varargin{find(strcmpi(varargin, 'coverage'),1) + 1};
-else
-    coverage = 1;
-end
-
-% Create output data structure 
-peak_fields = {...
-    'peak_time',...
-    'peak_width',...
-    'peak_height',...
-    'peak_area',...
-    'peak_fit',...
-    'peak_fit_residuals',...
-    'peak_fit_error',...
-    'peak_fit_options'...
-    };
-
+% Initialize data structure
 values{length(peak_fields)} = [];
 peaks = cell2struct(values, peak_fields, 2);
-    
-% Anonymous function for exponential gaussian model
+   
+% Determine peak boudaries
+p = PeakDetection(x, y, 'center', options.center, 'width', options.width);
+
+% Initialize exponential gaussian model
 exponential_gaussian = @(x,c,h,w,e) h * exp(-((c-x).^2) ./ (2*(w^2))) .* (w/e) .* ((pi/2)^0.5) .* erfcx((1/(2^0.5)) .* (((c-x) ./ w) + (w/e)));
 
-% Fetch peak locations
-[edges, center] = PeakDerivative(x, y, 'center', window_center, 'width', window_size, 'coverage', coverage);
-
-% Curve fitting algorithm
+% Apply exponential gaussian model
 for i = 1:length(y(1,:))
     
-    % Define variables
-    c = center(i);
-    w = edges(i,2) - edges(i,1);
+    %  Variables
+    c = p.center(i);
+    w = p.right(i) - p.left(i);
     h = y(find(x >= c, 1), i);
-    e = exponent;
+    e = options.exponent;
     
     % Proceed if peak center within limits
-    if c ~= 0 && c-(w/2) > min(x) && c+(w/2) < max(x)
+    if c ~= 0 && c-(w/2) >= min(x) && c+(w/2) <= max(x)
         
         % Find peak edges
-        left = find(x >= edges(i, 1), 1);
-        right = find(x >= edges(i, 2), 1);
-        middle = find(x >= c, 1);
+        l = find(x >= p.left(i), 1);
+        r = find(x >= p.right(i), 1);
+        m = find(x >= c, 1);
         
         % Find height at peak edges
-        left_y = y(left, i);
-        right_y = y(right, i);
+        ly = y(l, i);
+        ry = y(r, i);
 
         % Set edges to equal height
-        if left_y < right_y
-           right = find(y(left+1:end, i) <= left_y, 1) + left - 1;
-        elseif left_y < right_y
-           left = right - find(flipud(y(1:right-1, i)) <= right_y, 1) - 1 ;
+        if ly < ry
+           r = find(y(l+1:end, i) <= ly, 1) + l - 1;
+        elseif ly < ry
+           l = r - find(flipud(y(1:r-1, i)) <= ry, 1) - 1 ;
         end
         
         % Distance of edges from center
-        a = c - x(left);
-        b = x(right) - c;
+        lc = c - x(l);
+        rc = x(r) - c;
         
         % Check for center point between edges
-        if b > 0 && a > 0
+        if rc > 0 && lc > 0
         
             % Check for incorrect peak edges (e.g. in cases of peak overlap)
-            if c / abs(b-a) < 50
-                if b > a
-                    right = middle + (middle - left);
-                elseif a > b
-                    left = middle - (right - middle);
+            if c / abs(rc-lc) < 50
+                if rc > lc
+                    r = m + (m - l);
+                elseif lc > rc
+                    l = m - (r - m);
                 end
             end
             
             % Optimize fit parameters within edge boundaries
-            opt_x = x(left:right);
-            opt_y = y(left:right, i);
+            xopt = x(l:r);
+            yopt = y(l:r, i);
     
             % Upsample xy with spline interpolation
-            resolution = (opt_x(end) - opt_x(1)) / length(opt_x);
-            opt_x_fine = transpose(opt_x(1):(resolution/10):opt_x(end));
-            opt_y_fine = spline(opt_x, opt_y, opt_x_fine);
+            resolution = (xopt(end) - xopt(1)) / length(xopt);
+            xopt = transpose(xopt(1):(resolution/10):xopt(end));
+            yopt = spline(x(l:r), yopt, xopt);
         
             % Optimize fit parameters
             opt = [w,e];
-            optimize = @(opt) sum((opt_y_fine - exponential_gaussian(opt_x_fine,c,h,opt(1),opt(2))).^2);
-            opt = fminsearch(optimize, opt, optimset('display', 'on'));
+            optimize = @(opt) sum((yopt - exponential_gaussian(xopt,c,h,opt(1),opt(2))).^2);
+            opt = fminsearch(optimize, opt, optimset('display', 'off'));
 
             % Calculate fit using optimized parameters
-            fit_y = exponential_gaussian(x,c,h,opt(1),opt(2));
-            residuals = y(:,i) - fit_y;
+            yfit = exponential_gaussian(x,c,h,opt(1),opt(2));
+            yerror = y(:,i) - yfit;
 
             % Replace any NaNs with zero
-            fit_y(isnan(fit_y)) = 0;
-            residuals(isnan(residuals)) = 0;
+            yfit(isnan(yfit)) = 0;
+            yerror(isnan(yerror)) = 0;
 
             % Replace any Infs with zero
-            fit_y(isinf(fit_y)) = 0;
-            residuals(isinf(residuals)) = 0;
+            yfit(isinf(yfit)) = 0;
+            yerror(isinf(yerror)) = 0;
         
             % Find edges of integration by looking at derivative signal
-            dy = fit_y(2:end) - fit_y(1:end-1);
-            [~, dy_min] = min(dy);
-            [~, dy_max] = max(dy);
+            dy = yfit(2:end) - yfit(1:end-1);
+            [~, ymin] = min(dy);
+            [~, ymax] = max(dy);
 
-            right = find(dy(dy_min:end) >= -10^-2, 1) + dy_min - 1;
-            left = dy_max - find(flipud(dy(1:dy_max)) <= 10^-2, 1) - 1;    
+            r = find(dy(ymin:end) >= -10^-2, 1) + ymin - 1;
+            l = ymax - find(flipud(dy(1:ymax)) <= 10^-2, 1) - 1;    
         else
             opt = [0,0];
-            fit_y = zeros(length(y(:,i)),1);
-            residuals = zeros(length(y(:,i)),1);
+            yfit = zeros(length(y(:,i)),1);
+            yerror = zeros(length(y(:,i)),1);
             
             % Clear peak boundaries
-            right = [];
-            left = [];
+            r = [];
+            l = [];
         end
         
         % Proceed if values exist
-        if ~isempty(right) && ~isempty(left) && left < right
+        if ~isempty(r) && ~isempty(l) && l < r
         
             % Set integration limits
-            right_x = x(right);
-            left_x = x(left);
+            rx = x(r);
+            lx = x(l);
 
             % Calculate peak area
-            area = integral(@(x)exponential_gaussian(x,c,h,opt(1),opt(2)), left_x, right_x);
+            area = integral(@(x) exponential_gaussian(x,c,h,opt(1),opt(2)), lx,rx);
 
             % Calculate root-mean-square deviations of fit
-            rmsd = sqrt(sum(residuals(left:right).^2)/(right-left+1));
+            rmsd = sqrt(sum(yerror(l:r).^2) / (r-l+1));
     
             % Normalized RMSD
-            norm_rmsd = rmsd / (max(y(left:right,i)) - min(y(left:right,i)));
+            norm_rmsd = rmsd / (max(y(l:r,i)) - min(y(l:r,i)));
             fit_error = norm_rmsd * 100;
         else
             area = 0;
@@ -215,8 +252,8 @@ for i = 1:length(y(1,:))
         opt = [0,0];
         area = 0;
         fit_error = 0;
-        fit_y = zeros(length(y(:,i)),1);
-        residuals = zeros(length(y(:,i)),1);
+        yfit = zeros(length(y(:,i)),1);
+        yerror = zeros(length(y(:,i)),1);
     end
     
     % Check results
@@ -233,8 +270,8 @@ for i = 1:length(y(1,:))
     peaks.peak_width(i) = w;
     peaks.peak_height(i) = h;
     peaks.peak_area(i) = area;
-    peaks.peak_fit(:,i) = fit_y;
-    peaks.peak_fit_residuals(:,i) = residuals;
+    peaks.peak_fit(:,i) = yfit;
+    peaks.peak_fit_residuals(:,i) = yerror;
     peaks.peak_fit_error(i) = fit_error;
     peaks.peak_fit_options(i) = opt(2);
 end

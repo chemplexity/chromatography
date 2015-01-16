@@ -5,14 +5,17 @@
 %   baseline = WhittakerSmoother(y)
 %   baseline = WhittakerSmoother(y, 'OptionName', optionvalue...)
 %
+% Input
+%   y            : array or matrix
+%
 % Options
-%   'smoothness' : 10^3 to 10^9
-%   'asymmetry'  : 10^-1 to 10^-6
+%   'smoothness' : value (~10^3 to 10^9)
+%   'asymmetry'  : value (~10^-1 to 10^-6)
 %
 % Description
-%   y            : array or matrix
-%   'smoothness' : 10^3 to 10^9
-%   'asymmetry'  : 10^1 to 10^-6
+%   y            : intensity values
+%   'smoothness' : smoothing factor -- (default: 10^6)
+%   'asymmetry'  : asymmetry factor -- (default: 10^-4)
 %
 % Examples
 %   baseline = WhittakerSmoother(y)
@@ -25,15 +28,10 @@
 
 function [baseline, weights] = WhittakerSmoother(y, varargin)
 
-% Check number of inputs
+% Check input
 if nargin < 1
     error('Not enough input arguments');
-elseif nargin > 5
-    error('Too many input arguments');
-end  
-
-% Check data
-if ~isnumeric(y)
+elseif ~isnumeric(y)
     error('Undefined input arguments of type ''y''');
 end
 
@@ -42,7 +40,7 @@ if nargin == 1
     
     % Default pararmeters
     smoothness = 10^6;
-    asymmetry = 10^-6;
+    asymmetry = 10^-4;
     
 % Check options
 elseif nargin > 1
@@ -72,7 +70,7 @@ elseif nargin > 1
         end
     else
         % Default smoothness options
-        asymmetry = 10^-6;
+        asymmetry = 10^-4;
     end
 end
 
@@ -88,7 +86,7 @@ for i = 1:length(y(1,:))
         y(:,i) = y(:,i) + correction;
     % Correct for non-positive definite y-values
     elseif max(y(:,i)) == 0
-        return
+        continue
     else 
         correction = 0;
     end
