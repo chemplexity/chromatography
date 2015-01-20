@@ -35,7 +35,7 @@ elseif ~isnumeric(y)
     error('Undefined input arguments of type ''y''');
 end
 
-% Check input
+% Check user input
 if nargin == 1
     
     % Default pararmeters
@@ -45,9 +45,12 @@ if nargin == 1
 % Check options
 elseif nargin > 1
     
+    % Check user input
+    input = @(x) find(strcmpi(varargin, x),1);
+
     % Check smoothness options
-    if ~isempty(find(strcmpi(varargin, 'smoothness'),1));
-        smoothness = varargin{find(strcmpi(varargin, 'smoothness'),1) + 1};
+    if ~isempty(input('smoothness'));
+        smoothness = varargin{input('smoothness')+1};
 
         % Check user input
         if ~isnumeric(smoothness)
@@ -59,8 +62,8 @@ elseif nargin > 1
     end
     
     % Check asymmetry options
-    if ~isempty(find(strcmpi(varargin, 'asymmetry'),1));
-        asymmetry = varargin{find(strcmpi(varargin, 'asymmetry'),1) + 1};
+    if ~isempty(input('asymmetry'));
+        asymmetry = varargin{input('asymmetry')+1};
 
         % Check user input
         if ~isnumeric(asymmetry)
@@ -74,17 +77,19 @@ elseif nargin > 1
     end
 end
 
-% Ensure y is double precision
-y = double(y);
+% Check data
+if ~isa(y,'double')
+    y = double(y);
+end
 
 % Perform baseline calculation on each vector
 for i = 1:length(y(1,:))
     
-    % Correct for negative y-values
+    % Correct negative y-values
     if min(y(:,i)) < 0
         correction = abs(min(y(:,i)));
         y(:,i) = y(:,i) + correction;
-    % Correct for non-positive definite y-values
+    % Correct non-positive definite y-values
     elseif max(y(:,i)) == 0
         continue
     else 

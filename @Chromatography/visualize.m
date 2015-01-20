@@ -21,7 +21,7 @@
 %
 % Description
 %   data       : an existing data structure     
-%   'samples'  : row index of samples in data structure -- (default: all)
+%   'samples'  : row index of samples in data structure -- (default: 'all')
 %   'ions'     : column index of ions in data structure -- (default: 'tic')
 %   'baseline' : display baseline/baseline corrected spectra -- (default: 'off')
 %   'peaks'    : display curve fitting results for available peaks -- (default: 'off')
@@ -30,16 +30,16 @@
 %   'xlim'     : x-axis limits -- (default: 'auto')
 %   'ylim'     : y-axis limits -- (default: 'auto')
 %   'legend'   : add legend to plot -- (default: 'off')
-%   'colormap' : select colormap to use for plotting -- (default: 'default')
-%   'export' : cell array passed the MATLAB print function -- (default: none)
+%   'export'   : cell array passed to the MATLAB print function -- (default: none)
+%   'colormap' : select colormap to use for plotting -- (default: 'parula')
 %
 % Examples
-% obj.visualize(data, 'samples', [1:4], 'ions', 'tic', 'baseline', 'on')
-% obj.visualize(data, 'layout', 'stacked', 'scale', 'normalized')
-% obj.visualize(data, 'peaks', 'residuals', 'baseline', 'on')
-% obj.visualize(data, 'scale', 'normalized', 'baseline', 'corrected')
-% obj.visualize(data, 'samples', 1, 'peaks', 'on', 'baseline', 'on')
-% obj.visualize(data, 'ions', 'all', 'colormap', 'jet', 'export', 'export', {'mydata', '-dtiff', '-r300'}
+%   obj.visualize(data, 'samples', [1:4], 'ions', 'tic', 'baseline', 'on')
+%   obj.visualize(data, 'layout', 'stacked', 'scale', 'normalized')
+%   obj.visualize(data, 'peaks', 'residuals', 'baseline', 'on')
+%   obj.visualize(data, 'scale', 'normalized', 'baseline', 'corrected')
+%   obj.visualize(data, 'samples', 1, 'peaks', 'on', 'baseline', 'on')
+%   obj.visualize(data, 'ions', 'all', 'colormap', 'jet', 'export', 'export', {'mydata', '-dtiff', '-r300'}
 
 function varargout = visualize(obj, varargin)
 
@@ -81,9 +81,9 @@ if ~isempty(input('ions'))
     % Check for valid input
     if isnumeric(options.ions)
         if min(options.ions) <= 0
-            error('Undefined input arguments of type ''ions''');
+            options.ions = 'tic';
         elseif max(options.ions) > max(cellfun(@length, {data.mass_values}))
-            error('Undefined input arguments of type ''ions''');
+            options.ions = 'tic';
         end
     elseif ~strcmpi(options.ions, 'all') && ~strcmpi(options.ions, 'tic')
         options.ions = 'tic';
@@ -157,9 +157,7 @@ if ~isempty(input('xlim'))
     options.x_permission = 'read';
     
     % Check for valid input
-    if length(options.x) > 2 || length(options.x) < 2
-        error('Incorrect number of input arguments of type ''xlim''');
-    elseif ~isnumeric(options.x) || strcmp(options.x, 'auto') || options.x(2) < options.x(1)
+    if ~isnumeric(options.x) || strcmp(options.x, 'auto') || options.x(2) < options.x(1)
         options.x = [];
         options.x_permission = 'write';
     end
@@ -313,8 +311,8 @@ for i = 1:length(options.samples)
         
         % Check peaks
         if strcmpi(options.peaks, 'on') || strcmpi(options.peaks, 'residuals')
-           if ~isempty(data(options.samples(i)).intensity_values_peaks.peak_fit)
-               peaks = data(options.samples(i)).intensity_values_peaks.peak_fit(1,options.ions);
+           if ~isempty(data(options.samples(i)).intensity_values_peaks.fit)
+               peaks = data(options.samples(i)).intensity_values_peaks.fit(1,options.ions);
            end
             if isempty(peaks)
                 options.peaks = 'off';
@@ -357,7 +355,7 @@ for i = 1:length(options.samples)
         
                 % Check peaks
                 if strcmpi(options.peaks, 'on') || strcmpi(options.peaks, 'residuals')
-                    peaks = data(options.samples(i)).total_intensity_values_peaks.peak_fit(1,1);
+                    peaks = data(options.samples(i)).total_intensity_values_peaks.fit{1,1};
                     if isempty(peaks)
                         options.peaks = 'off';
                     end
@@ -392,7 +390,7 @@ for i = 1:length(options.samples)
         
                 % Check peaks
                 if strcmpi(options.peaks, 'on') || strcmpi(options.peaks, 'residuals')
-                    peaks = data(options.samples(i)).intensity_values_peaks.peak_fit(1,:);
+                    peaks = data(options.samples(i)).intensity_values_peaks.fit(1,:);
                     if isempty(peaks)
                         options.peaks = 'off';
                     end
@@ -441,7 +439,7 @@ for i = 1:length(options.samples)
         plot(x, baseline, ...
             'parent', options.axes, ...
             'linewidth', 1.5, ...
-            'color', [0.4,0.4,0.4]);
+            'color', [0.99,0.25,0.23]);
     end
 end
 
@@ -538,7 +536,12 @@ function plot_update(options)
     padding.x = (options.x(2) - options.x(1)) * 0.05;
     padding.y = (options.y(2) - options.y(1)) * 0.05;
     set(options.axes, 'xlim', [options.x(1)-padding.x, options.x(2)+padding.x]);
-    set(options.axes, 'ylim', [options.y(1)-padding.y, options.y(2)+padding.y]);
+    
+    if ~strcmpi(options.layout, 'stacked')
+        set(options.axes, 'ylim', [options.y(1)-padding.y, options.y(2)+padding.y]);
+    else
+        set(options.axes, 'ylim', [options.y(1)-padding.y, options.y(2)]);
+    end
     
     % Legend
     if strcmpi(options.legend, 'on')
@@ -657,4 +660,7 @@ linkaxes([options.axes, options.empty]);
 
 % Set resize callback
 set(options.figure, 'sizechangedfcn', @(varargin) set(options.empty, 'position', get(options.axes, 'position')));
+
+% Set zoom callback
+set(zoom(options.figure), 'actionpostcallback', @(varargin) set(options.empty, 'position', get(options.axes, 'position')));
 end

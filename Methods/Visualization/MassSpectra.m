@@ -1,5 +1,5 @@
 % Method: MassSpectra 
-%  -Plots a mass spectra histogram
+%  -Plot a mass spectra histogram
 %
 % Syntax
 %   MassSpectra(x, y, 'OptionName', optionvalue...)
@@ -208,8 +208,8 @@ if strcmpi(options.labels, 'on')
     ylocal = ylocal(dy(3,:));
 
     % Filter values below threshold
-    xlocal(ylocal < max(y) * 0.03) = [];
-    ylocal(ylocal < max(y) * 0.03) = [];
+    xlocal(ylocal < max(y) * 0.1) = [];
+    ylocal(ylocal < max(y) * 0.1) = [];
     
     % Initialize labels
     for i = 1:length(ylocal)

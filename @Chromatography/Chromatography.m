@@ -4,17 +4,18 @@
 % Initialize
 %   obj = Chromatography
 %
-% Import
-%   obj.import(filetype, 'OptionName', OptionValue...)
+% Methods
+%   Import
+%       data = obj.import(filetype, 'OptionName', OptionValue...)
 %   
-% Baseline
-%   obj.baseline(data, 'OptionName', OptionValue...)
+%   Baseline
+%       data = obj.baseline(data, 'OptionName', OptionValue...)
 %
-% Integration
-%   obj.integrate(data, 'OptionName', OptionValue...)
+%   Integration
+%       data = obj.integrate(data, 'OptionName', OptionValue...)
 %
-% Visualize
-%   obj.visualize(data, 'OptionName', OptionValue...)
+%   Visualize
+%       obj.visualize(data, 'OptionName', OptionValue...)
 
 classdef Chromatography
 
@@ -27,6 +28,11 @@ classdef Chromatography
         % Constructor method
         function obj = Chromatography()
            
+            % General informations
+            obj.options.system_os = computer;
+            obj.options.matlab_version = version;
+            obj.options.toolbox_version = '1.0';
+            
             % Import options
             obj.options.import = {...
                 '.CDF', 'netCDF (*.CDF)';
@@ -38,22 +44,10 @@ classdef Chromatography
             obj.options.baseline.asymmetry = 10^-6;
             
             % Integration options
-            obj.options.integration.type = 'exponential gaussian';
+            obj.options.integration.model = 'exponential gaussian hybrid';
             
             % Visualization options
             obj.options.visualization.position = [0.1, 0.4, 0.4, 0.4];
         end
-
-        % Import method
-        data = import(obj, varargin);
-        
-        % Baseline method
-        data = baseline(obj, varargin);
-        
-        % Integration method
-        data = integrate(obj, varargin);
-        
-        % Visualize method
-        visualize(obj, varargin);
     end
 end

@@ -8,7 +8,7 @@
 </td>
 
 <td>
-	<img src="Documentation/Images/main.png"/>
+	<img src="Documentation/Images/README/main.png"/>
 </td>
 
 </tr>
@@ -51,7 +51,7 @@ Check out the [in-depth guide](https://github.com/chemplexity/chromatography/wik
 </td>
 
 <td align="center">
-	<img src="Documentation/Images/baseline.png" width="80%"/>
+	<img src="Documentation/Images/README/baseline.png" width="80%"/>
 </td>		
 
 </tr><tr><td colspan="2"></td></tr><tr>
@@ -61,7 +61,7 @@ Check out the [in-depth guide](https://github.com/chemplexity/chromatography/wik
 </td>
 
 <td align="center">
-	<img src="Documentation/Images/integration.png" width="80%"/>
+	<img src="Documentation/Images/README/integration.png" width="80%"/>
 </td>	
 
 </tr><tr><td colspan="2"></td></tr><tr>
@@ -71,7 +71,7 @@ Check out the [in-depth guide](https://github.com/chemplexity/chromatography/wik
 </td>
 
 <td align="center">
-	<img src="Documentation/Images/visualization.png" width="80%"/>
+	<img src="Documentation/Images/README/visualization.png" width="80%"/>
 </td>	
 
 </tr>

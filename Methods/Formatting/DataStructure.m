@@ -5,7 +5,10 @@
 %   data = DataStructure('OptionName', optionvalue...)
 %
 % Options
-%   'validate' : data
+%   'validate' : structure
+%
+% Output
+%   data       : structure
 %
 % Description
 %   'validate' : check data structure for missing fields
@@ -17,7 +20,7 @@
 function data = DataStructure(varargin)
 
 % Field names
-basic_fields = {...
+basic = {...
     'id',...
     'file_name',...
     'file_type',...
@@ -34,72 +37,57 @@ basic_fields = {...
     'intensity_values',...
     'intensity_values_baseline',...
     'intensity_values_peaks',...
-    'diagnostics'
-    };
+    'diagnostics',...
+    'statistics'};
 
-peak_fields = {...
-    'peak_time',...
-    'peak_width',...
-    'peak_height',...
-    'peak_area',...
-    'peak_fit',...
-    'peak_fit_residuals',...
-    'peak_fit_error',...
-    'peak_fit_options'...
-    };
+peaks = {...
+    'time',...
+    'height',...
+    'width',...
+    'a',...
+    'b',...
+    'area',...
+    'fit',...
+    'error'};
 
-diagnostic_fields = {...
+diagnostics = {...
     'system_os',...
-    'system_version',...
     'system_date',...
-    'import',...
-    'baseline',...
-    'integration'
-    };
+    'matlab_version',...
+    'toolbox_version'};
 
-processing_fields = {...
-    'processing_time',...
-    'processing_spectra',...
-    'processing_spectra_length'...
-    };
+statistics = {...
+    'compute_time',...
+    'function',...
+    'calls'};
 
 % Check number of inputs
 if nargin < 2
     
     % Create an empty data structure
-    values{length(basic_fields)} = [];
-    data = cell2struct(values, basic_fields, 2);
+    data = cell2struct(cell(1,length(basic)), basic, 2);
     
     % Clear first line
     data(1) = [];
 
 elseif nargin >= 2
     
-    % Check input
-    data_index = find(strcmpi(varargin, 'validate'));
-    
-    % Check for empty values
-    if ~isempty(data_index)
-        data = varargin{data_index + 1};
+    % Check for validate options
+    if ~isempty(find(strcmpi(varargin, 'validate'),1))
+        data = varargin{find(strcmpi(varargin, 'validate'),1)+1};
     else
         return
     end
     
-    % Check for basic fields
-    data = check(data, basic_fields);
+    % Check basic fields
+    data = check(data, basic);
     
-    % Check for peak fields
+    % Check nested fields
     for i = 1:length(data)
-        data(i).total_intensity_values_peaks = check(data(i).total_intensity_values_peaks, peak_fields);
-        data(i).intensity_values_peaks = check(data(i).intensity_values_peaks, peak_fields);
-    end
-    
-    % Check for processing time fields
-    for i = 1:length(data)
-        data(i).diagnostics = check(data(i).diagnostics, diagnostic_fields);
-        data(i).diagnostics.import = check(data(i).diagnostics.import, processing_fields);
-        data(i).diagnostics.baseline = check(data(i).diagnostics.baseline, processing_fields);
-        data(i).diagnostics.integration = check(data(i).diagnostics.integration, processing_fields);
+        data(i).total_intensity_values_peaks = check(data(i).total_intensity_values_peaks, peaks);
+        data(i).intensity_values_peaks = check(data(i).intensity_values_peaks, peaks);
+        data(i).diagnostics = check(data(i).diagnostics, diagnostics);
+        data(i).statistics = check(data(i).statistics, statistics);
     end
 end
 end
@@ -119,19 +107,16 @@ end
 
 % Check for empty structure
 if isempty(structure)
-    
-    values{length(fields)} = [];
-    structure = cell2struct(values, fields, 2);
+    structure = cell2struct(cell(1,length(fields)), fields, 2);
     
 % Check for missing fields
-else
-    missing_fields = ~isfield(structure, fields);
-    missing_fields = fields(missing_fields);
+elseif ~isempty(~isfield(structure, fields))
+    missing = fields(~isfield(structure, fields));
             
     % Add missing peak fields to structure
-    if ~isempty(missing_fields)
-        for i = 1:length(missing_fields)
-            structure = setfield(structure, {1}, missing_fields{i}, []);
+    if ~isempty(missing)
+        for i = 1:length(missing)
+            structure = setfield(structure, {1}, missing{i}, []);
         end
     end
 end
