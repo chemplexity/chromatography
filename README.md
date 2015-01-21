@@ -29,7 +29,7 @@ Check out the [in-depth guide](https://github.com/chemplexity/chromatography/wik
 	<b>File Conversion</b>
 </td>
 
-<td align="center">
+<td align="center" style="width:100%">
 	<table style="width:100%">
 	<tr>
 		<th>Type</th>
@@ -67,7 +67,7 @@ Check out the [in-depth guide](https://github.com/chemplexity/chromatography/wik
 </tr><tr><td colspan="2"></td></tr><tr>
 
 <td align="center">
-	<b>Visualization</b>
+	<b>[Visualization](https://github.com/chemplexity/chromatography/wiki/Visualization#visualization)</b>
 </td>
 
 <td align="center">
