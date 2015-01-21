@@ -67,7 +67,7 @@ Check out the [in-depth guide](https://github.com/chemplexity/chromatography/wik
 </tr><tr><td colspan="2"></td></tr><tr>
 
 <td align="center">
-	<b>[Visualization](https://github.com/chemplexity/chromatography/wiki/Visualization#visualization)</b>
+	<b><a href="https://github.com/chemplexity/chromatography/wiki/Visualization#visualization">Visualize</a></b>
 </td>
 
 <td align="center">
