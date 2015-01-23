@@ -1,22 +1,22 @@
 % Method: baseline
-%  -Perform baseline correction of chromatographic data
+%  -Calculate baseline of chromatographic data
 %
 % Syntax
-%   baseline(data)
-%   baseline(data, 'OptionName', optionvalue...)
+%   data = baseline(data)
+%   data = baseline(data, 'OptionName', optionvalue...)
 %
 % Options
 %   'samples'    : 'all', [sampleindex]
 %   'ions'       : 'all', 'tic', [ionindex]
-%   'smoothness' : 10^3 to 10^9
-%   'asymmetry'  : 10^-1 to 10^-6
+%   'smoothness' : value (~10^3 to 10^9)
+%   'asymmetry'  : value (~10^-1 to 10^-6)
 %
 % Description
 %   data         : an existing data structure
 %   'samples'    : row index of samples in data structure -- (default: all)
 %   'ions'       : column index of ions in data structure -- (default: all)
 %   'smoothness' : smoothing parameter for baseline calculation -- (default: 10^6)
-%   'asymmetry'  : asymetry parameter for baseline calcaultion -- (default: 10^-6)
+%   'asymmetry'  : asymetry parameter for baseline calcaultion -- (default: 10^-4)
 %
 % Examples
 %   data = obj.baseline(data)
@@ -28,13 +28,11 @@
 % References
 %   P.H.C. Eilers, Analytical Chemistry, 75 (2003) 3631
 
-function data = baseline(obj, varargin)
+function varargout = baseline(obj, varargin)
 
 % Check number of inputs
 if nargin < 2
     error('Not enough input arguments');
-elseif nargin > 10
-    error('Too many input arguments');
 end          
   
 % Check data structure
@@ -44,9 +42,12 @@ else
     error('Undefined input arguments of type ''data''');
 end
 
+% Check user input
+input = @(x) find(strcmpi(varargin, x),1);
+
 % Check sample options
-if ~isempty(find(strcmpi(varargin, 'samples'),1))
-    samples = varargin{find(strcmpi(varargin, 'samples'),1) + 1};
+if ~isempty(input('samples'))
+    samples = varargin{input('samples')+1};
                     
     % Check user input
     if strcmpi(samples, 'all')
@@ -63,16 +64,16 @@ else
 end
                 
 % Check ion options
-if ~isempty(find(strcmpi(varargin, 'ions'),1))
-    ions = varargin{find(strcmpi(varargin, 'ions'),1) + 1};
+if ~isempty(input('ions'))
+    ions = varargin{input('ions')+1};
 else
     % Default ions options
     ions = 'all';
 end
 
 % Check smoothness options
-if ~isempty(find(strcmpi(varargin, 'smoothness'),1))
-    smoothness = varargin{find(strcmpi(varargin, 'smoothness'),1) + 1};
+if ~isempty(input('smoothness'))
+    smoothness = varargin{input('smoothness')+1};
     
     % Check user input
     if ~isnumeric(smoothness)
@@ -84,8 +85,8 @@ else
 end
 
 % Check asymmetry options
-if ~isempty(find(strcmpi(varargin, 'asymmetry'),1))
-    asymmetry = varargin{find(strcmpi(varargin, 'asymmetry'),1) + 1};
+if ~isempty(input('asymmetry'))
+    asymmetry = varargin{input('asymmetry')+1};
      
     % Check user input
     if ~isnumeric(asymmetry)
@@ -125,7 +126,7 @@ for i = 1:length(samples)
     baseline = WhittakerSmoother(y, 'smoothness', smoothness, 'asymmetry', asymmetry);
                 
     % Stop timer
-    processing_time = toc;
+    compute_time = toc;
     
     % Format output
     if isempty(data(samples(i)).intensity_values_baseline)
@@ -146,8 +147,10 @@ for i = 1:length(samples)
     end
     
     % Update baseline dianostics
-    data(samples(i)).diagnostics.baseline.processing_time = data(samples(i)).diagnostics.baseline.processing_time + processing_time;
-    data(samples(i)).diagnostics.baseline.processing_spectra = data(samples(i)).diagnostics.baseline.processing_spectra + length(y(1,:));
-    data(samples(i)).diagnostics.baseline.processing_spectra_length = length(y(:,1));
+    data(samples(i)).statistics.compute_time(end+1) = compute_time;
+    data(samples(i)).statistics.function{end+1} = 'baseline';
+    data(samples(i)).statistics.calls(end+1) = length(y(1,:));
 end
+
+varargout{1} = data;
 end

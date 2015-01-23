@@ -1,102 +1,115 @@
 % Method: Derivative
-% Description: Calculate derivative of a signal
+%  -Calculate derivative of a signal
 %
 % Syntax:
-%   dy = Derivative(x, y, 'OptionName', optionvalue...)
-%   dy = Derivative(y, 'OptionName', optionvalue...)
+%   Derivative(x, y, 'OptionName', optionvalue...)
+%   Derivative(y, 'OptionName', optionvalue...)
 %
-%   Input:
-%       x : vector
-%       y : vector or matrix
-%
-%   Options:
-%       'Degree'    : degree
-%       'Smoothing' : smoothing
+% Options:
+%  'degree'    : 1 to 9
+%  'smoothing' : 'on', 'off'
 %   
-%   Details:
-%       'degree'    : degree of derivative to calculate (e.g. first, second, third...)
-%       'smoothing' : smooth signal before calculating derivative
+% Description:
+%   x          : vector
+%   y          : vector or matrix
+%  'degree'    : degree of derivative to calculate -- (default: 'first')
+%  'smoothing' : smooth signal before calculating derivative -- (default: 'off')
 %
 % Examples:
-%   dy = Derivative(y)
-%   dy = Derivative(x,y)
-%   dy = Derivative(x,y, 'Degree', 1)
-%   dy = Derivative(x,y, 'Degree', 4, 'Smoothing', true)
+%   Derivative(y)
+%   Derivative(x, y)
+%   Derivative(x, y, 'degree', 1)
+%   Derivative(x, y, 'degree', 4, 'smoothing', true)
 
 function varargout = Derivative(varargin)
 
-% Determine xy values
-if nargin >= 2 && isnumeric(varargin{2})
+% Check number of inputs
+if nargin < 1
+    error('Not enough input arguments');
+elseif nargin >= 2 && isnumeric(varargin{2})
     x = varargin{1};
     y = varargin{2};
-else
-    x(:,1) = 1:length(varargin{1});
+elseif isnumeric(varargin{1})
+    x(:,1) = 1:length(varargin{1}(:,1));
     y = varargin{1};
+else
+    error('Undefined input arguments of type ''data''');
+end
+
+% Check for valid input
+if length(x(:,1)) ~= length(y(:,1))
+    if length(x(1,:)) == length(y(1,:))
+        x = x';
+        y = y';
+    else
+        x(:,1) = 1:length(y(:,1));
+    end
+end
+
+% Check for matrix input
+if length(y(1,:)) > 1
+    if length(y(1,:)) ~= length(x(1,:))
+        for i = 1:length(y(1,:))
+            x(:,i) = x(:,1);
+        end
+    end
+end
+
+% Check precision
+if ~isa(x,'double')
+    x = double(x);
+end
+if ~isa(y,'double')
+    y = double(y);
 end
 
 % Check for degree input
-if ~isempty(find(strcmp(varargin, 'Degree') | strcmp(varargin, 'degree'),1))
-    degree = varargin{find(strcmp(varargin, 'Degree') | strcmp(varargin, 'degree'),1) + 1};
+if ~isempty(find(strcmpi(varargin, 'degree'),1))
+    degree = varargin{find(strcmpi(varargin, 'degree'),1) + 1};
     
-    % Check input for string
-    if ischar(degree)
-        switch degree
-            % Convert string to value
-            case 'first'
-                degree = 1;
-            case 'second'
-                degree = 2;
-            case 'third'
-                degree = 3;
-            case 'fourth'
-                degree = 4;
-            otherwise
-                fprintf('Unrecognized string, defaulting to first derivative');
-                degree = 1;
-        end
+    % Check user input
+    if ~isnumeric(degree)
+        fprintf('Unrecognized input arguments of type ''degree'', defaulting to first derivative');
+        degree = 1;
+        
     elseif isnumeric(degree)
-        degree = degree(1);
+        degree = round(degree(1));
+        
+        % Check for invalid input
+        if degree < 1
+            degree = 1;
+        elseif degree > 10
+            degree = 10;
+        end
     else
         degree = 1;
     end
 else
-    % Default value is first derivative
+    % Default to first derivative
     degree = 1;
 end
 
 % Check for smoothing input
-if ~isempty(find(strcmp(varargin, 'Smoothing') | strcmp(varargin, 'smoothing'),1))
-    smoothing = varargin{find(strcmp(varargin, 'Smoothing') | strcmp(varargin, 'smoothing'),1) + 1};
+if ~isempty(find(strcmpi(varargin, 'smoothing'),1))
+    smoothing = varargin{find(strcmpi(varargin, 'smoothing'),1) + 1};
     
-    % Check input for string
-    if ischar(smoothing)
-        switch smoothing
-            case 'on'
-                smoothing = true;
-            case 'off'
-                smoothing = false;
-            otherwise
-                smoothing = false;
-        end
+    % Check user input
+    if ischar(smoothing) && strcmpi(smoothing, 'on')
+        smoothing = true;
+    elseif ischar(smoothing) && ~strcmpi(smoothing, 'on')
+        smoothing = false;
     elseif ~islogical(smoothing)
-        switch smoothing
-            case 1
-                smoothing = true;
-            case 0
-                smoothing = false;
-            otherwise
-                smoothing = false;
-        end
+        smoothing = false;
     end
 else
-    % Default value is no data smoothing
+    % Default to no smoothing
     smoothing = false;
 end
 
-% Vector length
-length_y = length(y(:,1));
+% Determine vector length
+rows = length(y(:,1));
 
-% Calculate derivative to nth degree
+% Calculate derivative to specified degree
 for i = 1:degree
 
     % Smooth data if selected
@@ -105,10 +118,10 @@ for i = 1:degree
     end
         
     % Calculate signal derivative
-    y = bsxfun(@rdivide, bsxfun(@minus, y(2:end,:), y(1:end-1,:)), bsxfun(@minus, x(2:end), x(1:end-1)));
+    y = bsxfun(@rdivide, bsxfun(@minus, y(2:end,:), y(1:end-1,:)), bsxfun(@minus, x(2:end,:), x(1:end-1,:)));
     
     % Preserve vector length
-    y(length_y,:) = 0;
+    y(rows,:) = 0;
 end
 
 % Set output

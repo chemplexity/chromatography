@@ -1,88 +1,47 @@
 % Method: import
-%  -Import raw LC/MS data into the MATLAB workspace
+%  -Import chromatography data into the MATLAB workspace
 %
 % Syntax
-%   import(filetype)
-%   import(filetype, data)
-%   import(filetype, data, 'OptionName', optionvalue...)
+%   data = import(filetype)
+%   data = import(filetype, 'OptionName', optionvalue...)
+%
+% Input
+%   filetype   : '.CDF', '.D', '.MS'
 %
 % Options
+%   'append'   : structure
 %   'progress' : 'on', 'off'
-%   'centroid' : 'on', 'off'
 %
 % Description
-%   filetype   : valid file extension (.D, .MS, .CDF)
-%   data       : append an existing data structure -- (default: none)
-%   'progress' : print current import progress to command window -- (default: 'on')
-%   'centroid' : calculate the centroid spectrum of dataset -- (default: 'on')
+%   filetype   : valid file extension (e.g. '.D', '.MS', '.CDF')
+%   'append'   : append an existing data structure -- (default: none)
+%   'progress' : print current import progress in the command window -- (default: 'on')
 %
 % Examples
 %   data = obj.import('.D')
 %   data = obj.import('.CDF')
-%   data = obj.import('.D', data)
+%   data = obj.import('.D', 'append', data)
 %   data = obj.import('.MS', 'progress', 'off')
-%   data = obj.import('.D', 'centroid', 'off')
+%   data = obj.import('.D', 'append', data, 'progress', 'on')
 
-function data = import(obj, varargin)
-            
-% Check number of inputs
-if nargin < 2
-    error('Not enough input arguments');
-elseif nargin >2 && isstruct(varargin{2})
-    data = DataStructure('validate', varargin{2});
-else
-    data = DataStructure();
-end
+function varargout = import(obj, varargin)
 
-% Check file extension
-if ~any(find(strcmp(varargin{1}, obj.options.import)))
-    error('Unknown file format');
-end
-
-% Check progress options
-if ~isempty(find(strcmpi(varargin, 'progress'),1))
-    options.progress = varargin{find(strcmpi(varargin, 'progress'),1) + 1};
-   
-    % Check user input
-    if strcmpi(options.progress, 'off') || strcmpi(options.progress, 'hide')
-        options.progress = 0;
-    else
-        options.progress = 1;
-    end
-else
-    options.progress = 1;
-end
-
-% Check centroid options
-if ~isempty(find(strcmpi(varargin, 'centroid'),1))
-    options.centroid = varargin{find(strcmpi(varargin, 'centroid'),1) + 1};
-   
-    % Check user input
-    if strcmpi(options.centroid, 'off')
-        options.centroid = 0;
-    else
-        options.centroid = 1;
-    end
-else
-    options.centroid = 1;
-end
-    
+% Check input
+[data, options] = parse(obj,varargin);
+     
 % Open file selection dialog
 files = dialog(obj, varargin{1});
 
-% Check for any selections
+% Check for any file selections
 if isempty(files)
     return
 end
 
 % Remove entries with incorrect filetype
 files(~strcmp(files(:,3), varargin{1}), :) = [];
-   
-% Set path to selected folder
-path(files{1,1}, path);
 
-% Store runtime information
-options.runtime = 0;
+% Set MATLAB path to selected folder
+path(files{1,1}, path);
 
 % Import files
 switch varargin{1}
@@ -96,13 +55,13 @@ switch varargin{1}
             % Import data
             import_data(i) = ImportCDF(strcat(files{i,2},files{i,3}));
             % Stop timer
-            processing_time(i) = toc;
+            compute_time(i) = toc;
             % Assign a unique id
             id(i) = length(data) + i;
             
             % Display import progress
-            options.runtime = options.runtime + processing_time(i);
-            update(i, length(files(:,1)), options.runtime, options.progress); 
+            options.compute_time = options.compute_time + compute_time(i);
+            update(i, length(files(:,1)), options.compute_time, options.progress); 
         end
 
     % Import data with the '*.MS' extension
@@ -116,13 +75,13 @@ switch varargin{1}
             % Import data
             import_data(i) = ImportAgilent(file_path);
             % Stop timer
-            processing_time(i) = toc;
+            compute_time(i) = toc;
             % Assign a unique id
             id(i) = length(data) + i;
             
             % Display import progress
-            options.runtime = options.runtime + processing_time(i);
-            update(i, length(files(:,1)), options.runtime, options.progress); 
+            options.compute_time = options.compute_time + compute_time(i);
+            update(i, length(files(:,1)), options.compute_time, options.progress); 
         end
 
     % Import data with the '*.D' extension
@@ -136,65 +95,65 @@ switch varargin{1}
             % Import data
             import_data(i) = ImportAgilent(file_path);
             % Stop timer
-            processing_time(i) = toc;
+            compute_time(i) = toc;
             % Assign a unique id
             id(i) = length(data) + i;
             % Remove file from path
             rmpath(file_path);
             
             % Display import progress
-            options.runtime = options.runtime + processing_time(i);
-            update(i, length(files(:,1)), options.runtime, options.progress); 
+            options.compute_time = options.compute_time + compute_time(i);
+            update(i, length(files(:,1)), options.compute_time, options.progress); 
         end
 end
 
 % Add missing fields to data structure
-import_data = DataStructure('Validate', import_data);
+import_data = DataStructure('validate', import_data);
 
 % Update data structure
 for i = 1:length(id)
+    
+    % Update file information
     import_data(i).id = id(i);
     import_data(i).file_type = varargin{1};
-
-    % Update diagnostics
-    import_data(i).diagnostics.system_os = computer;
-    import_data(i).diagnostics.system_version = version;
-    import_data(i).diagnostics.system_date = now;
     
-    % Update import diagnostics
-    import_data(i).diagnostics.import.processing_time = processing_time(i);
-    import_data(i).diagnostics.import.processing_spectra = length(import_data(i).mass_values);
-    import_data(i).diagnostics.import.processing_spectra_length = length(import_data(i).time_values);
+    % Update diagnostics
+    import_data(i).diagnostics.system_date = now;
+    import_data(i).diagnostics.system_os = obj.options.system_os;
+    import_data(i).diagnostics.matlab_version = obj.options.matlab_version;
+    import_data(i).diagnostics.toolbox_version = obj.options.toolbox_version;
+    
+    % Update statistics
+    import_data(i).statistics.compute_time(end+1) = compute_time(i);
+    import_data(i).statistics.function{end+1} = 'import';
+    import_data(i).statistics.calls(end+1) = 1;
 end
             
 % Concatenate imported data with existing data
 data = [data, import_data];
 
-% Centroid data
-if options.centroid == 4
-    data = Centroid(data);
-end
-
+% Set output
+varargout{1} = data;
 end
 
 % Open dialog box to select files
 function varargout = dialog(obj, varargin)
             
 % Set filetype
-file_extension = varargin{1};
+extension = varargin{1};
             
 % Initialize JFileChooser object
 fileChooser = javax.swing.JFileChooser(java.io.File(cd));
             
 % Select directories if certain filetype
-if strcmp(file_extension, '.D')
+if strcmp(extension, '.D')
     fileChooser.setFileSelectionMode(fileChooser.DIRECTORIES_ONLY);
 end
             
 % Determine file description and file extension
 filter = com.mathworks.hg.util.dFilter;
-description = [obj.options.import{strcmp(obj.options.import(:,1), file_extension), 2}];
-extension = lower(file_extension(2:end));
+description = [obj.options.import{strcmp(obj.options.import(:,1), extension), 2}];
+extension = lower(extension(2:end));
             
 % Set file description and file extension
 filter.setDescription(description);
@@ -209,12 +168,11 @@ status = fileChooser.showOpenDialog(fileChooser);
 if status == fileChooser.APPROVE_OPTION
     
     % Get file information
-    fileinfo = fileChooser.getSelectedFiles();
+    info = fileChooser.getSelectedFiles();
     
     % Parse file information
-    for i = 1:size(fileinfo, 1)
-        [files{i,1}, files{i,2}, files{i,3}] = ...
-            fileparts(char(fileinfo(i).getAbsolutePath));
+    for i = 1:size(info, 1)
+        [files{i,1}, files{i,2}, files{i,3}] = fileparts(char(info(i).getAbsolutePath));
     end
 else
     % If file selection was cancelled
@@ -229,17 +187,70 @@ end
 function update(varargin)
 
     % Check user options
-    if varargin{4} == 0
+    if strcmpi(varargin{4},'off')
         return
     end
 
     % Display progress
     disp([...
-        num2str(varargin{1}),...
-        '/',...
-        num2str(varargin{2}),...
-        ' in ',...
-        num2str(varargin{3}, '% 10.3f'),...
-        ' sec.'...
-        ]);
+        num2str(varargin{1}), '/',...
+        num2str(varargin{2}), ' in ',...
+        num2str(varargin{3}, '% 10.3f'), ' sec.']);
+end
+
+% Parse user input
+function varargout = parse(obj,varargin)
+
+varargin = varargin{1};
+nargin = length(varargin);
+
+% Check number of inputs
+if nargin < 1
+    error('Not enough input arguments');
+elseif ~ischar(varargin{1})
+    error('Undefined input arguments of type ''filetype''');
+end
+
+% Check for supported file extension
+if ~any(find(strcmp(varargin{1}, obj.options.import)))
+    error('Unrecognized file format');
+else
+    options.filetype = varargin{1};
+end
+
+% Check user input
+input = @(x) find(strcmpi(varargin, x),1);
+
+% Check append options
+if ~isempty(input('append'))
+    options.append = varargin{input('append')+1};
+
+    if isstruct(options.append)
+        data = DataStructure('validate', options.append);
+    else
+        data = DataStructure();
+    end
+else
+    data = DataStructure();
+end
+ 
+% Check progress options
+if ~isempty(input('progress'))
+    options.progress = varargin{input('progress')+1};
+    options.compute_time = 0;
+    
+    % Check user input
+    if strcmpi(options.progress, 'off') || strcmpi(options.progress, 'hide')
+        options.progress = 'off';
+    elseif strcmpi(options.progress, 'on') || strcmpi(options.progress, 'show')
+        options.progress = 'on';
+    end
+else
+    options.progress = 'on';
+    options.compute_time = 0;
+end
+
+% Return input
+varargout{1} = data;
+varargout{2} = options;
 end

@@ -5,14 +5,17 @@
 %   baseline = WhittakerSmoother(y)
 %   baseline = WhittakerSmoother(y, 'OptionName', optionvalue...)
 %
+% Input
+%   y            : array or matrix
+%
 % Options
-%   'smoothness' : 10^3 to 10^9
-%   'asymmetry'  : 10^-1 to 10^-6
+%   'smoothness' : value (~10^3 to 10^9)
+%   'asymmetry'  : value (~10^-1 to 10^-6)
 %
 % Description
-%   y            : array or matrix
-%   'smoothness' : 10^3 to 10^9
-%   'asymmetry'  : 10^1 to 10^-6
+%   y            : intensity values
+%   'smoothness' : smoothing factor -- (default: 10^6)
+%   'asymmetry'  : asymmetry factor -- (default: 10^-4)
 %
 % Examples
 %   baseline = WhittakerSmoother(y)
@@ -25,31 +28,29 @@
 
 function [baseline, weights] = WhittakerSmoother(y, varargin)
 
-% Check number of inputs
+% Check input
 if nargin < 1
     error('Not enough input arguments');
-elseif nargin > 5
-    error('Too many input arguments');
-end  
-
-% Check data
-if ~isnumeric(y)
+elseif ~isnumeric(y)
     error('Undefined input arguments of type ''y''');
 end
 
-% Check input
+% Check user input
 if nargin == 1
     
     % Default pararmeters
     smoothness = 10^6;
-    asymmetry = 10^-6;
+    asymmetry = 10^-4;
     
 % Check options
 elseif nargin > 1
     
+    % Check user input
+    input = @(x) find(strcmpi(varargin, x),1);
+
     % Check smoothness options
-    if ~isempty(find(strcmpi(varargin, 'smoothness'),1));
-        smoothness = varargin{find(strcmpi(varargin, 'smoothness'),1) + 1};
+    if ~isempty(input('smoothness'));
+        smoothness = varargin{input('smoothness')+1};
 
         % Check user input
         if ~isnumeric(smoothness)
@@ -61,8 +62,8 @@ elseif nargin > 1
     end
     
     % Check asymmetry options
-    if ~isempty(find(strcmpi(varargin, 'asymmetry'),1));
-        asymmetry = varargin{find(strcmpi(varargin, 'asymmetry'),1) + 1};
+    if ~isempty(input('asymmetry'));
+        asymmetry = varargin{input('asymmetry')+1};
 
         % Check user input
         if ~isnumeric(asymmetry)
@@ -72,23 +73,25 @@ elseif nargin > 1
         end
     else
         % Default smoothness options
-        asymmetry = 10^-6;
+        asymmetry = 10^-4;
     end
 end
 
-% Ensure y is double precision
-y = double(y);
+% Check data
+if ~isa(y,'double')
+    y = double(y);
+end
 
 % Perform baseline calculation on each vector
 for i = 1:length(y(1,:))
     
-    % Correct for negative y-values
+    % Correct negative y-values
     if min(y(:,i)) < 0
         correction = abs(min(y(:,i)));
         y(:,i) = y(:,i) + correction;
-    % Correct for non-positive definite y-values
+    % Correct non-positive definite y-values
     elseif max(y(:,i)) == 0
-        return
+        continue
     else 
         correction = 0;
     end
