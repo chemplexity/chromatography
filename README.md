@@ -20,8 +20,6 @@ Select the [`Download ZIP`](https://github.com/chemplexity/chromatography/archiv
 
 ##Features
 
-Check out the [in-depth guide](https://github.com/chemplexity/chromatography/wiki/) for a full overview of features.
-
 <table style="width:100%">
 <tr>
 
@@ -81,8 +79,8 @@ Check out the [in-depth guide](https://github.com/chemplexity/chromatography/wik
 
 Current release stable on the following systems:
 
-* OSX >10.9, Windows 7
-* MATLAB >2013b
+* OSX 10.9+, Windows 7
+* MATLAB 2013b+
 
 ## Documentation
 Visit the [wiki](https://github.com/chemplexity/chromatography/wiki/) for a full list of methods and options.
