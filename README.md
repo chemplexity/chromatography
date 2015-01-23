@@ -8,7 +8,7 @@
 </td>
 
 <td>
-	<img src="Documentation/Images/README/main.png"/>
+	<img src="Examples/Images/README/main.png"/>
 </td>
 
 </tr>
@@ -26,7 +26,7 @@ Check out the [in-depth guide](https://github.com/chemplexity/chromatography/wik
 <tr>
 
 <td align="center">
-	<b>File Conversion</b>
+	<b><a href="https://github.com/chemplexity/chromatography/wiki/Import">Import Data</a></b>
 </td>
 
 <td align="center" style="width:100%">
@@ -36,10 +36,10 @@ Check out the [in-depth guide](https://github.com/chemplexity/chromatography/wik
 		<th>Extension</th>
 	</tr><tr></tr><tr>
 		<td align="center">Agilent </td>
-		<td align="center">.D, .MS</td>
+		<td align="center"><code>.D</code>, <code>.MS</code></td>
 	</tr><tr></tr><tr>
 		<td align="center">netCDF</td>
-		<td align="center">.CDF</td>
+		<td align="center"><code>.CDF</code></td>
 	</tr>
 	</table>
 </td>
@@ -47,11 +47,11 @@ Check out the [in-depth guide](https://github.com/chemplexity/chromatography/wik
 </tr><tr><td colspan="2"></td></tr><tr>
 
 <td align="center">
-	<b>Baseline Correction</b>
+	<b><a href="https://github.com/chemplexity/chromatography/wiki/Baseline">Baseline Correction</a></b>
 </td>
 
 <td align="center">
-	<img src="Documentation/Images/README/baseline.png" width="80%"/>
+	<img src="Examples/Images/README/baseline.png" width="80%"/>
 </td>		
 
 </tr><tr><td colspan="2"></td></tr><tr>
@@ -61,23 +61,23 @@ Check out the [in-depth guide](https://github.com/chemplexity/chromatography/wik
 </td>
 
 <td align="center">
-	<img src="Documentation/Images/README/integration.png" width="80%"/>
+	<img src="Examples/Images/README/integration.png" width="80%"/>
 </td>	
 
 </tr><tr><td colspan="2"></td></tr><tr>
 
 <td align="center">
-	<b><a href="https://github.com/chemplexity/chromatography/wiki/Visualization#visualization">Visualize</a></b>
+	<b><a href="https://github.com/chemplexity/chromatography/wiki/Visualization">Visualize</a></b>
 </td>
 
 <td align="center">
-	<img src="Documentation/Images/README/visualization.png" width="80%"/>
+	<img src="Examples/Images/README/visualization.png" width="80%"/>
 </td>	
 
 </tr>
 </table>
 
-####System Requirements
+##System Requirements
 
 Current release stable on the following systems:
 
