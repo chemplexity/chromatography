@@ -28,7 +28,7 @@
 % References
 %   P.H.C. Eilers, Analytical Chemistry, 75 (2003) 3631
 
-function data = baseline(obj, varargin)
+function varargout = baseline(obj, varargin)
 
 % Check number of inputs
 if nargin < 2
@@ -151,4 +151,6 @@ for i = 1:length(samples)
     data(samples(i)).statistics.function{end+1} = 'baseline';
     data(samples(i)).statistics.calls(end+1) = length(y(1,:));
 end
+
+varargout{1} = data;
 end

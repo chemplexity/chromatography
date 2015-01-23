@@ -2,8 +2,8 @@
 %  -Plot chromatograms, baselines, and curve fitting results
 %
 % Syntax
-%   visualize(data)
-%   visualize(data, 'OptionName', optionvalue...)
+%   fig = visualize(data)
+%   fig = visualize(data, 'OptionName', optionvalue...)
 %
 % Options
 %   'samples'  : 'all', [sampleindex]
@@ -34,12 +34,12 @@
 %   'colormap' : select colormap to use for plotting -- (default: 'parula')
 %
 % Examples
-%   obj.visualize(data, 'samples', [1:4], 'ions', 'tic', 'baseline', 'on')
-%   obj.visualize(data, 'layout', 'stacked', 'scale', 'normalized')
-%   obj.visualize(data, 'peaks', 'residuals', 'baseline', 'on')
-%   obj.visualize(data, 'scale', 'normalized', 'baseline', 'corrected')
-%   obj.visualize(data, 'samples', 1, 'peaks', 'on', 'baseline', 'on')
-%   obj.visualize(data, 'ions', 'all', 'colormap', 'jet', 'export', 'export', {'mydata', '-dtiff', '-r300'}
+%   fig = obj.visualize(data, 'samples', [1:4], 'ions', 'tic', 'baseline', 'on')
+%   fig = obj.visualize(data, 'layout', 'stacked', 'scale', 'normalized')
+%   fig = obj.visualize(data, 'peaks', 'residuals', 'baseline', 'on')
+%   fig = obj.visualize(data, 'scale', 'normalized', 'baseline', 'corrected')
+%   fig = obj.visualize(data, 'samples', 1, 'peaks', 'on', 'baseline', 'on')
+%   fig = obj.visualize(data, 'ions', 'all', 'colormap', 'jet', 'export', 'export', {'mydata', '-dtiff', '-r300'}
 
 function varargout = visualize(obj, varargin)
 
@@ -536,12 +536,7 @@ function plot_update(options)
     padding.x = (options.x(2) - options.x(1)) * 0.05;
     padding.y = (options.y(2) - options.y(1)) * 0.05;
     set(options.axes, 'xlim', [options.x(1)-padding.x, options.x(2)+padding.x]);
-    
-    if ~strcmpi(options.layout, 'stacked')
-        set(options.axes, 'ylim', [options.y(1)-padding.y, options.y(2)+padding.y]);
-    else
-        set(options.axes, 'ylim', [options.y(1)-padding.y, options.y(2)]);
-    end
+    set(options.axes, 'ylim', [options.y(1)-padding.y, options.y(2)+padding.y]);
     
     % Legend
     if strcmpi(options.legend, 'on')

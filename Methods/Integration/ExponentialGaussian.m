@@ -1,5 +1,5 @@
 % Method: ExponentialGaussian
-%  -Curve fitting with the exponentially modified gaussian
+%  -Curve fitting with the exponentially modified gaussian hybrid
 %
 % Syntax
 %   peaks = ExponentialGaussian(y)
@@ -27,7 +27,7 @@
 %   peaks = ExponentialGaussian(x, y, 'center', 12.44, 'width', 0.24)
 %   
 % References
-%   Y. Kalambet, et.al, Journal of Chemometrics, 25 (2011) 352
+%   K. Lan, et. al. Journal of Chromatography A, 915 (2001) 1-13
 
 function varargout = ExponentialGaussian(varargin)
 
@@ -81,7 +81,7 @@ for i = 1:length(y(1,:))
     
     % Calculate fit
     yfit(lim(:,1),1) = EGH.y(x(lim(:,1)),c(1),h(1),w(1),e(1));
-    yfit(lim(:,2),2) = EGH.y(x(lim(:,2)),c(1),h(2),w(2),e(2));
+    yfit(lim(:,2),2) = EGH.y(x(lim(:,2)),c(2),h(2),w(2),e(2));
     
     % Set values outside normal range to zero
     yfit(yfit(:,1) < h(1)*10^-6 | yfit(:,1) > h(1)*2, 1) = 0;
@@ -213,20 +213,6 @@ if max(options.center) + (max(options.width)/2) > max(x)
     options.width = max(x) - (max(x) - (max(options.width)/2));
 elseif min(options.center) - (max(options.width)/2) < min(x)
     options.width = min(x) + (min(x) + (max(options.width)/2));
-end
-
-% Check expoential factor options
-if ~isempty(input('extra'))
-    options.exponent = varargin{input('extra')+1};
-    
-    % Check for valid input
-    if ~isnumeric(options.exponent)
-        options.exponent = 0.1;
-    elseif options.exponent <= 0
-        options.exponent(options.exponent <= 0) = 0.1;
-    end
-else
-    options.exponent = 0.1;
 end
 
 % Return input

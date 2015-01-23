@@ -27,7 +27,7 @@
 %   data = obj.integrate(data, 'center', 18.5, 'width', 5.0, 'results', 'append')
 %
 % References
-%   Y. Kalambet, et.al, Journal of Chemometrics, 25 (2011) 352
+%   K. Lan, et. al. Journal of Chromatography A, 915 (2001) 1-13
 
 function varargout = integrate(obj, varargin)
 

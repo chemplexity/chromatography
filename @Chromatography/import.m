@@ -3,65 +3,32 @@
 %
 % Syntax
 %   data = import(filetype)
-%   data = import(filetype, data)
-%   data = import(filetype, data, 'OptionName', optionvalue...)
+%   data = import(filetype, 'OptionName', optionvalue...)
 %
 % Input
 %   filetype   : '.CDF', '.D', '.MS'
-%   data       : structure
 %
 % Options
+%   'append'   : structure
 %   'progress' : 'on', 'off'
 %
 % Description
 %   filetype   : valid file extension (e.g. '.D', '.MS', '.CDF')
-%   data       : append an existing data structure -- (default: none)
+%   'append'   : append an existing data structure -- (default: none)
 %   'progress' : print current import progress in the command window -- (default: 'on')
 %
 % Examples
 %   data = obj.import('.D')
 %   data = obj.import('.CDF')
-%   data = obj.import('.D', data)
+%   data = obj.import('.D', 'append', data)
 %   data = obj.import('.MS', 'progress', 'off')
-%   data = obj.import('.D', data, 'progress', 'on')
+%   data = obj.import('.D', 'append', data, 'progress', 'on')
 
-function data = import(obj, varargin)
-            
-% Check number of inputs
-if nargin < 2
-    error('Not enough input arguments');
-elseif ~ischar(varargin{1})
-    error('Undefined input arguments of type ''filetype''');
-elseif nargin > 2 && isstruct(varargin{2})
-    data = DataStructure('validate', varargin{2});
-else
-    data = DataStructure();
-end
+function varargout = import(obj, varargin)
 
-% Check file extension
-if ~any(find(strcmp(varargin{1}, obj.options.import)))
-    error('Unrecognized file format');
-end
-
-% Check user input
-input = @(x) find(strcmpi(varargin, x),1);
-
-% Check progress options
-if ~isempty(input('progress'))
-    options.progress = varargin{input('progress') + 1};
-    options.compute_time = 0;
-    
-    % Check user input
-    if strcmpi(options.progress, 'off') || strcmpi(options.progress, 'hide')
-        options.progress = 'off';
-    elseif strcmpi(options.progress, 'on') || strcmpi(options.progress, 'show')
-        options.progress = 'on';
-    end
-else
-    options.progress = 'on';
-    options.compute_time = 0;
-end
-    
+% Check input
+[data, options] = parse(obj,varargin);
+     
 % Open file selection dialog
 files = dialog(obj, varargin{1});
 
@@ -165,6 +132,8 @@ end
 % Concatenate imported data with existing data
 data = [data, import_data];
 
+% Set output
+varargout{1} = data;
 end
 
 % Open dialog box to select files
@@ -227,4 +196,61 @@ function update(varargin)
         num2str(varargin{1}), '/',...
         num2str(varargin{2}), ' in ',...
         num2str(varargin{3}, '% 10.3f'), ' sec.']);
+end
+
+% Parse user input
+function varargout = parse(obj,varargin)
+
+varargin = varargin{1};
+nargin = length(varargin);
+
+% Check number of inputs
+if nargin < 1
+    error('Not enough input arguments');
+elseif ~ischar(varargin{1})
+    error('Undefined input arguments of type ''filetype''');
+end
+
+% Check for supported file extension
+if ~any(find(strcmp(varargin{1}, obj.options.import)))
+    error('Unrecognized file format');
+else
+    options.filetype = varargin{1};
+end
+
+% Check user input
+input = @(x) find(strcmpi(varargin, x),1);
+
+% Check append options
+if ~isempty(input('append'))
+    options.append = varargin{input('append')+1};
+
+    if isstruct(options.append)
+        data = DataStructure('validate', options.append);
+    else
+        data = DataStructure();
+    end
+else
+    data = DataStructure();
+end
+ 
+% Check progress options
+if ~isempty(input('progress'))
+    options.progress = varargin{input('progress')+1};
+    options.compute_time = 0;
+    
+    % Check user input
+    if strcmpi(options.progress, 'off') || strcmpi(options.progress, 'hide')
+        options.progress = 'off';
+    elseif strcmpi(options.progress, 'on') || strcmpi(options.progress, 'show')
+        options.progress = 'on';
+    end
+else
+    options.progress = 'on';
+    options.compute_time = 0;
+end
+
+% Return input
+varargout{1} = data;
+varargout{2} = options;
 end

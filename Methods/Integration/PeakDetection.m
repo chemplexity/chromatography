@@ -1,5 +1,5 @@
 % Method: PeakDetection
-%  -Find peaks and peak inflection points
+%  -Find peaks and peak boundary points
 %
 % Syntax
 %   peaks = PeakDetection(y)
@@ -13,11 +13,6 @@
 % Options
 %   'center' : value or array
 %   'width'  : value or array
-%   'xmin'   : value or array
-%   'xmax'   : value or array
-%   'ymin'   : value or array
-%   'ymax'   : value or array
-%   'amount'  : value or array
 %
 % Output
 %   peaks.center : location of peak center
@@ -32,11 +27,6 @@
 %   y        : intensity values
 %   'center' : estimated peak center -- (default: x at max(y))
 %   'width'  : estimated peak width  -- (default: 5% of length(x))
-%   'xmin'   : minimum x value to search peaks -- (default: 'none')
-%   'xmax'   : maxmimum x value to search peaks -- (default: 'none')
-%   'ymin'   : minimum y value to search peaks -- (default: 'none')
-%   'ymax'   : maximum y value to search peaks -- (default: 'none')
-%   'amount'  : number of peaks to return for each input -- (default: 5)  
 %
 % Examples
 %   peaks = PeakDetection(y)
@@ -44,7 +34,6 @@
 %   peaks = PeakDetection(x, y, 'center', 22.10)
 %   peaks = PeakDetection(x, y, 'xmin', 5, 'ymin', 0.15)
 %   peaks = PeakDetection(x, y, 'xmin', 10, 'xmax', 30, 'amount', 10)
-%   peaks = PeakDetection(x, y, 'amount', 'all', 'xmax', 45, 'ymax', 0.9)
 
 function varargout = PeakDetection(varargin)
 
