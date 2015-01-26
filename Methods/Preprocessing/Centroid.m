@@ -2,106 +2,127 @@
 %  -Centroid raw mass spectrometer data
 %
 % Syntax
-%   Centroid(x, y)
-%   Centroid(x, y, 'OptionName', optionvalue...)
+%   [x,y] = Centroid(x,y)
 %
 % Input
-%   x       : array
-%   y       : array or matrix
-%
-% Options
-%   'width' : 0.001 to 1
+%   x : array
+%   y : matrix
 %
 % Description
-%   x       : array with mass values
-%   y       : array or matrix with intensity values
-%   'width' : desired m/z width of centroid filter
+%   x : array containing mass values
+%   y : matrix with intensity values
 %
 % Examples
-%   Centroid(x, y)
-%   Centroid(x, y, 'width', 0.1)
+%   [x,y] = Centroid(x,y)
 
-function varargout = Centroid(x, y, varargin)
+function varargout = Centroid(varargin)
 
-% Check number of inputs
-if nargin < 2
-    error('Not enough input arguments');
-elseif ~isnumeric(x)
-    error('Undefined input arguments of type ''x''');
-elseif ~isnumeric(y)
-    error('Undefined input arguments of type ''y''');
-elseif length(x(:,1)) > 1 && length(x(1,:)) > 1
-    error('Undefined input arguments of type ''x''');
-elseif length(x(:,1)) ~= length(y(:,1)) && length(x(1,:)) ~= length(y(1,:))
-    error('Input arguments of unequal length');
+% Check input
+[x, y] = parse(varargin);
+
+% Initialize variables
+counter = 1;
+
+while counter ~= 0
+
+    % Calculate centroid data
+    for i = 2:length(y(1,:))-1
+    
+        % Find zeros in current column
+        middle = y(:, i) == 0;
+    
+        % Find zeros in surrounding columns
+        upper = y(:, i+1) == 0;
+        lower = y(:, i-1) == 0;
+    
+        % Proceed if next column has more zeros
+        if sum(middle) < sum(upper)
+        
+            % Index zeros adjacent to nonzeros
+            index = xor(middle, upper);
+        
+            % Place all nonzeros from adjacent column in current column
+            y(index, i) = y(index, i) + y(index, i+1);
+            y(index, i+1) = 0;
+        end
+    
+        % Proceed if previous column has more zeros
+        if sum(middle) < sum(lower)
+    
+            % Index zeros adjacent to nonzeros
+            index = xor(middle, lower);
+    
+            % Place all nonzeros from adjacent column in current column
+            y(index, i) = y(index, i) + y(index, i-1);
+            y(index, i-1) = 0;
+        end
+    end
+
+    % Update counter with total number of columns
+    counter = length(y(1,:));
+    
+    % Remove columns with all zeros
+    x(:,sum(y~=0)==0) = [];
+    y(:,sum(y~=0)==0) = [];
+
+    % Update counter with number of columns removed
+    counter = counter - length(y(1,:));
 end
-   
-% Check input precision
+
+% Remove columns with only one nonzero value
+x(:, sum(y~=0)==1)=[];
+y(:, sum(y~=0)==1)=[];
+
+varargout{1} = x;
+varargout{2} = y;
+end
+
+% Parse user input
+function varargout = parse(varargin)
+
+varargin = varargin{1};
+nargin = length(varargin);
+
+% Check input
+if nargin < 1
+    error('Not enough input arguments');
+end
+
+% Check data
+if isnumeric(varargin{1})
+    x = varargin{1};
+else
+    error('Undefined input arguments of type ''x''');
+end
+if isnumeric(varargin{2})
+    y = varargin{2};
+else
+    error('Undefined input arguments of type ''y''');
+end
+
+% Check data precision
 if ~isa(x, 'double')
     x = double(x);
 end
 if ~isa(y, 'double')
     y = double(y);
 end
-   
-% Check mass resolution
-options.resolution = (max(x) - min(x)) / length(x);
 
-% Predict data type
-if options.resolution > 1
-    options.type = 'sim';
-elseif options.resolution <= 1
-    options.type = 'full';
+% Check data orientation
+if size(x) > 1
+    error('Input dimensions must aggree');
+end
+if size(y) <= 1
+    error('Input dimensions must aggree');
+end
+if length(x(:,1)) == length(y(1,:))
+    x = x';
+end
+if length(x(1,:)) ~= length(y(1,:))
+    error('Input dimensions must aggree');
 end
     
-% Check user input
-input = @(x) find(strcmpi(varargin, x),1);
-
-% Check width options
-if ~isempty(input('width'))
-    options.width = varargin{input('width') + 1};
-                    
-    % Check user input
-    if ~isnumeric(options.width)
-        options.width = options.resolution * 2;
-    elseif options.width <= options.resolution
-        error('Invalid input arguments of type ''width''');
-    elseif options.width > (max(x) - min(x)) / 2;
-        error('Invalid input arguments of type ''width''');
-    end
-else
-    options.width = options.resolution * 2;
-end
-
-% Calculate centroid data
-for i = 1:length(options.samples)
-    
-    % Centroid data
-    mass_values = data(samples(i)).mass_values;
-    intensity_values = data(samples(i)).intensity_values;
-    
-    % Round mass values
-    mass_values = round(mass_values / options.width) * options.width;
-    
-    zeros(length(intensity_values(:,1)), length(mass_values_bin));
-    
-    for j = 1:length(mass_values_bin)
-
-        % Index mass values within current bin
-        index = logical(...
-            (mass_values > mass_values_bin(j) - binsize) - ...
-            (mass_values > mass_values_bin(j) + binsize));
-        
-        % Sum mass values within current bin
-        if sum(index) > 0
-            intensity_values_bin(:,j) = sum(intensity_values(:, index), 2);
-        end
-    end
-    
-    % Update intensity values
-    data(samples(i)).intensity_values = intensity_values_bin;
-    data(samples(i)).mass_values = mass_values_bin;
-end
-
-varargout{1} = data;
+% Return input
+varargout{1} = x;
+varargout{2} = y;
 end

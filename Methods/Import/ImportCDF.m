@@ -10,7 +10,14 @@
 % Examples:
 %   data = ImportCDF('001-0510.CDF')
 
-function varargout = ImportCDF(file)
+function varargout = ImportCDF(varargin)
+
+% Check input
+if ischar(varargin{1})
+    file = varargin{1};
+else
+    error('Undefined input arguments of type ''file''');
+end
 
 % Read file_name
 data.file_name = file;
@@ -25,7 +32,7 @@ if isfield(info, 'Attributes')
     if any(strcmpi('experiment_title', {info.Attributes.Name}))
         
         % Read sample name
-        data.sample_name = ncreadatt(file, '/', 'experiment_title');
+        data.sample_name = strtrim(ncreadatt(file, '/', 'experiment_title'));
     else
         data.sample_name = '';
     end
@@ -34,7 +41,7 @@ if isfield(info, 'Attributes')
     if any(strcmpi('external_file_ref_0', {info.Attributes.Name}))
         
         % Read method name
-        data.method_name = ncreadatt(file, '/', 'external_file_ref_0');
+        data.method_name = strtrim(ncreadatt(file, '/', 'external_file_ref_0'));
     else
         data.method_name = '';
     end
@@ -47,8 +54,8 @@ if isfield(info, 'Attributes')
         date = datenum([str2double(datetime(1:4)), str2double(datetime(5:6)), str2double(datetime(7:8)),...
                         str2double(datetime(9:10)), str2double(datetime(10:11)), str2double(datetime(12:13))]);
         
-        data.experiment_date = datestr(date, 'mm/dd/yy');
-        data.experiment_time = datestr(date, 'HH:MM PM');
+        data.experiment_date = strtrim(datestr(date, 'mm/dd/yy'));
+        data.experiment_time = strtrim(datestr(date, 'HH:MM PM'));
     else
         data.experiment_date = '';
         data.experiment_time = '';

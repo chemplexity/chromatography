@@ -47,7 +47,8 @@ elseif strcmp(extension, '.D')
     
     % Check for any input
     if ~length([foldercontents{:}]) > 0
-        error('Data not found')
+        warning('Data not found')
+        return
     end
             
     % Parse folder contents
@@ -66,7 +67,8 @@ elseif strcmp(extension, '.D')
     
     % Check for any input
     if isempty(files{1,3})
-        error('Data not found')
+        warning('Data not found')
+        return
     end
             
     % Output data file
@@ -74,7 +76,8 @@ elseif strcmp(extension, '.D')
 
 % Incorrect file extension
 else
-    error('Incorrect file extension');
+    warning('Incorrect file extension');
+    return
 end
 
 % Open file
@@ -92,7 +95,7 @@ data.method_name = deblank(transpose(fread(file, 20, 'uint8=>char')));
 fseek(file, hex2dec('B3'), 'bof');
 datetime = datevec(deblank(transpose(fread(file, 20, 'uint8=>char'))));
 
-data.experiment_date = datestr(datetime, 'mm/dd/yy');
+data.experiment_date = strtrim(datestr(datetime, 'mm/dd/yy'));
 data.experiment_time = strtrim(datestr(datetime, 'HH:MM PM'));
 
 % Read number of scans
@@ -190,3 +193,10 @@ else
     data.intensity_values(:, del_col) = [];
 end
 end
+
+% FID (.CH files)
+
+% Method
+%fseek(file, hex2dec('A0F'), 'bof');
+%transpose(deblank(fread(file, 20, 'uint8=>char', 1, 'b')));
+
