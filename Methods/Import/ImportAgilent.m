@@ -193,10 +193,3 @@ else
     data.intensity_values(:, del_col) = [];
 end
 end
-
-% FID (.CH files)
-
-% Method
-%fseek(file, hex2dec('A0F'), 'bof');
-%transpose(deblank(fread(file, 20, 'uint8=>char', 1, 'b')));
-

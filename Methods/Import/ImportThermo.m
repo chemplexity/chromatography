@@ -39,16 +39,16 @@ file.name = fopen(varargin{1});
     file = FileHeader(file);
 
     % Injection data
-    function file = InjectionData(file)
+    function InjectionData(file)
         
         % Skip injection data
         fseek(file.name, 64, 'cof');
     end
 
-    file = InjectionData(file);
+    InjectionData(file);
     
     % Sequence data
-    function file = SequenceData(file)
+    function SequenceData(file)
     
         % Skip sequence data
         for i = 1:file.key
@@ -64,20 +64,20 @@ file.name = fopen(varargin{1});
         end
     end
     
-    file = SequenceData(file);
+    SequenceData(file);
 
     % Autosampler data
-    function file = AutosamplerData(file)
+    function AutosamplerData(file)
         
         % Skip autosampler data
         fseek(file.name, 24, 'cof');
         fseek(file.name, fread(file.name, 1, 'uint32'), 'cof');
     end
 
-    file = AutosamplerData(file);
+    AutosamplerData(file);
     
     % File preamble
-    function file = FilePreamble(file)
+    function [file, data] = FilePreamble(file)
         
         % Read date/time
         fseek(file.name, 4, 'cof');
@@ -85,8 +85,8 @@ file.name = fopen(varargin{1});
         x = datenum([x(1), x(2), x(4), x(5), x(6), x(7)]);
 
         % Format date/time
-        file.date = strtrim(datestr(x, 'mm/dd/yy'));
-        file.time = strtrim(datestr(x, 'HH:MM PM'));
+        data.experiment_date = strtrim(datestr(x, 'mm/dd/yy'));
+        data.experiment_time = strtrim(datestr(x, 'HH:MM PM'));
 
         % Read data address
         fseek(file.name, 4, 'cof');
@@ -97,7 +97,7 @@ file.name = fopen(varargin{1});
         file.run_header_address = fread(file.name, 1, 'uint32', 0, 'l');
     end
 
-    file = FilePreamble(file);
+    [file, data] = FilePreamble(file);
     
     % Run header
     function file = RunHeader(file)
@@ -112,7 +112,7 @@ file.name = fopen(varargin{1});
         
         % Read scan index
         fseek(file.name, 12, 'cof');
-        file.scan_index = fread(file.name, 1, 'uint32', 0, 'l');
+        file.scan_index_address = fread(file.name, 1, 'uint32', 0, 'l');
         
         % Read m/z range
         fseek(file.name, 24, 'cof');
@@ -132,21 +132,19 @@ file.name = fopen(varargin{1});
     file = RunHeader(file);
 
     % Scan information
-    function data = ScanInfo(file, data)
+    function [file, data] = ScanInfo(file, data)
        
         % Skip to scan index 
-        fseek(file.name, file.scan_index, 'bof');
+        fseek(file.name, file.scan_index_address, 'bof');
         
         for i = file.scan_start:file.scan_end
             
             % Read offset/index values
-            data.offset(i) = fread(file.name, 1, 'uint32', 0, 'l');
-            data.index(i) = fread(file.name, 1, 'uint32', 0, 'l');
+            file.offset(i) = fread(file.name, 1, 'uint32', 0, 'l');
+            file.index(i) = fread(file.name, 1, 'uint32', 0, 'l');
             
             % Read time values
-            fseek(file.name, 12, 'cof');
-            data.size(i) = fread(file.name, 1, 'uint32', 0, 'l');
-
+            fseek(file.name, 16, 'cof');
             data.time_values(i) = fread(file.name, 1, 'float64', 0, 'l');
             
             % Read TIC values
@@ -160,23 +158,19 @@ file.name = fopen(varargin{1});
 
     % Pre-allocate memory
     data.time_values = zeros(scans, 1);
-    data.total_intensity_values = zeros(scans, 1);
+    data.total_intensity_values = zeros(scans, 1);    
+    file.offset = zeros(scans, 1);
+    file.index = zeros(scans, 1);
     
-    data.offset = zeros(scans, 1);
-    data.index = zeros(scans, 1);
-    data.size = zeros(scans, 1);
-    
-    data = ScanInfo(file, data);
+    [file, data] = ScanInfo(file, data);
     
     % Scan data
     function data = ScanData(file, data)
        
-        fseek(file.name, file.data_address, 'bof');
-        
-        for i = 1:length(data.index)
+        for i = file.scan_start:file.scan_end
             
             % Skip to scan data
-            fseek(file.name, data.offset(i), 'cof');
+            fseek(file.name, file.data_address + file.offset(i), 'bof');
             
             % Read profile size
             fseek(file.name, 4, 'cof');
@@ -191,6 +185,8 @@ file.name = fopen(varargin{1});
             mlow(i) =  fread(file.name, 1, 'float32', 0, 'l');
             mhigh(i) =  fread(file.name, 1, 'float32', 0, 'l');
         end
+        
+        disp(i);
     end
     
     data = ScanData(file, data);

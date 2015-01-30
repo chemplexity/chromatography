@@ -421,18 +421,35 @@ for i = 1:length(options.samples)
     options = plot_ylim(y, options);
     
     % Plot data
-    for j = 1:length(y(1,:))
-        plot(x, y(:,j), ...
-            'parent', options.axes, ...
-            'linewidth', 1.5, ...
-            'displayname', options.name{j});
+    switch version('-release')
+    
+        case '2014b'
+            
+            for j = 1:length(y(1,:))
+                plot(x, y(:,j), ...
+                    'parent', options.axes, ...
+                    'linewidth', 1.5, ...
+                    'displayname', options.name{j});
+            end
+            
+        otherwise
+            
+            for j = 1:length(y(1,:))
+                plot(x, y(:,j), ...
+                    'parent', options.axes, ...
+                    'linewidth', 1.5, ...
+                    'linesmoothing', 'on',...
+                    'displayname', options.name{j});
+            end
     end
         
     % Check baseline options
     if strcmpi(options.baseline, 'on')
+        
         if strcmpi(options.scale, 'normalized')
             baseline = (baseline-min(min(y))) / (max(max(y))-min(min(y)));
         end
+        
         baseline = plot_layout(baseline, options);
         
         % Plot baseline
@@ -653,9 +670,20 @@ box(options.axes, 'off');
 axes(options.axes);
 linkaxes([options.axes, options.empty]);
 
-% Set resize callback
-set(options.figure, 'sizechangedfcn', @(varargin) set(options.empty, 'position', get(options.axes, 'position')));
-
 % Set zoom callback
 set(zoom(options.figure), 'actionpostcallback', @(varargin) set(options.empty, 'position', get(options.axes, 'position')));
+
+% Set resize callback
+switch version('-release')
+    
+    case '2014b'
+        set(options.figure, 'sizechangedfcn', @(varargin) set(options.empty, 'position', get(options.axes, 'position')));
+    case {'2014a', '2013b', '2013a', '2012b', '2012a'}
+        set(options.figure, 'resizefcn', @(varargin) set(options.empty, 'position', get(options.axes, 'position')));
+    otherwise
+        try
+            set(options.figure, 'resizefcn', @(varargin) set(options.empty, 'position', get(options.axes, 'position')));
+        catch       
+        end
+end
 end

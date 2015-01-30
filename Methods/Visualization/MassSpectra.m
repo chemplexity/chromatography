@@ -208,8 +208,8 @@ if strcmpi(options.labels, 'on')
     ylocal = ylocal(dy(3,:));
 
     % Filter values below threshold
-    xlocal(ylocal < max(y) * 0.1) = [];
-    ylocal(ylocal < max(y) * 0.1) = [];
+    xlocal(ylocal < max(y) * 0.03) = [];
+    ylocal(ylocal < max(y) * 0.03) = [];
     
     % Initialize labels
     for i = 1:length(ylocal)
@@ -217,6 +217,7 @@ if strcmpi(options.labels, 'on')
         % Add labels
         options.text{i} = text(...
             xlocal(i), ylocal(i), num2str(xlocal(i), '%10.1f'),...
+            'parent', options.axes,...
             'horizontalalignment', 'center',...
             'verticalalignment', 'bottom',...
             'fontsize', options.font.size-3.5,...
@@ -260,6 +261,9 @@ if strcmpi(options.labels, 'on')
     
     % Correct for shifting
     overlap(1) = 0;
+
+    % Reset position units
+    cellfun(@(x) {set(x, 'units', 'data')}, options.text);
     
     % Hide overlapping text
     if sum(overlap) < 0
@@ -267,12 +271,14 @@ if strcmpi(options.labels, 'on')
         % Determine text to hide
         labels = options.text(overlap);
 
-        % Reset position units
-        cellfun(@(x) {set(x, 'units', 'data')}, options.text);
-    
-        % Hide label
+        % Hide labels
         for i = 1:length(labels)
             set(labels{i}, 'visible', 'off')
+        end
+        
+        % Delete labels
+        for i = 1:length(labels)
+            labels(i) = [];
         end
     end
 end
@@ -297,7 +303,18 @@ axes(options.axes);
 linkaxes([options.axes, options.empty]);
 
 % Set resize callback
-set(options.figure, 'sizechangedfcn', @(varargin) set(options.empty, 'position', get(options.axes, 'position')));
+switch version('-release')
+    
+    case '2014b'
+        set(options.figure, 'sizechangedfcn', @(varargin) set(options.empty, 'position', get(options.axes, 'position')));
+    case {'2014a', '2013b', '2013a', '2012b', '2012a'}
+        set(options.figure, 'resizefcn', @(varargin) set(options.empty, 'position', get(options.axes, 'position')));
+    otherwise
+        try
+            set(options.figure, 'resizefcn', @(varargin) set(options.empty, 'position', get(options.axes, 'position')));
+        catch       
+        end
+end
 
 % Export figure
 if iscell(options.export)

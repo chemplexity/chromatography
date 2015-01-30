@@ -2,14 +2,14 @@
 %  -Centroid raw mass spectrometer data
 %
 % Syntax
-%   [x,y] = Centroid(x,y)
+%   [mz,y] = Centroid(mz,y)
 %
 % Input
-%   x : array
+%   mz : array
 %   y : matrix
 %
 % Description
-%   x : array containing mass values
+%   mz : array containing mass values
 %   y : matrix with intensity values
 %
 % Examples
@@ -18,7 +18,7 @@
 function varargout = Centroid(varargin)
 
 % Check input
-[x, y] = parse(varargin);
+[mz, y] = parse(varargin);
 
 % Initialize variables
 counter = 1;
@@ -62,7 +62,7 @@ while counter ~= 0
     counter = length(y(1,:));
     
     % Remove columns with all zeros
-    x(:,sum(y~=0)==0) = [];
+    mz(:,sum(y~=0)==0) = [];
     y(:,sum(y~=0)==0) = [];
 
     % Update counter with number of columns removed
@@ -70,10 +70,10 @@ while counter ~= 0
 end
 
 % Remove columns with only one nonzero value
-x(:, sum(y~=0)==1)=[];
+mz(:, sum(y~=0)==1)=[];
 y(:, sum(y~=0)==1)=[];
 
-varargout{1} = x;
+varargout{1} = mz;
 varargout{2} = y;
 end
 
@@ -90,7 +90,7 @@ end
 
 % Check data
 if isnumeric(varargin{1})
-    x = varargin{1};
+    mz = varargin{1};
 else
     error('Undefined input arguments of type ''x''');
 end
@@ -101,28 +101,28 @@ else
 end
 
 % Check data precision
-if ~isa(x, 'double')
-    x = double(x);
+if ~isa(mz, 'double')
+    mz = double(mz);
 end
 if ~isa(y, 'double')
     y = double(y);
 end
 
 % Check data orientation
-if size(x) > 1
+if size(mz) > 1
     error('Input dimensions must aggree');
 end
 if size(y) <= 1
     error('Input dimensions must aggree');
 end
-if length(x(:,1)) == length(y(1,:))
-    x = x';
+if length(mz(:,1)) == length(y(1,:))
+    mz = mz';
 end
-if length(x(1,:)) ~= length(y(1,:))
+if length(mz(1,:)) ~= length(y(1,:))
     error('Input dimensions must aggree');
 end
     
 % Return input
-varargout{1} = x;
+varargout{1} = mz;
 varargout{2} = y;
 end
