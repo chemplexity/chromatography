@@ -604,7 +604,6 @@ end
 if n < length(colors(:,1))
     c = round(length(colors)/n);
     options.colors = colors(1:c:end,:);
-    options.colors = options.colors(1:n,:);
 else
     options.colors = colors;
 end

@@ -69,9 +69,10 @@ while counter ~= 0
     counter = counter - length(y(1,:));
 end
 
-% Remove columns with only one nonzero value
-mz(:, sum(y~=0)==1)=[];
-y(:, sum(y~=0)==1)=[];
+% Remove columns that are 95% all zeros
+remove = round(length(y(:,1)) * 0.95);
+mz(:, sum(y~=0)<=remove)=[];
+y(:, sum(y~=0)<=remove)=[];
 
 varargout{1} = mz;
 varargout{2} = y;
