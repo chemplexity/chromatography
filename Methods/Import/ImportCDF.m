@@ -16,7 +16,7 @@ function varargout = ImportCDF(varargin)
 if ischar(varargin{1})
     file = varargin{1};
 else
-    error('Undefined input arguments of type ''file''');
+    return
 end
 
 % Read file_name

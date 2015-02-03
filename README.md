@@ -84,8 +84,7 @@ Check out the [in-depth guide](https://github.com/chemplexity/chromatography/wik
 
 Current release stable on the following systems:
 
-* MATLAB >2013b
+* MATLAB 2013b+
 
 ## Documentation
 Visit the [wiki](https://github.com/chemplexity/chromatography/wiki/) for a full list of methods and options.
-
