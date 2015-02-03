@@ -88,4 +88,3 @@ Current release stable on the following systems:
 
 ## Documentation
 Visit the [wiki](https://github.com/chemplexity/chromatography/wiki/) for a full list of methods and options.
-
