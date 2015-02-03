@@ -2,10 +2,10 @@
 %  -Plot a mass spectra histogram
 %
 % Syntax
-%   MassSpectra(x, y, 'OptionName', optionvalue...)
+%   MassSpectra(mz, y, 'OptionName', optionvalue...)
 %
 % Input
-%   x        : array
+%   mz       : array
 %   y        : array or matrix
 %
 % Options
@@ -14,16 +14,16 @@
 %   'export' : see MATLAB documentation on print functions
 %
 % Description
-%   x        : m/z values
+%   mz       : m/z values
 %   y        : intensity values
 %   'labels' : text placed over local maxima m/z values -- (default: on)
 %   'scale'  : display y-scale as relative intensity or total intensity -- (default: relative)
 %   'export' : cell array passed the MATLAB print function -- (default: none)
 %
 % Examples
-%   MassSpectra(x, y)
-%   MassSpectra(x, y, 'labels', 'off', 'scale', 'full')
-%   MassSpectra(x, y 'export', {'myspectra', '-dtiff', '-r300'})
+%   MassSpectra(mz, y)
+%   MassSpectra(mz, y, 'labels', 'off', 'scale', 'full')
+%   MassSpectra(mz, y 'export', {'myspectra', '-dtiff', '-r300'})
 
 function varargout = MassSpectra(x, y, varargin)
 
@@ -31,11 +31,11 @@ function varargout = MassSpectra(x, y, varargin)
 if nargin < 2
     error('Not enough input arguments');
 elseif ~isnumeric(x)
-    error('Undefined input arguments of type ''x''');
+    error('Undefined input arguments of type ''mz''');
 elseif ~isnumeric(y)
     error('Undefined input arguments of type ''y''');
 elseif length(x(:,1)) > 1 && length(x(1,:)) > 1
-    error('Undefined input arguments of type ''x''');
+    error('Undefined input arguments of type ''mz''');
 elseif length(x(:,1)) == length(y(1,:)) && length(x(1,:)) == length(y(:,1))
     x = x';
 elseif length(x(:,1)) ~= length(y(:,1)) && length(x(1,:)) ~= length(y(1,:))
@@ -135,11 +135,8 @@ options.ticks.size = [0.007, 0.0075];
 % Initialize figure
 options.figure = figure(...
     'units', 'normalized',...
-<<<<<<< HEAD
     'position', [(1-0.4)/2, 0.2, 0.325, 0.36],...
-=======
     'position', [(1-0.6)/2, 0.2, 0.625, 0.56],...
->>>>>>> master
     'color', 'white',...
     'paperpositionmode', 'auto',...
     'papertype', 'usletter');
