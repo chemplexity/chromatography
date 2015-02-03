@@ -8,7 +8,7 @@
 </td>
 
 <td>
-	<img src="Examples/Images/README/main.png"/>
+	<img src="Examples/Images/main.png"/>
 </td>
 
 </tr>
@@ -19,6 +19,8 @@
 Select the [`Download ZIP`](https://github.com/chemplexity/chromatography/archive/master.zip) button on this page or visit the [MATLAB File Exchange](http://www.mathworks.com/matlabcentral/fileexchange/47696-chromatography-toolbox) to download a copy of the current release.
 
 ##Features
+
+Check out the [in-depth guide](https://github.com/chemplexity/chromatography/wiki/) for a full overview of features.
 
 <table style="width:100%">
 <tr>
@@ -36,6 +38,9 @@ Select the [`Download ZIP`](https://github.com/chemplexity/chromatography/archiv
 		<td align="center">Agilent </td>
 		<td align="center"><code>.D</code>, <code>.MS</code></td>
 	</tr><tr></tr><tr>
+		<td align="center">Thermo</td>
+		<td align="center"><code>.RAW</code></td>
+	</tr><tr></tr><tr>
 		<td align="center">netCDF</td>
 		<td align="center"><code>.CDF</code></td>
 	</tr>
@@ -49,27 +54,27 @@ Select the [`Download ZIP`](https://github.com/chemplexity/chromatography/archiv
 </td>
 
 <td align="center">
-	<img src="Examples/Images/README/baseline.png" width="80%"/>
+	<img src="Examples/Images/baseline.png" width="80%"/>
 </td>		
 
 </tr><tr><td colspan="2"></td></tr><tr>
 
 <td align="center">
-	<b>Curve Fitting</b>
+	<b><a href="https://github.com/chemplexity/chromatography/wiki/Integrate">Curve Fitting</a></b>
 </td>
 
 <td align="center">
-	<img src="Examples/Images/README/integration.png" width="80%"/>
+	<img src="Examples/Images/integration.png" width="80%"/>
 </td>	
 
 </tr><tr><td colspan="2"></td></tr><tr>
 
 <td align="center">
-	<b><a href="https://github.com/chemplexity/chromatography/wiki/Visualize">Visualize</a></b>
+	<b><a href="https://github.com/chemplexity/chromatography/wiki/Visualization">Visualization</a></b>
 </td>
 
 <td align="center">
-	<img src="Examples/Images/README/visualization.png" width="80%"/>
+	<img src="Examples/Images/visualization.png" width="80%"/>
 </td>	
 
 </tr>
@@ -79,7 +84,6 @@ Select the [`Download ZIP`](https://github.com/chemplexity/chromatography/archiv
 
 Current release stable on the following systems:
 
-* OSX 10.9+, Windows 7
 * MATLAB 2013b+
 
 ## Documentation

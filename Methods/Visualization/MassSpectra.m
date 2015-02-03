@@ -124,33 +124,34 @@ else
 end
 
 % Set global options
-options.font.name = 'Avenir';
-options.font.size = 14;
-options.line.color = [0.23,0.23,0.23];
+options.font.name = 'Avenir Next';
+options.font.size = 13.5;
+options.line.color = [0.22,0.22,0.22];
 options.line.width = 1.25;
-options.bar.width = 4;
-options.bar.color = [0.01,0.01,0.01];
+options.bar.width = 7;
+options.bar.color = [0.0,0.0,0.0];
 options.ticks.size = [0.007, 0.0075];
 
 % Initialize figure
 options.figure = figure(...
     'units', 'normalized',...
-    'position', [(1-0.55)/2, 0.2, 0.6, 0.55],...
+    'position', [(1-0.6)/2, 0.2, 0.625, 0.56],...
     'color', 'white',...
     'paperpositionmode', 'auto',...
-    'papertype', 'a2');
+    'papertype', 'usletter');
 
 % Initialize axes
 options.axes = axes(...
     'parent', options.figure,...
     'units', 'normalized',...
-    'color', 'white',...
+    'color', 'none',...
     'fontname', options.font.name,...
     'fontsize', options.font.size-1,...
     'tickdir', 'out',...
     'ticklength', options.ticks.size,...
     'box', 'off',...
     'xminortick', 'on',...
+    'layer', 'top',...
     'xcolor', options.line.color,...
     'ycolor', options.line.color,...
     'linewidth', options.line.width,...
@@ -175,12 +176,12 @@ options.plot = bar(x, y,...
     'parent', options.axes,...
     'barwidth', options.bar.width, ...
     'linestyle', 'none',...
-    'edgecolor', [0,0,0.4], ...
+    'edgecolor', [0,0,0], ...
     'facecolor', options.bar.color);
 
 % Set axis limits
-set(options.axes, 'xlim', [floor(min(x) - min(x) * 0.05), floor(max(x) + max(x) * 0.05)]);
-set(options.axes, 'ylim', [0 - (max(y) * 0), max(y) + (0.05 * max(y))]);
+set(options.axes, 'xlim', [floor(min(x) - min(x) * 0.15), floor(max(x) + max(x) * 0.05)]);
+set(options.axes, 'ylim', [0 - (max(y) * 0.003), max(y) + (0.05 * max(y))]);
 
 % Check label options
 if strcmpi(options.labels, 'on')
@@ -207,9 +208,12 @@ if strcmpi(options.labels, 'on')
     xlocal = xlocal(dy(3,:));
     ylocal = ylocal(dy(3,:));
 
-    % Filter values below threshold
-    xlocal(ylocal < max(y) * 0.1) = [];
-    ylocal(ylocal < max(y) * 0.1) = [];
+    % Set minimum label height
+    threshold = 0.05;
+    
+    % Filter values below height threshold
+    xlocal(ylocal < max(y) * threshold) = [];
+    ylocal(ylocal < max(y) * threshold) = [];
     
     % Initialize labels
     for i = 1:length(ylocal)
@@ -217,9 +221,10 @@ if strcmpi(options.labels, 'on')
         % Add labels
         options.text{i} = text(...
             xlocal(i), ylocal(i), num2str(xlocal(i), '%10.1f'),...
+            'parent', options.axes,...
             'horizontalalignment', 'center',...
             'verticalalignment', 'bottom',...
-            'fontsize', options.font.size-3.5,...
+            'fontsize', options.font.size-6,...
             'fontname', options.font.name);
             
         % Set position units to characters
@@ -257,9 +262,10 @@ if strcmpi(options.labels, 'on')
     
     % Check for overlapping conditions
     overlap = (xtext(3,:) & ytext(5,:)) | (xtext(3,:) & ytext(6,:));
-    
-    % Correct for shifting
     overlap(1) = 0;
+
+    % Reset position units
+    cellfun(@(x) {set(x, 'units', 'data')}, options.text);
     
     % Hide overlapping text
     if sum(overlap) < 0
@@ -267,12 +273,14 @@ if strcmpi(options.labels, 'on')
         % Determine text to hide
         labels = options.text(overlap);
 
-        % Reset position units
-        cellfun(@(x) {set(x, 'units', 'data')}, options.text);
-    
-        % Hide label
+        % Hide labels
         for i = 1:length(labels)
             set(labels{i}, 'visible', 'off')
+        end
+        
+        % Delete labels
+        for i = 1:length(labels)
+            labels(i) = [];
         end
     end
 end
@@ -280,24 +288,57 @@ end
 % Initialize empty axes
 options.empty = axes(...
     'parent', options.figure,...
-    'box','on',...        
+    'box','on',...
+    'units', 'normalized',...
+    'fontname', options.font.name,...
+    'fontsize', options.font.size-1,...
+    'tickdir', 'out',...
+    'ticklength', options.ticks.size,...
     'linewidth', options.line.width,...
     'color', 'none',...
+    'layer', 'bottom',...
     'xcolor', options.line.color,...
     'ycolor', options.line.color,...
+    'looseinset', [0.075,0.12,0.05,0.05],...
     'xtick', [],...
     'ytick', [],...
-    'layer', 'bottom',...
-    'position', get(options.axes,'position'));
-
-box(options.axes, 'off');
+    'position', get(options.axes,'position')+[-0.003,-0.0038,0,0]);
 
 % Link axes to allow zooming
 axes(options.axes);
 linkaxes([options.axes, options.empty]);
 
-% Set resize callback
-set(options.figure, 'sizechangedfcn', @(varargin) set(options.empty, 'position', get(options.axes, 'position')));
+box(options.axes, 'off');
+
+% Align axes edges
+align([options.axes,options.empty],'VerticalAlignment','bottom');
+align([options.axes,options.empty],'HorizontalAlignment','left');
+
+% Set version specific properties
+switch version('-release')
+    
+    case '2014b'
+        
+        % Resize callback
+        set(options.figure, 'sizechangedfcn', @(varargin) set(options.empty, 'position', get(options.axes, 'position')));
+        
+        % Prevent axes overlap
+        set(get(get(options.axes, 'yruler'),'axle'), 'visible', 'off');
+        set(get(get(options.axes, 'xruler'),'axle'), 'visible', 'off');
+        set(get(get(options.axes, 'ybaseline'),'axle'), 'visible', 'off');
+        
+    case {'2014a', '2013b', '2013a', '2012b', '2012a'}
+        
+        % Resize callback
+        set(options.figure, 'resizefcn', @(varargin) set(options.empty, 'position', get(options.axes, 'position')));
+        
+    otherwise
+        try
+            % Resize callback
+            set(options.figure, 'resizefcn', @(varargin) set(options.empty, 'position', get(options.axes, 'position')));
+        catch       
+        end
+end
 
 % Export figure
 if iscell(options.export)
