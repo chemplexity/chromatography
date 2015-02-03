@@ -8,7 +8,7 @@
 </td>
 
 <td>
-	<img src="Examples/Images/README/main.png"/>
+	<img src="Examples/Images/main.png"/>
 </td>
 
 </tr>
@@ -38,6 +38,9 @@ Check out the [in-depth guide](https://github.com/chemplexity/chromatography/wik
 		<td align="center">Agilent </td>
 		<td align="center"><code>.D</code>, <code>.MS</code></td>
 	</tr><tr></tr><tr>
+		<td align="center">Thermo</td>
+		<td align="center"><code>.RAW</code></td>
+	</tr><tr></tr><tr>
 		<td align="center">netCDF</td>
 		<td align="center"><code>.CDF</code></td>
 	</tr>
@@ -51,27 +54,27 @@ Check out the [in-depth guide](https://github.com/chemplexity/chromatography/wik
 </td>
 
 <td align="center">
-	<img src="Examples/Images/README/baseline.png" width="80%"/>
+	<img src="Examples/Images/baseline.png" width="80%"/>
 </td>		
 
 </tr><tr><td colspan="2"></td></tr><tr>
 
 <td align="center">
-	<b>Curve Fitting</b>
+	<b><a href="https://github.com/chemplexity/chromatography/wiki/Integrate">Curve Fitting</a></b>
 </td>
 
 <td align="center">
-	<img src="Examples/Images/README/integration.png" width="80%"/>
+	<img src="Examples/Images/integration.png" width="80%"/>
 </td>	
 
 </tr><tr><td colspan="2"></td></tr><tr>
 
 <td align="center">
-	<b><a href="https://github.com/chemplexity/chromatography/wiki/Visualization">Visualize</a></b>
+	<b><a href="https://github.com/chemplexity/chromatography/wiki/Visualization">Visualization</a></b>
 </td>
 
 <td align="center">
-	<img src="Examples/Images/README/visualization.png" width="80%"/>
+	<img src="Examples/Images/visualization.png" width="80%"/>
 </td>	
 
 </tr>
@@ -81,7 +84,6 @@ Check out the [in-depth guide](https://github.com/chemplexity/chromatography/wik
 
 Current release stable on the following systems:
 
-* OSX >10.9, Windows 7
 * MATLAB >2013b
 
 ## Documentation

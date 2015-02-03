@@ -208,9 +208,12 @@ if strcmpi(options.labels, 'on')
     xlocal = xlocal(dy(3,:));
     ylocal = ylocal(dy(3,:));
 
-    % Filter values below threshold
-    xlocal(ylocal < max(y) * 0.075) = [];
-    ylocal(ylocal < max(y) * 0.075) = [];
+    % Set minimum label height
+    threshold = 0.05;
+    
+    % Filter values below height threshold
+    xlocal(ylocal < max(y) * threshold) = [];
+    ylocal(ylocal < max(y) * threshold) = [];
     
     % Initialize labels
     for i = 1:length(ylocal)
@@ -259,8 +262,6 @@ if strcmpi(options.labels, 'on')
     
     % Check for overlapping conditions
     overlap = (xtext(3,:) & ytext(5,:)) | (xtext(3,:) & ytext(6,:));
-    
-    % Correct for shifting
     overlap(1) = 0;
 
     % Reset position units

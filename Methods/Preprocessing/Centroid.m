@@ -13,7 +13,7 @@
 %   y : matrix with intensity values
 %
 % Examples
-%   [x,y] = Centroid(x,y)
+%   [mz,y] = Centroid(mz,y)
 
 function varargout = Centroid(varargin)
 

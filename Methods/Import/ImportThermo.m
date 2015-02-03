@@ -131,6 +131,13 @@ file.name = fopen(varargin{1});
 
     file = RunHeader(file);
 
+    % Variables
+    scans = file.scan_end - file.scan_start;
+
+    % Pre-allocate memory
+    data.time_values = zeros(scans, 1);
+    data.total_intensity_values = zeros(scans, 1);    
+    
     % Scan information
     function [file, data] = ScanInfo(file, data)
        
@@ -153,43 +160,7 @@ file.name = fopen(varargin{1});
         end        
     end
 
-    % Variables
-    scans = file.scan_end - file.scan_start;
-
-    % Pre-allocate memory
-    data.time_values = zeros(scans, 1);
-    data.total_intensity_values = zeros(scans, 1);    
-    file.offset = zeros(scans, 1);
-    file.index = zeros(scans, 1);
-    
     [file, data] = ScanInfo(file, data);
-    
-    % Scan data
-    function data = ScanData(file, data)
-       
-        for i = file.scan_start:file.scan_end
-            
-            % Skip to scan data
-            fseek(file.name, file.data_address + file.offset(i), 'bof');
-            
-            % Read profile size
-            fseek(file.name, 4, 'cof');
-            profile_size(i) = fread(file.name, 1, 'uint32', 0, 'l');
-            peak_list_size(i) = fread(file.name, 1, 'uint32', 0, 'l');
-            layout(i) = fread(file.name, 1, 'uint32', 0, 'l');
-            descriptor_size(i) = fread(file.name, 1, 'uint32', 0, 'l');
-            unknown_size(i) = fread(file.name, 1, 'uint32', 0, 'l');
-            triplet_size(i) = fread(file.name, 1, 'uint32', 0, 'l');
-            
-            fseek(file.name, 4, 'cof');
-            mlow(i) =  fread(file.name, 1, 'float32', 0, 'l');
-            mhigh(i) =  fread(file.name, 1, 'float32', 0, 'l');
-        end
-        
-        disp(i);
-    end
-    
-    data = ScanData(file, data);
 
     varargout{1} = data;
     
