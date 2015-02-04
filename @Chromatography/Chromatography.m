@@ -31,7 +31,7 @@ classdef Chromatography
             % General informations
             obj.options.system_os = computer;
             obj.options.matlab_version = version('-release');
-            obj.options.toolbox_version = '1.0';
+            obj.options.toolbox_version = '0.1.1';
             
             % Import options
             obj.options.import = {...
