@@ -1,32 +1,32 @@
-% Method: WhittakerSmoother
-%  -Asymmetric least squares baseline correction
+% Method: Smooth
+%  -Asymmetric least squares smoothing filter
 %
 % Syntax
-%   baseline = WhittakerSmoother(y)
-%   baseline = WhittakerSmoother(y, 'OptionName', optionvalue...)
+%   smoothed = Smooth(y)
+%   smoothed = Smooth(y, 'OptionName', optionvalue...)
 %
 % Input
 %   y            : array or matrix
 %
 % Options
-%   'smoothness' : value (~10^3 to 10^9)
-%   'asymmetry'  : value (~10^-1 to 10^-6)
+%   'smoothness' : value (~100 to 10000)
+%   'asymmetry'  : value (~0.01 to 0.99)
 %
 % Description
 %   y            : intensity values
-%   'smoothness' : smoothing factor -- (default: 10^6)
-%   'asymmetry'  : asymmetry factor -- (default: 10^-4)
+%   'smoothness' : smoothing factor (default = 500)
+%   'asymmetry'  : asymmetry factor (default = 0.5)
 %
 % Examples
-%   baseline = WhittakerSmoother(y)
-%   baseline = WhittakerSmoother(y, 'asymmetry', 10^-2)
-%   baseline = WhittakerSmoother(y, 'smoothness', 10^5)
-%   baseline = WhittakerSmoother(y, 'smoothness', 10^7, 'asymmetry', 10^-3)
+%   smoothed = Smooth(y)
+%   smoothed = Smooth(y, 'asymmetry', 0.4)
+%   smoothed = Smooth(y, 'smoothness', 5000)
+%   smoothed = Smooth(y, 'smoothness', 2500, 'asymmetry', 0.25)
 %
 % References
 %   P.H.C. Eilers, Analytical Chemistry, 75 (2003) 3631
 
-function [baseline, weights] = WhittakerSmoother(y, varargin)
+function [smoothed, weights] = Smooth(y, varargin)
 
 % Check input
 if nargin < 1
@@ -39,8 +39,8 @@ end
 if nargin == 1
     
     % Default pararmeters
-    smoothness = 10^6;
-    asymmetry = 10^-4;
+    smoothness = 500;
+    asymmetry = 0.5;
     
 % Check options
 elseif nargin > 1
@@ -54,11 +54,12 @@ elseif nargin > 1
 
         % Check user input
         if ~isnumeric(smoothness)
-            error('Undefined input arguments of type ''smoothness''');
+            smoothness = 500;
+        elseif smoothness <= 0
+            smoothness = 500;
         end 
     else
-        % Default smoothness options
-        smoothness = 10^6;
+        smoothness = 500;
     end
     
     % Check asymmetry options
@@ -67,28 +68,30 @@ elseif nargin > 1
 
         % Check user input
         if ~isnumeric(asymmetry)
-            error('Undefined input arguments of type ''asymmetry''');
+            asymmetry = 0.5;
+        elseif asymmetry <= 0
+            asymmetry = 10^-6;
         elseif asymmetry >= 1
-            asymmetry = 0.99;
+            asymmetry = 0.99999;
         end
     else
-        % Default smoothness options
-        asymmetry = 10^-4;
+        asymmetry = 0.5;
     end
 end
 
-% Check data
-if ~isa(y,'double')
+% Check precision
+if ~isa(y, 'double')
     y = double(y);
 end
 
-% Perform baseline calculation on each vector
+% Perform smoothing calculation on each vector
 for i = 1:length(y(1,:))
     
     % Correct negative y-values
     if min(y(:,i)) < 0
         correction = abs(min(y(:,i)));
         y(:,i) = y(:,i) + correction;
+        
     % Correct non-positive definite y-values
     elseif max(y(:,i)) == 0
         continue
@@ -103,8 +106,8 @@ for i = 1:length(y(1,:))
     diff_matrix = diff(speye(length_y), 2);
     weights = ones(length_y, 1);
 
-    % Pre-allocate memory for baseline
-    baseline(:,i) = zeros(length_y, 1);
+    % Pre-allocate memory for smoothed data
+    smoothed(:,i) = zeros(length_y, 1);
 
     % Number of iterations
     for j = 1:10
@@ -116,10 +119,10 @@ for i = 1:length(y(1,:))
         cholesky_factor = chol(weights_diagonal + smoothness * diff_matrix' * diff_matrix);
         
         % Left matrix divide, multiply matrices
-        baseline(:,i) = cholesky_factor \ (cholesky_factor' \ (weights .* y(:,i)));
+        smoothed(:,i) = cholesky_factor \ (cholesky_factor' \ (weights .* y(:,i)));
         
         % Reassign weights
-        weights = asymmetry * (y(:,i) > baseline(:,i)) + (1 - asymmetry) * (y(:,i) < baseline(:,i));
+        weights = asymmetry * (y(:,i) > smoothed(:,i)) + (1 - asymmetry) * (y(:,i) < smoothed(:,i));
     end
     
     % Correct for negative y-values

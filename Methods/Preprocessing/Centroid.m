@@ -6,11 +6,11 @@
 %
 % Input
 %   mz : array
-%   y : matrix
+%   y  : matrix
 %
 % Description
-%   mz : array containing mass values
-%   y : matrix with intensity values
+%   mz : mass values
+%   y  : intensity values
 %
 % Examples
 %   [mz,y] = Centroid(mz,y)

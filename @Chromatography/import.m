@@ -6,16 +6,16 @@
 %   data = import(filetype, 'OptionName', optionvalue...)
 %
 % Input
-%   filetype   : '.CDF', '.D', '.MS'
+%   filetype   : '.CDF', '.D', '.MS', '.RAW'
 %
 % Options
 %   'append'   : structure
 %   'progress' : 'on', 'off'
 %
 % Description
-%   filetype   : valid file extension (e.g. '.D', '.MS', '.CDF')
-%   'append'   : append an existing data structure -- (default: none)
-%   'progress' : print current import progress in the command window -- (default: 'on')
+%   filetype   : file extension (e.g. '.D', '.MS', '.CDF', '.RAW')
+%   'append'   : append data structure (default = none)
+%   'progress' : display import progress (default = 'on')
 %
 % Examples
 %   data = obj.import('.D')
@@ -27,8 +27,11 @@
 function varargout = import(obj, varargin)
 
 % Check input
-[data, options] = parse(obj,varargin);
-     
+[data, options] = parse(obj, varargin);
+
+% Variables
+options.compute_time = 0;
+
 % Open file selection dialog
 files = dialog(obj, varargin{1});
 
@@ -40,15 +43,15 @@ end
 % Remove entries with incorrect filetype
 files(~strcmp(files(:,3), varargin{1}), :) = [];
 
-% Set MATLAB path to selected folder
+% Set path to selected folder
 path(files{1,1}, path);
 
 % Import files
-switch varargin{1}
-
-    % Import data with the '*.CDF' extension
+switch options.filetype
+    
+    % Import netCDF data with the '*.CDF' extension
     case {'.CDF'}
-
+        
         for i = 1:length(files(:,1))
             % Start timer
             tic;
@@ -61,12 +64,12 @@ switch varargin{1}
             
             % Display import progress
             options.compute_time = options.compute_time + compute_time(i);
-            update(i, length(files(:,1)), options.compute_time, options.progress); 
+            update(i, length(files(:,1)), options.compute_time, options.progress);
         end
-
-    % Import data with the '*.MS' extension
+        
+        % Import Agilent data with the '*.MS' extension
     case {'.MS'}
-
+        
         for i = 1:length(files(:,1))
             % Construct file path
             file_path = fullfile(files{i,1}, strcat(files{i,2}, files{i,3}));
@@ -81,12 +84,12 @@ switch varargin{1}
             
             % Display import progress
             options.compute_time = options.compute_time + compute_time(i);
-            update(i, length(files(:,1)), options.compute_time, options.progress); 
+            update(i, length(files(:,1)), options.compute_time, options.progress);
         end
-
-    % Import data with the '*.D' extension
+        
+        % Import Agilent data with the '*.D' extension
     case {'.D'}
-
+        
         for i = 1:length(files(:,1))
             % Construct file path
             file_path = fullfile(files{i,1}, strcat(files{i,2}, files{i,3}));
@@ -103,7 +106,7 @@ switch varargin{1}
             
             % Display import progress
             options.compute_time = options.compute_time + compute_time(i);
-            update(i, length(files(:,1)), options.compute_time, options.progress); 
+            update(i, length(files(:,1)), options.compute_time, options.progress);
         end
 end
 
@@ -113,48 +116,47 @@ import_data = DataStructure('validate', import_data);
 % Update data structure
 for i = 1:length(id)
     
-    % Update file information
+    % File information
     import_data(i).id = id(i);
-    import_data(i).file_type = varargin{1};
+    import_data(i).file.name = strcat(files{i,2}, files{i,3});
+    import_data(i).file.type = options.filetype;
     
-    % Update diagnostics
-    import_data(i).diagnostics.system_date = now;
-    import_data(i).diagnostics.system_os = obj.options.system_os;
-    import_data(i).diagnostics.matlab_version = obj.options.matlab_version;
-    import_data(i).diagnostics.toolbox_version = obj.options.toolbox_version;
+    % Data backup
+    import_data(i).tic.backup = import_data(i).tic.values;
+    import_data(i).xic.backup = import_data(i).xic.values;
     
-    % Update statistics
-    import_data(i).statistics.compute_time(end+1) = compute_time(i);
-    import_data(i).statistics.function{end+1} = 'import';
-    import_data(i).statistics.calls(end+1) = 1;
+    % Initialize baseline values
+    import_data(i).tic.baseline = zeros(size(import_data(i).tic.values));
+    import_data(i).xic.baseline = zeros(size(import_data(i).xic.values));
 end
-            
-% Concatenate imported data with existing data
+
+% Append any existing data with new data
 data = [data, import_data];
 
 % Set output
 varargout{1} = data;
 end
 
+
 % Open dialog box to select files
 function varargout = dialog(obj, varargin)
-            
+
 % Set filetype
 extension = varargin{1};
-            
+
 % Initialize JFileChooser object
 fileChooser = javax.swing.JFileChooser(java.io.File(cd));
-            
+
 % Select directories if certain filetype
 if strcmp(extension, '.D')
     fileChooser.setFileSelectionMode(fileChooser.DIRECTORIES_ONLY);
 end
-            
+
 % Determine file description and file extension
 filter = com.mathworks.hg.util.dFilter;
 description = [obj.options.import{strcmp(obj.options.import(:,1), extension), 2}];
 extension = lower(extension(2:end));
-            
+
 % Set file description and file extension
 filter.setDescription(description);
 filter.addExtension(extension);
@@ -164,7 +166,7 @@ fileChooser.setFileFilter(filter);
 fileChooser.setMultiSelectionEnabled(true);
 status = fileChooser.showOpenDialog(fileChooser);
 
-% Determine paths of selected files
+% Determine selected file paths
 if status == fileChooser.APPROVE_OPTION
     
     % Get file information
@@ -183,23 +185,25 @@ end
 varargout{1} = files;
 end
 
-% Update console with progress
+
+% Display import progress
 function update(varargin)
 
-    % Check user options
-    if strcmpi(varargin{4},'off')
-        return
-    end
-
-    % Display progress
-    disp([...
-        num2str(varargin{1}), '/',...
-        num2str(varargin{2}), ' in ',...
-        num2str(varargin{3}, '% 10.3f'), ' sec.']);
+% Check user options
+if strcmpi(varargin{4},'off')
+    return
 end
 
+% Display progress
+disp([...
+    num2str(varargin{1}), '/',...
+    num2str(varargin{2}), ' in ',...
+    num2str(varargin{3}, '% 10.3f'), ' sec.']);
+end
+
+
 % Parse user input
-function varargout = parse(obj,varargin)
+function varargout = parse(obj, varargin)
 
 varargin = varargin{1};
 nargin = length(varargin);
@@ -221,10 +225,11 @@ end
 % Check user input
 input = @(x) find(strcmpi(varargin, x),1);
 
-% Check append options
+% Append options
 if ~isempty(input('append'))
     options.append = varargin{input('append')+1};
-
+    
+    % Check for valid input
     if isstruct(options.append)
         data = DataStructure('validate', options.append);
     else
@@ -233,21 +238,17 @@ if ~isempty(input('append'))
 else
     data = DataStructure();
 end
- 
-% Check progress options
+
+% Progress options
 if ~isempty(input('progress'))
     options.progress = varargin{input('progress')+1};
-    options.compute_time = 0;
     
-    % Check user input
-    if strcmpi(options.progress, 'off') || strcmpi(options.progress, 'hide')
-        options.progress = 'off';
-    elseif strcmpi(options.progress, 'on') || strcmpi(options.progress, 'show')
+    % Check for valid input
+    if ~strcmpi(options.progress, 'off')
         options.progress = 'on';
     end
 else
     options.progress = 'on';
-    options.compute_time = 0;
 end
 
 % Return input

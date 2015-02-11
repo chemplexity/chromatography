@@ -1,21 +1,21 @@
 % Method: Derivative
 %  -Calculate derivative of a signal
 %
-% Syntax:
+% Syntax
 %   Derivative(x, y, 'OptionName', optionvalue...)
 %   Derivative(y, 'OptionName', optionvalue...)
 %
-% Options:
-%  'degree'    : 1 to 9
+% Options
+%  'degree'    : 1 to 10
 %  'smoothing' : 'on', 'off'
 %   
-% Description:
-%   x          : vector
-%   y          : vector or matrix
-%  'degree'    : degree of derivative to calculate -- (default: 'first')
-%  'smoothing' : smooth signal before calculating derivative -- (default: 'off')
+% Description
+%   x          : array
+%   y          : array or matrix
+%  'degree'    : degree of derivative (default = 1)
+%  'smoothing' : smooth before each derivative (default = 'off')
 %
-% Examples:
+% Examples
 %   Derivative(y)
 %   Derivative(x, y)
 %   Derivative(x, y, 'degree', 1)
@@ -94,33 +94,32 @@ if ~isempty(find(strcmpi(varargin, 'smoothing'),1))
     smoothing = varargin{find(strcmpi(varargin, 'smoothing'),1) + 1};
     
     % Check user input
-    if ischar(smoothing) && strcmpi(smoothing, 'on')
+    if strcmpi(smoothing, 'on')
         smoothing = true;
-    elseif ischar(smoothing) && ~strcmpi(smoothing, 'on')
+    elseif ~strcmpi(smoothing, 'on')
         smoothing = false;
     elseif ~islogical(smoothing)
         smoothing = false;
     end
 else
-    % Default to no smoothing
     smoothing = false;
 end
 
-% Determine vector length
+% Determine array length
 rows = length(y(:,1));
 
-% Calculate derivative to specified degree
+% Calculate derivative
 for i = 1:degree
 
-    % Smooth data if selected
+    % Smooth data
     if smoothing
-        y = WhittakerSmoother(y, 'Asymmetry', 0.1, 'Smoothness', 100);
+        y = Smooth(y, 'asymmetry', 0.1, 'smoothness', 100);
     end
         
-    % Calculate signal derivative
+    % Calculate derivative
     y = bsxfun(@rdivide, bsxfun(@minus, y(2:end,:), y(1:end-1,:)), bsxfun(@minus, x(2:end,:), x(1:end-1,:)));
     
-    % Preserve vector length
+    % Preserve array length
     y(rows,:) = 0;
 end
 

@@ -17,8 +17,8 @@
 % Description
 %   x        : time values
 %   y        : intensity values
-%   'center' : estimated peak center  -- (default: x at max(y))
-%   'width'  : estimated peak width  -- (default: %5 of length(x))
+%   'center' : window center (default = x at max(y))
+%   'width'  : window width (default = %5 of length(x))
 %
 % Examples
 %   peaks = ExponentialGaussian(y)
@@ -50,7 +50,7 @@ EGH.e = @(a,b,alpha) (-1 ./ log(alpha)) .* (b-a);
 EGH.a = @(h,w,e,e0) h .* (w .* sqrt(pi/8) + abs(e)) .* e0;
 EGH.t = @(w,e) atan(abs(e)./w);
 
-% Set proporationality constant
+% Set proporationality constants
 EGH.factors = [4, -6.293724, 9.232834, -11.34291, 9.123978, -4.173753, 0.827797];
 EGH.c = @(t,a0) a0(1) + a0(2)*t + a0(3)*t^2 + a0(4)*t^3 + a0(5)*t^4 + a0(6)*t^5 + a0(7)*t^6;
 
@@ -59,6 +59,7 @@ for i = 1:length(y(1,:))
     
     % Check peak data
     if isempty(peak) || any(peak.center(:,i) == 0)
+        peaks = zero(peaks, y, i);
         continue
     end
     
@@ -112,12 +113,16 @@ for i = 1:length(y(1,:))
     % Determine area
     area = EGH.a(h(index),w(index),e(index),e0);
     
+    % Check area values
+    if isnan(area) || isnan(rmsd(index))
+        peaks = zero(peaks, y, i);
+        continue
+    end
+    
     % Update output data
     peaks.time(i) = c(index);
     peaks.height(i) = h(index);
     peaks.width(i) = w(index);
-    peaks.a(i) = peak.a(index);
-    peaks.b(i) = peak.b(index);
     peaks.area(i) = area;
     peaks.fit(:,i) = yfit(:,index);
     peaks.error(i) = rmsd(index);
@@ -125,6 +130,20 @@ end
 
 % Output
 varargout{1} = peaks;
+end
+
+ 
+% Output data
+function peaks = zero(peaks, y, i)
+
+% Set values to zero
+peaks.time(i) = 0;
+peaks.height(i) = 0;
+peaks.width(i) = 0;
+peaks.area(i) = 0;
+peaks.fit(:,i) = zeros(length(y(:,i)),1);
+peaks.error(i) = 0;
+
 end
 
 % Parse user input
@@ -136,15 +155,12 @@ nargin = length(varargin);
 % Check input
 if nargin < 1
     error('Not enough input arguments');
-elseif nargin == 1 && isnumeric(varargin{1})
+elseif nargin >= 1 && isnumeric(varargin{1}) && ~isnumeric(varargin{2})
     y = varargin{1};
     x = 1:length(y(:,1));
 elseif nargin >1 && isnumeric(varargin{1}) && isnumeric(varargin{2}) 
     x = varargin{1};
     y = varargin{2};
-elseif nargin >1 && isnumeric(varargin{1})
-    y = varargin{1};
-    x = 1:length(y(:,1));
 else
     error('Undefined input arguments of type ''xy''');
 end
@@ -167,6 +183,11 @@ end
 if length(x(:,1)) ~= length(y(:,1))
     error('Input dimensions must aggree');
 end
+
+% Check data length
+if length(x) <= 1
+    return
+end
     
 % Check user input
 input = @(x) find(strcmpi(varargin, x),1);
@@ -187,32 +208,46 @@ if isempty(options.center)
     options.center = x(index);
 elseif ~isnumeric(options.center)
     error('Undefined input arguments of type ''center''');
-elseif max(options.center) > max(x) || min(options.center) < min(x)
-    [~,index] = max(y);
-    options.center = x(index);
 end
-    
+ 
 % Check width options
 if ~isempty(input('width'))
     options.width = varargin{input('width')+1};
 elseif ~isempty(input('time'))
     options.width = varargin{input('window')+1};
 else
-    options.width = max(x) * 0.05;
+    options.width(1:length(options.center)) = max(x) * 0.05;
 end
     
 % Check for valid input
 if isempty(options.width) || min(options.width) <= 0
-    options.width = max(x) * 0.05;
+    options.width(1:length(options.center),1) = max(x) * 0.05;
 elseif ~isnumeric(options.width)
     error('Undefined input arguments of type ''width''');
 end
-    
-% Check for valid range
-if max(options.center) + (max(options.width)/2) > max(x)
-    options.width = max(x) - (max(x) - (max(options.width)/2));
-elseif min(options.center) - (max(options.width)/2) < min(x)
-    options.width = min(x) + (min(x) + (max(options.width)/2));
+
+% Find out of range center values (maximum)
+if any(options.center >= max(x))
+    index = options.center >= max(x);
+    options.center(index) = x(end-1);
+end
+
+% Find out of range center values (minimum)
+if any(options.center <= min(x))
+    index = options.center <= min(x);
+    options.center(index) = x(2);
+end
+
+% Find out of range width values (maximum)
+if any(options.center + (options.width/2)) >= max(x)
+    index = options.center + (options.width/2) >= max(x);
+    options.width(index) =  max(x) - (options.width(index)/2);
+end
+
+% Find out of range width values (minimum)
+if any(options.center - (options.width/2)) <= min(x)
+    index = options.center - (options.width/2) <= min(x);    
+    options.width(index) =  min(x) + (options.width(index)/2);
 end
 
 % Return input

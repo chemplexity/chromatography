@@ -4,8 +4,11 @@
 % Syntax:
 %   data = ImportThermo(file)
 %
+% Input
+%   file : string
+%
 % Description:
-%   file: name of data file with valid extension (.RAW)
+%   file : file name with valid extension (.RAW)
 %
 % Examples:
 %   data = ImportThermo('MyData.RAW')
@@ -52,14 +55,18 @@ file.name = fopen(varargin{1});
     
         % Skip sequence data
         for i = 1:file.key
-            if i == 17
-                fseek(file.name, 4, 'cof');
-            else
-                offset = fread(file.name, 1, 'uint32');
+            
+            switch i
+            
+                case 17
+                    fseek(file.name, 4, 'cof');
+            
+                otherwise
+                    offset = fread(file.name, 1, 'uint32');
                 
-                if offset > 0
-                    fread(file.name, offset, 'uint16=>char', 0, 'l');
-                end
+                    if offset > 0
+                        fread(file.name, offset, 'uint16=>char', 0, 'l');
+                    end
             end
         end
     end
@@ -85,8 +92,8 @@ file.name = fopen(varargin{1});
         x = datenum([x(1), x(2), x(4), x(5), x(6), x(7)]);
 
         % Format date/time
-        data.experiment_date = strtrim(datestr(x, 'mm/dd/yy'));
-        data.experiment_time = strtrim(datestr(x, 'HH:MM PM'));
+        data.method.date = strtrim(datestr(x, 'mm/dd/yy'));
+        data.method.time = strtrim(datestr(x, 'HH:MM PM'));
 
         % Read data address
         fseek(file.name, 4, 'cof');
@@ -135,8 +142,8 @@ file.name = fopen(varargin{1});
     scans = file.scan_end - file.scan_start;
 
     % Pre-allocate memory
-    data.time_values = zeros(scans, 1);
-    data.total_intensity_values = zeros(scans, 1);    
+    data.time = zeros(scans, 1);
+    data.tic.values = zeros(scans, 1);    
     
     % Scan information
     function [file, data] = ScanInfo(file, data)
@@ -152,10 +159,10 @@ file.name = fopen(varargin{1});
             
             % Read time values
             fseek(file.name, 16, 'cof');
-            data.time_values(i) = fread(file.name, 1, 'float64', 0, 'l');
+            data.time(i) = fread(file.name, 1, 'float64', 0, 'l');
             
             % Read TIC values
-            data.total_intensity_values(i) = fread(file.name, 1, 'float64', 0, 'l');
+            data.tic.values(i) = fread(file.name, 1, 'float64', 0, 'l');
             fseek(file.name, 32, 'cof');
         end        
     end

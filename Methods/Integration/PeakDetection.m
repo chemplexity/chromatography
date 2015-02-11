@@ -8,40 +8,38 @@
 %
 % Input
 %   x        : array
-%   y        : arrary or matrix
+%   y        : array or matrix
 %
 % Options
 %   'center' : value or array
 %   'width'  : value or array
 %
-% Output
-%   peaks.center : location of peak center
-%   peaks.height : magnitude of peak height
-%   peaks.width  : peak width determined at height alpha
-%   peaks.a      : distance from left edge to center
-%   peaks.b      : distance from right edge to center
-%   peaks.alpha  : percent peak height used for determining a, b and width
-%
 % Description
 %   x        : time values
 %   y        : intensity values
-%   'center' : estimated peak center -- (default: x at max(y))
-%   'width'  : estimated peak width  -- (default: 5% of length(x))
+%   'center' : window center (default = x at max(y))
+%   'width'  : window width (default = 5% of length(x))
 %
 % Examples
 %   peaks = PeakDetection(y)
 %   peaks = PeakDetection(y, 'width', 1.5)
 %   peaks = PeakDetection(x, y, 'center', 22.10)
-%   peaks = PeakDetection(x, y, 'xmin', 5, 'ymin', 0.15)
-%   peaks = PeakDetection(x, y, 'xmin', 10, 'xmax', 30, 'amount', 10)
 
 function varargout = PeakDetection(varargin)
 
 % Check input
 [x, y, options] = parse(varargin);
 
+% Pre-allocate memory
+empty = zeros(2, length(y(1,:)));
+
 % Initialize peak data
-peak = [];
+peak.center = empty;
+peak.height = empty;
+peak.width = empty;
+peak.a = empty;
+peak.b = empty;
+peak.alpha = empty;
 
 % Determine peak locations
 for i = 1:length(y(1,:))
@@ -85,7 +83,18 @@ for i = 1:length(y(1,:))
     % Determine peak location
     p.x = p.x(p.y == max(p.y(window)),1);
     p.y = p.y(p.y == max(p.y(window)),1);
+    
+    % Remove duplicate peak maxima
+    p.x = p.x(1);
+    p.y = p.y(1);
+    
+    % Determine peak index
     p.i = find(x >= p.x,1);
+    
+    % Check index within bounds
+    if p.i < 3 || p.i > length(y(:,1)) - 3
+        continue
+    end
    
     % Determine distance from peak center to end
     right = length(x(p.i:end));
@@ -125,7 +134,17 @@ for i = 1:length(y(1,:))
     l.l.x = l.x(l.l.i);
     l.l.y = l.y(l.l.i);
     l.r.y = l.l.y;
-    
+
+    % Check for valid boundary height
+    if r.r.y >= 1
+        r.r.y = 0.5;
+        r.l.y = 0.5;
+    end
+    if l.l.y >= 1
+        l.l.y = 0.5;
+        l.r.y = 0.5;
+    end
+
     % Functions for calculating slope and intercept
     m = @(x,y,i) (y(i) - y(i-1)) / (x(i) - x(i-1));
     b = @(x,y,i) y(i) - m(x,y,i) * x(i);
@@ -196,6 +215,14 @@ for i = 1:length(y(1,:))
     center = [l.c.x(c.l.i); r.c.x(c.r.i)];
     height = [c.l.y; c.r.y];
     
+    % Check for valid boundaries
+    if l.r.x < center(1)
+        l.r.x = center(1) + (center(1) - l.l.x);
+    end
+    if r.r.x < center(2)
+        r.r.x = center(2) + (center(2) - r.l.x);
+    end
+    
     % Determine peak width
     width = [l.r.x-l.l.x; r.r.x-r.l.x];
     
@@ -232,15 +259,12 @@ nargin = length(varargin);
 % Check input
 if nargin < 1
     error('Not enough input arguments');
-elseif nargin == 1 && isnumeric(varargin{1})
+elseif nargin >= 1 && isnumeric(varargin{1}) && ~isnumeric(varargin{2})
     y = varargin{1};
     x = 1:length(y(:,1));
 elseif nargin >1 && isnumeric(varargin{1}) && isnumeric(varargin{2}) 
     x = varargin{1};
     y = varargin{2};
-elseif nargin >1 && isnumeric(varargin{1})
-    y = varargin{1};
-    x = 1:length(y(:,1));
 else
     error('Undefined input arguments of type ''xy''');
 end
@@ -281,7 +305,7 @@ end
 if isempty(options.center)
     [~,index] = max(y);
     options.center = x(index);
-elseif~isnumeric(options.center)
+elseif ~isnumeric(options.center)
     error('Undefined input arguments of type ''center''');
 elseif max(options.center) > max(x) || min(options.center) < min(x)
     [~,index] = max(y);
@@ -291,92 +315,29 @@ end
 % Check width options
 if ~isempty(input('width'))
     options.width = varargin{input('width')+1};
-elseif ~isempty(input('window'))
+elseif ~isempty(input('time'))
     options.width = varargin{input('window')+1};
 else
-    options.width = max(x) * 0.05;
+    options.width(1:length(options.center)) = max(x) * 0.05;
 end
-
+    
 % Check for valid input
 if isempty(options.width) || min(options.width) <= 0
-    options.width = max(x) * 0.05;
+    options.width(1:length(options.center),1) = max(x) * 0.05;
 elseif ~isnumeric(options.width)
     error('Undefined input arguments of type ''width''');
-elseif max(options.center) + (max(options.width)/2) > max(x)
-    options.width = max(x) - max(options.center);
-elseif min(options.center) - (max(options.width)/2) < min(x)
-    options.width = min(options.center) - min(x);
 end
 
-% Check xmin options
-if ~isempty(input('xmin'))
-    options.xmin = varargin{input('xmin')+1};
-    
-    % Check for valid input
-    if isempty(options.xmin) || ~isnumeric(options.xmin)
-        options.xmin = min(x);
-    elseif min(options.xmin) < min(x)
-        options.xmin = min(x);
-    end
-else
-    options.xmin = min(x);
-end
-    
-% Check xmax options
-if ~isempty(input('xmax'))
-    options.xmax = varargin{input('xmax')+1};
-    
-    % Check for valid input
-    if isempty(options.xmax) || ~isnumeric(options.xmax)
-        options.xmax = max(x);
-    elseif max(options.xmax) > max(x)
-        options.xmax = max(x);
-    end
-else
-    options.xmax = max(x);
-end
-    
-% Check ymin options
-if ~isempty(input('ymin'))
-    options.ymin = varargin{input('ymin')+1};
-
-    % Check for valid input
-    if isempty(options.ymin) || ~isnumeric(options.ymin)
-        options.ymin = min(min(y));
-    end
-else
-    options.ymin = min(min(y));
+% Find out of range values (maximum)
+if any(options.center + (options.width/2)) >= max(x)
+    index = options.center + (options.width/2) >= max(x);
+    options.width(index) =  max(x) - (options.width(index)/2);
 end
 
-% Check ymax options
-if ~isempty(input('ymax'))
-    options.ymax = varargin{input('ymax')+1};
-
-    % Check for valid input
-    if isempty(options.ymax) || ~isnumeric(options.ymax)
-        options.ymax = max(max(y))*2;
-    end
-else
-    options.ymax = max(max(y))*2;
-end
-
-% Check amount options
-if ~isempty(input('amount'))
-    options.amount = varargin{input('amount')+1};
-    
-    % Check for valid input
-    if isempty(options.amount) || ~isnumeric(options.amount)
-        options.ymax = 5;
-    end
-else    
-    options.amount = 5;
-end
-
-% Check for valid range
-if max(options.center) + (max(options.width)/2) > max(x)
-    options.width = max(x) - (max(options.width)/2);
-elseif min(options.center) - (max(options.width)/2) < min(x)
-    options.width = min(x) + (max(options.width)/2);
+% Find out of range values (minimum)
+if any(options.center - (options.width/2)) <= min(x)
+    index = options.center - (options.width/2) <= min(x);    
+    options.width(index) =  min(x) + (options.width(index)/2);
 end
 
 % Return input

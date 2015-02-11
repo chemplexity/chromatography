@@ -1,29 +1,29 @@
 % Method: Normalize
-% Description: Normalize signal between 0 and 1
+%  -Normalize signal between 0 and 1
 %
-% Syntax:
+% Syntax
 %   y = Normalize(y, 'OptionName', optionvalue...)
 %
-%   Input:
-%       y : vector or matrix
+% Input
+%   y        : array or matrix
 %
-%   Options:
-%       'Type' : 'local', 'global'
+% Options
+%   'type'   : 'local', 'global'
 %   
-%   Details:
-%       'local'  : normalize vectors individually [default]
-%       'global' : normalize vectors to global maximum
+% Description
+%   'local'  : normalize vectors individually (default)
+%   'global' : normalize vectors to global maximum
 %
-% Examples:
+% Examples
 %   y = Normalize(y)
-%   y = Normalize(y, 'Type', 'local')
-%   y = Normalize(y, 'Type', 'global')
+%   y = Normalize(y, 'type', 'local')
+%   y = Normalize(y, 'type', 'global')
 
 function varargout = Normalize(y, varargin)
 
 % Check for input options
-if ~isempty(find(strcmp(varargin, 'Type') | strcmp(varargin, 'type'),1))
-    type = varargin{find(strcmp(varargin, 'Type') | strcmp(varargin, 'type'),1) + 1};
+if ~isempty(find(strcmpi(varargin, 'type'),1))
+    type = varargin{find(strcmpi(varargin, 'type'),1)+1};
     
     % Check for valid input 
     if ~ischar(type)
@@ -32,7 +32,7 @@ if ~isempty(find(strcmp(varargin, 'Type') | strcmp(varargin, 'type'),1))
         type = lower(type);
     end
     
-    if ~strcmp(type, 'global') && ~strcmp(type, 'local')
+    if ~strcmpi(type, 'global') && ~strcmpi(type, 'local')
         type = 'local';
     end
 else
@@ -40,10 +40,10 @@ else
 end
 
 % Global normalization values
-if strcmp(type, 'global')
+if strcmpi(type, 'global')
     ymax = max(max(y));
     ymin = min(min(y));
-elseif strcmp(type, 'local')
+elseif strcmpi(type, 'local')
     ymax = max(y);
     ymin = min(y);
 end

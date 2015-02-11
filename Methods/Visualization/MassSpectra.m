@@ -16,43 +16,43 @@
 % Description
 %   mz       : m/z values
 %   y        : intensity values
-%   'labels' : text placed over local maxima m/z values -- (default: on)
-%   'scale'  : display y-scale as relative intensity or total intensity -- (default: relative)
-%   'export' : cell array passed the MATLAB print function -- (default: none)
+%   'labels' : text labels for m/z values (default = 'on')
+%   'scale'  : display relative or total intensity (default = 'relative')
+%   'export' : cell array passed to the MATLAB print function (default = none)
 %
 % Examples
 %   MassSpectra(mz, y)
 %   MassSpectra(mz, y, 'labels', 'off', 'scale', 'full')
-%   MassSpectra(mz, y 'export', {'myspectra', '-dtiff', '-r300'})
+%   MassSpectra(mz, y 'export', {'myfig', '-dtiff', '-r300'})
 
-function varargout = MassSpectra(x, y, varargin)
+function varargout = MassSpectra(mz, y, varargin)
 
 % Check number of inputs
 if nargin < 2
     error('Not enough input arguments');
-elseif ~isnumeric(x)
+elseif ~isnumeric(mz)
     error('Undefined input arguments of type ''mz''');
 elseif ~isnumeric(y)
     error('Undefined input arguments of type ''y''');
-elseif length(x(:,1)) > 1 && length(x(1,:)) > 1
+elseif length(mz(:,1)) > 1 && length(mz(1,:)) > 1
     error('Undefined input arguments of type ''mz''');
-elseif length(x(:,1)) == length(y(1,:)) && length(x(1,:)) == length(y(:,1))
-    x = x';
-elseif length(x(:,1)) ~= length(y(:,1)) && length(x(1,:)) ~= length(y(1,:))
+elseif length(mz(:,1)) == length(y(1,:)) && length(mz(1,:)) == length(y(:,1))
+    mz = mz';
+elseif length(mz(:,1)) ~= length(y(:,1)) && length(mz(1,:)) ~= length(y(1,:))
     error('Input arguments of unequal length');
 end
 
 % Check input precision
-if ~isa(x, 'double')
-    x = double(x);
+if ~isa(mz, 'double')
+    mz = double(mz);
 end
 if ~isa(y, 'double')
     y = double(y);
 end
 
 % Check input dimension
-if length(x(:,1)) > length(x(1,:))
-    x = x';
+if length(mz(:,1)) > length(mz(1,:))
+    mz = mz';
     y = y';
 end
 
@@ -60,9 +60,9 @@ end
 if length(y(:,1)) > 1 && length(y(1,:)) > 1
     
     % Sum intensity values across the m/z dimension
-    if length(x(:,1)) > length(x(1,:))
+    if length(mz(:,1)) > length(mz(1,:))
         y = sum(y,2);
-    elseif length(x(:,1)) < length(x(1,:))
+    elseif length(mz(:,1)) < length(mz(1,:))
         y = sum(y,1);
     end
 end 
@@ -75,7 +75,7 @@ if ~isempty(input('labels'))
     options.labels = varargin{input('labels') + 1};
                     
     % Check for valid input
-    if ~ischar(options.labels) || ~strcmpi(options.labels, 'off')
+    if ~strcmpi(options.labels, 'off')
         options.labels = 'on';
     end
 else
@@ -87,11 +87,9 @@ if ~isempty(input('scale'))
     options.scale = varargin{input('scale') + 1};
                     
     % Check for valid input
-    if ~ischar(options.scale)
+    if any(strcmpi(options.scale, {'normalize', 'normalized'}))
         options.scale = 'relative';
-    elseif strcmpi(options.scale, 'normalize') || strcmpi(options.scale, 'normalized')
-        options.scale = 'relative';
-    elseif ~strcmpi(options.scale, 'relative') && ~strcmpi(options.scale, 'full')
+    elseif ~any(strcmpi(options.scale, {'relative', 'full'}))
         options.scale = 'relative';
     end
 else
@@ -173,7 +171,7 @@ options.ylabel = ylabel(...
     'units', 'normalized');
 
 % Initialize bar plot
-options.plot = bar(x, y,...
+options.plot = bar(mz, y,...
     'parent', options.axes,...
     'barwidth', options.bar.width, ...
     'linestyle', 'none',...
@@ -181,7 +179,7 @@ options.plot = bar(x, y,...
     'facecolor', options.bar.color);
 
 % Set axis limits
-set(options.axes, 'xlim', [floor(min(x) - min(x) * 0.15), floor(max(x) + max(x) * 0.05)]);
+set(options.axes, 'xlim', [floor(min(mz) - min(mz) * 0.15), floor(max(mz) + max(mz) * 0.05)]);
 set(options.axes, 'ylim', [0 - (max(y) * 0.003), max(y) + (0.05 * max(y))]);
 
 % Check label options
@@ -197,7 +195,7 @@ if strcmpi(options.labels, 'on')
     dy(3,:) = dy(1,:) & dy(2,:);
 
     % Extract local maxima
-    xlocal = x(dy(3,:));
+    xlocal = mz(dy(3,:));
     ylocal = y(dy(3,:));
     
     % Determine noise
@@ -328,16 +326,11 @@ switch version('-release')
         set(get(get(options.axes, 'xruler'),'axle'), 'visible', 'off');
         set(get(get(options.axes, 'ybaseline'),'axle'), 'visible', 'off');
         
-    case {'2014a', '2013b', '2013a', '2012b', '2012a'}
-        
-        % Resize callback
-        set(options.figure, 'resizefcn', @(varargin) set(options.empty, 'position', get(options.axes, 'position')));
-        
     otherwise
         try
             % Resize callback
             set(options.figure, 'resizefcn', @(varargin) set(options.empty, 'position', get(options.axes, 'position')));
-        catch       
+        catch
         end
 end
 

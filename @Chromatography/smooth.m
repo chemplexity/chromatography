@@ -1,34 +1,34 @@
-% Method: baseline
-%  -Calculate baseline of chromatographic data
+% Method: smooth
+%  -Apply smoothing filter for chromatographic data
 %
 % Syntax
-%   data = baseline(data)
-%   data = baseline(data, 'OptionName', optionvalue...)
+%   data = smooth(data)
+%   data = smooth(data, 'OptionName', optionvalue...)
 %
 % Options
 %   'samples'    : 'all', [index]
 %   'ions'       : 'all', 'tic', [index]
-%   'smoothness' : value (~10^3 to 10^9)
-%   'asymmetry'  : value (~10^-1 to 10^-6)
+%   'smoothness' : value (~100 to 10000)
+%   'asymmetry'  : value (~0.01 to 0.99)
 %
 % Description
 %   data         : data structure
 %   'samples'    : row index of samples (default = 'all')
 %   'ions'       : column index of ions (default = 'tic')
-%   'smoothness' : smoothing parameter (default = 10^6)
-%   'asymmetry'  : asymetry parameter (default = 10^-4)
+%   'smoothness' : smoothing parameter (default = 500)
+%   'asymmetry'  : asymetry parameter (default = 0.5)
 %
 % Examples
-%   data = obj.baseline(data)
-%   data = obj.baseline(data, 'samples', [2:5, 8, 10])
-%   data = obj.baseline(data, 'ions', [1:34, 43:100])
-%   data = obj.baseline(data, 'ions', 'all', 'smoothness', 10^5)
-%   data = obj.baseline(data, 'smoothness', 10^7, 'asymmetry', 10^-3)
+%   data = obj.smooth(data)
+%   data = obj.smooth(data, 'samples', [2:5, 8, 10])
+%   data = obj.smooth(data, 'ions', [1:34, 43:100])
+%   data = obj.smooth(data, 'ions', 'all', 'smoothness', 5000)
+%   data = obj.smooth(data, 'smoothness', 2500, 'asymmetry', 0.25)
 %
 % References
 %   P.H.C. Eilers, Analytical Chemistry, 75 (2003) 3631
 
-function varargout = baseline(obj, varargin)
+function varargout = smooth(obj, varargin)
 
 % Check input
 [data, options] = parse(obj, varargin);
@@ -39,15 +39,8 @@ ions = options.ions;
 asymmetry = options.asymmetry;
 smoothness =  options.smoothness;
 
-% Calculate baseline
+% Calculate smoothed data
 for i = 1:length(samples)
-
-    % Pre-allocate memory
-    if isempty(data(samples(i)).xic.baseline)
-        data(samples(i)).xic.baseline = zeros(...
-            length(data(samples(i)).xic.values(:,1)),...
-            length(data(samples(i)).xic.values(1,:)));
-    end
     
     % Check ion options
     if isnumeric(ions)
@@ -57,24 +50,24 @@ for i = 1:length(samples)
     % Input values
     switch ions
         case 'tic'
-            y = data(samples(i)).tic.values;
+            y = data(samples(i)).tic.backup;
         case 'all'
-            y = data(samples(i)).xic.values;
+            y = data(samples(i)).xic.backup;
         otherwise
-            y = data(samples(i)).xic.values(:, options.ions);
+            y = data(samples(i)).xic.backup(:, options.ions);
     end
     
-    % Calculate baseline values
-    baseline = Baseline(y, 'smoothness', smoothness, 'asymmetry', asymmetry);
-
+    % Calculate smoothed values
+    smoothed = Smooth(y, 'smoothness', smoothness, 'asymmetry', asymmetry);
+    
     % Output values
     switch ions
-        case 'tic' 
-            data(samples(i)).tic.baseline = baseline;  
+        case 'tic'
+            data(samples(i)).tic.values = smoothed;
         case 'all'
-            data(samples(i)).xic.baseline = baseline;
+            data(samples(i)).xic.values = smoothed;
         otherwise
-            data(samples(i)).xic.baseline(:, options.ions) = baseline;
+            data(samples(i)).xic.values(:, options.ions) = smoothed;
     end
 end
 
@@ -189,12 +182,12 @@ if ~isempty(input('smoothness'))
     
     % Check for valid input
     if ~isnumeric(smoothness)
-        options.smoothness = obj.options.baseline.smoothness;
+        options.smoothness = obj.options.smoothing.smoothness;
     else
         options.smoothness = smoothness;
     end
 else
-    options.smoothness = obj.options.baseline.smoothness;
+    options.smoothness = obj.options.smoothing.smoothness;
 end
 
 
@@ -204,12 +197,12 @@ if ~isempty(input('asymmetry'))
     
     % Check for valid input
     if ~isnumeric(asymmetry)
-        options.asymmetry = obj.options.baseline.asymmetry;
+        options.asymmetry = obj.options.smoothing.asymmetry;
     else
         options.asymmetry = asymmetry;
     end
 else
-    options.asymmetry = obj.options.baseline.asymmetry;
+    options.asymmetry = obj.options.smoothing.asymmetry;
 end
 
 % Return input
