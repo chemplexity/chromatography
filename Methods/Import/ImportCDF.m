@@ -137,7 +137,7 @@ else
     % Reshape mass values
     data.mz = transpose(unique(mz));
     
-    % Read scan_index
+    % Read scan index
     scan_index = double(ncread(file, 'scan_index'));
     scan_index(:,2) = circshift(scan_index, [-1,0]);
     scan_index(:,1) = scan_index(:,1) + 1;
@@ -155,7 +155,7 @@ else
         % Determine column index of current frame
         [~, row_index, column_index] = intersect(mz(frame), data.mz);
         
-        % Reshape intensity_values
+        % Reshape intensity values
         data.xic.values(i, column_index) = xic(row_index + offset);
     end
 end

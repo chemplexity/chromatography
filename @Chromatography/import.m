@@ -67,7 +67,7 @@ switch options.filetype
             update(i, length(files(:,1)), options.compute_time, options.progress);
         end
         
-        % Import Agilent data with the '*.MS' extension
+    % Import Agilent data with the '*.MS' extension
     case {'.MS'}
         
         for i = 1:length(files(:,1))
@@ -87,7 +87,7 @@ switch options.filetype
             update(i, length(files(:,1)), options.compute_time, options.progress);
         end
         
-        % Import Agilent data with the '*.D' extension
+    % Import Agilent data with the '*.D' extension
     case {'.D'}
         
         for i = 1:length(files(:,1))
@@ -108,6 +108,24 @@ switch options.filetype
             options.compute_time = options.compute_time + compute_time(i);
             update(i, length(files(:,1)), options.compute_time, options.progress);
         end
+        
+    % Import Thermo Finnigan data with the '*.RAW' extension
+    case {'.RAW'}
+        
+        for i = 1:length(files(:,1))
+            % Start timer
+            tic;
+            % Import data
+            import_data(i) = ImportThermo(strcat(files{i,2},files{i,3}));
+            % Stop timer
+            compute_time(i) = toc;
+            % Assign a unique id
+            id(i) = length(data) + i;
+            
+            % Display import progress
+            options.compute_time = options.compute_time + compute_time(i);
+            update(i, length(files(:,1)), options.compute_time, options.progress);
+        end
 end
 
 % Add missing fields to data structure
@@ -118,6 +136,7 @@ for i = 1:length(id)
     
     % File information
     import_data(i).id = id(i);
+    import_data(i).name = import_data(i).sample.name;
     import_data(i).file.name = strcat(files{i,2}, files{i,3});
     import_data(i).file.type = options.filetype;
     

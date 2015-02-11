@@ -22,8 +22,9 @@ function varargout = Centroid(varargin)
 
 % Initialize variables
 counter = 1;
+iterations = 0;
 
-while counter ~= 0
+while counter ~= 0 && iterations <= 10
 
     % Calculate centroid data
     for i = 2:length(y(1,:))-1
@@ -67,12 +68,10 @@ while counter ~= 0
 
     % Update counter with number of columns removed
     counter = counter - length(y(1,:));
+    
+    % Update number of iterations
+    iterations = iterations + 1;
 end
-
-% Remove columns that are 95% all zeros
-remove = round(length(y(:,1)) * 0.95);
-mz(:, sum(y~=0)<=remove)=[];
-y(:, sum(y~=0)<=remove)=[];
 
 varargout{1} = mz;
 varargout{2} = y;
@@ -85,7 +84,7 @@ varargin = varargin{1};
 nargin = length(varargin);
 
 % Check input
-if nargin < 1
+if nargin <= 1
     error('Not enough input arguments');
 end
 
