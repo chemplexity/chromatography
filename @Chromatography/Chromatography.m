@@ -5,19 +5,18 @@
 %   obj = Chromatography
 %
 % Methods
+%
 %   Import
 %       data = obj.import(filetype, 'OptionName', optionvalue...)
 %   
-%   Baseline
+%   Preprocessing
 %       data = obj.baseline(data, 'OptionName', optionvalue...)
-%
-%   Smooth
 %       data = obj.smooth(data, 'OptionName', optionvalue...)
 %
 %   Integration
 %       data = obj.integrate(data, 'OptionName', optionvalue...)
 %
-%   Visualize
+%   Visualization
 %       fig = obj.visualize(data, 'OptionName', optionvalue...)
 
 classdef Chromatography
@@ -34,15 +33,19 @@ classdef Chromatography
             % General informations
             obj.options.system_os = computer;
             obj.options.matlab_version = version('-release');
-            obj.options.toolbox_version = '0.1.2';
+            obj.options.toolbox_version = '0.1.3';
 
             % Import options
             obj.options.import = {...
                 '.CDF', 'netCDF (*.CDF)';
-                '.D', 'Agilent (*.D)';
-                '.MS', 'Agilent (*.MS)';
+                '.D',   'Agilent (*.D)';
+                '.MS',  'Agilent (*.MS)';
                 '.RAW', 'Thermo (*.RAW)'};
 
+            % Export options
+            obj.options.export = {...
+                '.CSV', '(*.CSV)'};
+            
             % Baseline options
             obj.options.baseline.smoothness = 10^6;
             obj.options.baseline.asymmetry = 10^-4;

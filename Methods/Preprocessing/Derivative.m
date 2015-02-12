@@ -2,16 +2,20 @@
 %  -Calculate derivative of a signal
 %
 % Syntax
-%   Derivative(x, y, 'OptionName', optionvalue...)
 %   Derivative(y, 'OptionName', optionvalue...)
+%   Derivative(x, y, 'OptionName', optionvalue...)
+%
+% Input
+%   x          : array
+%   y          : array or matrix
 %
 % Options
 %  'degree'    : 1 to 10
 %  'smoothing' : 'on', 'off'
 %   
 % Description
-%   x          : array
-%   y          : array or matrix
+%   x          : time values
+%   y          : intensity values
 %  'degree'    : degree of derivative (default = 1)
 %  'smoothing' : smooth before each derivative (default = 'off')
 %

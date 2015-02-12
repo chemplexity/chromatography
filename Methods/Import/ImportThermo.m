@@ -91,7 +91,7 @@ fseek(file.name, file.address.sequence_data, 'bof');
 % Variables
 data.sample.name = '';
 data.method.name = '';
-data.method.data = '';
+data.method.date = '';
 data.method.time = '';
 
 % Read sequence data
