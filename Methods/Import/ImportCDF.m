@@ -146,7 +146,7 @@ else
     % Pre-allocate memory
     data.xic.values = zeros(length(data.time), length(data.mz), 'single');
     
-    for i = 1:length(scan_index(:,1))-1
+    for i = 1:length(scan_index(:,1))
         
         % Determine row index of current frame
         frame = scan_index(i,1):scan_index(i,2);
