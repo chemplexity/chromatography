@@ -9,24 +9,24 @@
 %   y            : array or matrix
 %
 % Options
-%   'smoothness' : value (~100 to 10000)
 %   'asymmetry'  : value (~0.01 to 0.99)
+%   'smoothness' : value (~0.01 to 10000)
 %
 % Description
 %   y            : intensity values
-%   'smoothness' : smoothing factor (default = 500)
 %   'asymmetry'  : asymmetry factor (default = 0.5)
+%   'smoothness' : smoothing factor (default = 0.1)
 %
 % Examples
 %   smoothed = Smooth(y)
 %   smoothed = Smooth(y, 'asymmetry', 0.4)
-%   smoothed = Smooth(y, 'smoothness', 5000)
-%   smoothed = Smooth(y, 'smoothness', 2500, 'asymmetry', 0.25)
+%   smoothed = Smooth(y, 'smoothness', 500)
+%   smoothed = Smooth(y, 'smoothness', 10, 'asymmetry', 0.25)
 %
 % References
 %   P.H.C. Eilers, Analytical Chemistry, 75 (2003) 3631
 
-function [smoothed, weights] = Smooth(y, varargin)
+function varargout = Smooth(y, varargin)
 
 % Check input
 if nargin < 1
@@ -35,33 +35,16 @@ elseif ~isnumeric(y)
     error('Undefined input arguments of type ''y''');
 end
 
-% Check user input
-if nargin == 1
-    
-    % Default pararmeters
-    smoothness = 500;
-    asymmetry = 0.5;
+% Default options
+asymmetry = 0.5;
+smoothness = 0.1;
     
 % Check options
-elseif nargin > 1
+if nargin > 1
     
     % Check user input
     input = @(x) find(strcmpi(varargin, x),1);
 
-    % Check smoothness options
-    if ~isempty(input('smoothness'));
-        smoothness = varargin{input('smoothness')+1};
-
-        % Check user input
-        if ~isnumeric(smoothness)
-            smoothness = 500;
-        elseif smoothness <= 0
-            smoothness = 500;
-        end 
-    else
-        smoothness = 500;
-    end
-    
     % Check asymmetry options
     if ~isempty(input('asymmetry'));
         asymmetry = varargin{input('asymmetry')+1};
@@ -70,12 +53,22 @@ elseif nargin > 1
         if ~isnumeric(asymmetry)
             asymmetry = 0.5;
         elseif asymmetry <= 0
-            asymmetry = 10^-6;
+            asymmetry = 10^-9;
         elseif asymmetry >= 1
-            asymmetry = 0.99999;
+            asymmetry = 1 - 10^-6;
         end
-    else
-        asymmetry = 0.5;
+    end
+    
+    % Check smoothness options
+    if ~isempty(input('smoothness'));
+        smoothness = varargin{input('smoothness')+1};
+
+        % Check user input
+        if ~isnumeric(smoothness)
+            smoothness = asymmetry / 50;
+        elseif smoothness <= 0
+            smoothness = 10^-9;
+        end
     end
 end
 
@@ -84,48 +77,81 @@ if ~isa(y, 'double')
     y = double(y);
 end
 
-% Perform smoothing calculation on each vector
+% Check data length
+if all(size(y) <= 3)
+    error('Insufficient number of points');
+end
+
+% Check for negative values
+if any(min(y) < 0)
+    
+    % Determine offset
+    offset = min(y);
+    offset(offset > 0) = 0;
+    offset(offset < 0) = abs(offset(offset < 0));
+else
+    offset = zeros(1, length(y(1,:)));
+end
+
+% Pre-allocate memory
+smoothed = zeros(size(y));
+
+% Variables
+rows = length(y(:,1));
+index = 1:rows;
+
+% Pre-allocate memory
+weights = ones(rows, 1);
+
+% Variables
+d = diff(speye(rows), 2);
+d = smoothness * (d' * d);
+
+w = spdiags(weights, 0, rows, rows);
+
+% Calculate smoothed data
 for i = 1:length(y(1,:))
     
-    % Correct negative y-values
-    if min(y(:,i)) < 0
-        correction = abs(min(y(:,i)));
-        y(:,i) = y(:,i) + correction;
-        
-    % Correct non-positive definite y-values
-    elseif max(y(:,i)) == 0
-        continue
-    else 
-        correction = 0;
+    % Check offset
+    if offset(i) ~= 0
+        y(:,i) = y(:,i) + offset(i);
     end
     
-    % Get length of y vector
-    length_y = length(y(:,i));
-
-    % Initialize variables needed for calculation
-    diff_matrix = diff(speye(length_y), 2);
-    weights = ones(length_y, 1);
-
-    % Pre-allocate memory for smoothed data
-    smoothed(:,i) = zeros(length_y, 1);
-
+    % Check values
+    if ~any(y(:,i) ~= 0)
+        continue
+    end
+    
+    % Pre-allocate memory
+    s = zeros(rows,1);
+    
     % Number of iterations
     for j = 1:10
-            
-        % Sparse diagonal matrix
-        weights_diagonal = spdiags(weights, 0, length_y, length_y);
         
         % Cholesky factorization
-        cholesky_factor = chol(weights_diagonal + smoothness * diff_matrix' * diff_matrix);
+        w = chol(w + d);
         
         % Left matrix divide, multiply matrices
-        smoothed(:,i) = cholesky_factor \ (cholesky_factor' \ (weights .* y(:,i)));
+        s = w \ (w' \ (weights .* y(:,i)));
         
-        % Reassign weights
-        weights = asymmetry * (y(:,i) > smoothed(:,i)) + (1 - asymmetry) * (y(:,i) < smoothed(:,i));
+        % Determine weights
+        weights = asymmetry * (y(:,i) > s) + (1 - asymmetry) * (y(:,i) < s);
+        
+        % Reset sparse matrix
+        w = sparse(index, index, weights);
     end
     
-    % Correct for negative y-values
-    y(:,i) = y(:,i) - correction;
+    % Check offset
+    if offset(i) ~= 0
+        smoothed(:,i) = s - offset(i);
+    else
+        smoothed(:,i) = s;
+    end
+    
+    % Reset variables
+    weights = ones(rows, 1);
 end
+
+% Set output
+varargout{1} = smoothed;
 end
