@@ -87,7 +87,7 @@ if nargin > 1
             % Check for 'Parallel Computing Toolbox'
             if any(strcmpi('Parallel Computing Toolbox', {tools.Name}))
                 
-                % Check version (6.0+)
+                % Check version (6.3+)
                 if str2double(tools(strcmpi('Parallel Computing Toolbox', {tools.Name})).Version) >= 6.3
                     parallel = 'on';
                 else
@@ -141,6 +141,57 @@ index = 1:rows;
 
 switch parallel
     
+    case 'on'
+        
+        % Variables
+        d = diff(speye(rows), 2);
+        d = smoothness * (d' * d);
+
+        % Calculate baseline
+        parfor i = 1:length(y(1,:))
+    
+            % Pre-allocate memory
+            weights = ones(rows, 1);
+
+            % Variables
+            w = spdiags(weights, 0, rows, rows);
+            
+            % Check offset
+            if offset(i) ~= 0
+                y(:,i) = y(:,i) + offset(i);
+            end
+    
+            % Check values
+            if ~any(y(:,i) ~= 0)
+                continue
+            end
+    
+            b = zeros(rows,1);
+    
+            % Number of iterations
+            for j = 1:10
+        
+                % Cholesky factorization
+                w = chol(w + d);
+        
+                % Left matrix divide, multiply matrices
+                b = w \ (w' \ (weights .* y(:,i)));
+        
+                % Determine weights
+                weights = asymmetry * (y(:,i) > b) + (1 - asymmetry) * (y(:,i) < b);
+        
+                % Reset sparse matrix
+                w = sparse(index, index, weights);
+            end
+    
+            % Check offset
+            if offset(i) ~= 0
+                baseline(:,i) = b - offset(i);
+            else
+                baseline(:,i) = b;
+            end
+        end
+    
     case 'off'
 
         % Pre-allocate memory
@@ -192,57 +243,6 @@ switch parallel
     
             % Reset variables
             weights = ones(rows, 1);
-        end
-        
-    case 'on'
-        
-        % Variables
-        d = diff(speye(rows), 2);
-        d = smoothness * (d' * d);
-
-        % Calculate baseline
-        parfor i = 1:length(y(1,:))
-    
-            % Pre-allocate memory
-            weights = ones(rows, 1);
-
-            % Variables
-            w = spdiags(weights, 0, rows, rows);
-            
-            % Check offset
-            if offset(i) ~= 0
-                y(:,i) = y(:,i) + offset(i);
-            end
-    
-            % Check values
-            if ~any(y(:,i) ~= 0)
-                continue
-            end
-    
-            b = zeros(rows,1);
-    
-            % Number of iterations
-            for j = 1:10
-        
-                % Cholesky factorization
-                w = chol(w + d);
-        
-                % Left matrix divide, multiply matrices
-                b = w \ (w' \ (weights .* y(:,i)));
-        
-                % Determine weights
-                weights = asymmetry * (y(:,i) > b) + (1 - asymmetry) * (y(:,i) < b);
-        
-                % Reset sparse matrix
-                w = sparse(index, index, weights);
-            end
-    
-            % Check offset
-            if offset(i) ~= 0
-                baseline(:,i) = b - offset(i);
-            else
-                baseline(:,i) = b;
-            end
         end
 end
 

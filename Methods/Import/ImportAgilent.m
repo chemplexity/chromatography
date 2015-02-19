@@ -28,10 +28,18 @@ end
 % Read Agilent '.D' files
 if strcmp(extension, '.D')
 
-    % Set path and list folder contents
+    % Set path
     path(file.Name, path);
-    contents = strsplit(ls(file.Name))';
-
+    
+    % Determine OS and parse file names
+    if ispc
+        contents = cellstr(ls(file.Name));
+        contents(strcmp(contents, '.') | strcmp(contents, '..')) = [];
+    elseif isunix
+        contents = strsplit(ls(file.Name))';
+        contents(cellfun(@isempty, contents)) = [];
+    end
+    
     % Parse folder contents
     files(:,1) = fullfile(file.Name, contents);
     [~, ~, files(:,2)] = cellfun(@fileparts, contents, 'uniformoutput', false);
@@ -54,7 +62,7 @@ for i = 1:length(files(:,1))
             return
     
         otherwise
-            continue
+            varargout{1} = [];
     end
 end
 end
@@ -81,97 +89,80 @@ datetime = datevec(deblank(fread(file, 20, 'char=>char')'));
 data.method.date = strtrim(datestr(datetime, 'mm/dd/yy'));
 data.method.time = strtrim(datestr(datetime, 'HH:MM PM'));
 
-% Read starting location
-fseek(file, 264, 'bof');
-start = fread(file, 1, 'uint') * 2 - 2;
+% Read directory offset
+fseek(file, 260, 'bof');
+offset.tic = fread(file, 1, 'int') * 2 - 2;
 
-% Read total scans
+% Read number of scans
 fseek(file, 278, 'bof');
 scans = fread(file, 1, 'uint');
 
 % Pre-allocate memory
 data.time = zeros(scans, 1, 'single');
 data.tic.values = zeros(scans, 1, 'single');
-scan_index = zeros(scans, 3, 'single');
-mixed_values = [];
+offset.xic = zeros(scans, 1, 'single');
 
-% Read time values and total intensity values
-fseek(file, start, 'bof');
+% Read data offset
+fseek(file, offset.tic, 'bof');
+offset.xic = fread(file, scans, 'int', 8) * 2 - 2;
+
+% Read time values
+fseek(file, offset.tic+4, 'bof');
+data.time = fread(file, scans, 'int', 8) / 60000;
+
+% Read total intensity values
+fseek(file, offset.tic+8, 'bof');
+data.tic.values = fread(file, scans, 'int', 8);
+
+% Variables
+xic = [];
+mz = [];
 
 for i = 1:scans
 
-    % Determine position
-    position = ftell(file) + fread(file, 1, 'ushort') * 2;
+    % Read scan size
+    fseek(file, offset.xic(i,1), 'bof');
+    n = (fread(file, 1, 'short') - 18) / 2;
 
-    % Read time values
-    data.time(i) = fread(file, 1, 'uint') / 60000;
-
-    % Read scan index
-    fseek(file, ftell(file) + 6, 'bof');
-    scan_index(i, 1) = fread(file, 1, 'ushort') * 2;
-    scan_index(i, 2) = ftell(file) + 4;
-
-    % Read total intensity values
-    fseek(file, position-4, 'bof');
-    data.tic.values(i) = fread(file, 1, 'uint');
-
-    % Read intensity values, mass values
-    fseek(file, scan_index(i, 2), 'bof');
-    mixed_values(1, end+1:end+scan_index(i, 1)) = fread(file, scan_index(i, 1), 'ushort');
+    % Read mass values
+    fseek(file, offset.xic(i,1)+18, 'bof');
+    mz(end+1:end+n) = fread(file, n, 'ushort', 2);
     
-    % Reset position
-    fseek(file, position, 'bof');
+    % Read intensity values
+    fseek(file, offset.xic(i,1)+20, 'bof');
+    xic(end+1:end+n) = fread(file, n, 'short', 2);
+    
+    % Variables
+    offset.xic(i,2) = n;
 end
 
 % Close file
 fclose(file);
 
-% Reshape mixed values (Row 1 = mass_values; Row 2 = intensity_values)
-mixed_values = reshape(mixed_values, 2, []);
+% Format mass values
+mz = mz / 20;
+data.mz = unique(mz);
 
-% Filter mass values
-data.mz = unique(mixed_values(1,:)) / 20;
+% Determine data index
+index.end = cumsum(offset.xic(:,2));
+index.start = circshift(index.end,[1,0]);
+index.start = index.start + 1;
+index.start(1,1) = 1;
 
-% Filter intensity values
-mixed_values(2,:) = bitand(mixed_values(2,:), 16383) .* 8 .^ bitshift(mixed_values(2,:), -14);
+% Pre-allocate memory
+data.xic.values = zeros(length(data.time), length(data.mz), 'single');
 
-% Determine reshaping method
-if length(data.mz) == length(mixed_values(2,:)) / length(data.time)
-
+for i = 1:scans
+    
+    % Determine row index of current frame
+    frame = index.start(i):index.end(i);
+    offset = index.start(i) - 1;
+    
+    % Determine column index of current frame
+    [~, row_index, column_index] = intersect(mz(frame), data.mz);
+    
     % Reshape intensity values
-    data.xic.values = reshape(mixed_values(2,:), length(data.mz), length(data.time));
-    data.xic.values = fliplr(transpose(data.xic.values));
-
-else
-
-    % Determine scan index
-    scan_index(:, 3) =  cumsum(scan_index(:, 1)) / 2;
-
-    % Determine column index
-    column_index = [circshift(scan_index(:,3) + 1, 1), scan_index(:,3)];
-    column_index(1,1) = 1;
-
-    % Max/min mass values
-    min_mass = min(mixed_values(1,:));
-    max_mass = max(mixed_values(1,:));
-
-    % Pre-allocate memory
-    data.xic.values = zeros(length(data.time), max_mass - min_mass + 1, 'single');
-
-    for i = 1:scans
-
-        % Determine column range
-        column_range = mixed_values(1, column_index(i,1):column_index(i,2)) - min_mass + 1;
-
-        % Reshape intensity values
-        data.xic.values(i, column_range) = mixed_values(2, column_index(i,1):column_index(i,2));
-    end
-
-    % Remove blank columns from intensity values
-    remove(mixed_values(1,:)) = 1;
-    remove(1:min_mass) = [];
-    remove = find(remove == 0) + 1;
-    data.xic.values(:, remove) = [];
+    data.xic.values(i, column_index) = xic(row_index + offset);
 end
 
 % Return data

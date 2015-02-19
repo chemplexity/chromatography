@@ -10,7 +10,7 @@
 %
 % Options
 %   'labels'    : 'on', 'off'
-%   'labelsize' : value
+%   'fontsize'  : value
 %   'scale'     : 'relative', 'full'
 %   'xlim'      : 'auto', [xmin, xmax]
 %   'ylim'      : 'auto', [ymin, ymax]
@@ -20,7 +20,7 @@
 %   mz          : m/z values
 %   y           : intensity values
 %   'labels'    : show labels over m/z values (default = 'on')
-%   'labelsize' : font size of text labels (default = 7.5)
+%   'fontsize'  : font size of text labels (default = 7.5)
 %   'scale'     : display relative or total intensity (default = 'relative')
 %   'xlim'      : x-axis limits (default = 'auto')
 %   'ylim'      : y-axis limits (default = 'auto')
@@ -31,173 +31,10 @@
 %   MassSpectra(mz, y, 'labels', 'off', 'scale', 'full')
 %   MassSpectra(mz, y 'export', {'myfig', '-dtiff', '-r300'})
 
-function varargout = MassSpectra(mz, y, varargin)
+function varargout = MassSpectra(varargin)
 
-% Check number of inputs
-if nargin < 2
-    disp('Not enough input arguments');
-    return
-elseif ~isnumeric(mz) || ~isnumeric(y)
-    disp('Undefined input arguments');
-    return
-end
-
-% Check input length
-if length(mz(:,1)) > length(mz(1,:))
-    mz = mz';
-end
-if length(y(:,1)) == length(mz(1,:)) && length(y(:,1)) ~= length(y(1,:))
-    y = y';
-end
-if ~any(size(y) == 1)
-    y = sum(y);
-end
-if length(mz(1,:)) ~= length(y(1,:))
-    disp('Index exceeds matrix dimensions');
-    return
-end
-    
-% Check input precision
-if ~isa(mz, 'double')
-    mz = double(mz);
-end
-if ~isa(y, 'double')
-    y = double(y);
-end
-
-% Check for negative m/z values
-y(mz < 0) = [];
-mz(mz < 0) = [];
-
-% Check for negative intensity values
-y(y < 0) = 0;
-
-if isempty(mz)
-    disp('Input arguments of type ''mz'' must be positive'); 
-end
-
-% Check user input
-input = @(x) find(strcmpi(varargin, x),1);
-
-% Label options
-if ~isempty(input('labels'))
-    options.labels = varargin{input('labels')+1};
-                    
-    % Check for valid input
-    if any(strcmpi(options.labels, {'default', 'on', 'show', 'display'}))
-        options.labels = 'on';
-    elseif any(strcmpi(options.labels, {'off', 'hide'}))
-        options.labels = 'off';
-    else
-        options.labels = 'on';
-    end
-else
-    options.labels = 'on';
-end
-
-
-% Label size options
-if ~isempty(input('labelsize'))
-    fontsize = varargin{input('labelsize')+1};
-elseif ~isempty(input('fontsize'))
-    fontsize = varargin{input('fontsize')+1};
-end
-
-% Check for valid input
-if ~isempty(fontsize)
-    if any(strcmpi(fontsize, {'default'})) || ~isnumeric(fontsize)
-        options.label.fontsize = 7.5;
-    elseif fontsize >= 30 || fontsize <= 1
-        options.label.fontsize = 7.5;
-    else
-        options.label.fontsize = fontsize;
-    end
-else
-    options.label.fontsize = 7.5;
-end
-
-
-% Scale options
-if ~isempty(input('scale'))
-    options.scale = varargin{input('scale')+1};
-                    
-    % Check for valid input
-    if any(strcmpi(options.scale, {'default', 'relative', 'normalize', 'normalized'}))
-        options.scale = 'relative';
-    elseif any(strcmpi(options.scale, {'full', 'separate'}))
-        options.scale = 'full';
-    else
-        options.scale = 'relative';
-    end
-else
-    options.scale = 'relative';
-end
-
-
-% Export options
-if ~isempty(input('export'))
-    options.export = varargin{input('export')+1};
-      
-    % Check for valid input
-    if strcmpi(options.export, 'on')
-        options.export = {'spectra', '-dpng', '-r300'};
-    elseif ~iscell(options.export)
-        options.export = 'off';
-    end
-else
-    options.export = 'off';
-end
-
-
-% X-limits options
-if ~isempty(input('xlim'))
-    xlimits = varargin{input('xlim')+1};
-    
-    % Check for valid input
-    if ~isnumeric(xlimits) || any(strcmpi(xlimits, {'default', 'auto'}))
-        options.xlimits = [];
-    elseif xlimits(2) < xlimits(1) || length(xlimits) ~= 2;
-        options.xlimits = [];
-    else
-        options.xlimits = xlimits;
-    end
-
-else
-    options.xlimits = [];
-end
-
-
-% Y-limits options
-if ~isempty(input('ylim'))
-    ylimits = varargin{input('ylim')+1};
-    
-    % Check user input
-    if ~isnumeric(ylimits) || any(strcmpi(ylimits, {'default', 'auto'}))
-        options.ylimits = [];
-    elseif ylimits(2) < ylimits(1) || length(ylimits) ~= 2
-        options.ylimits = [];
-    else 
-        options.ylimits = ylimits;
-    end    
-else
-    options.ylimits = [];
-end
-
-
-% Threshold options (experimental)
-if ~isempty(input('threshold'))
-    options.threshold = varargin{input('threshold')+1};
-                   
-    if ~isnumeric(opitons.threshold)
-        options.threshold = 0.015;
-    elseif options.threshold <= 0 || options.threshold > 1
-        options.threshold = 0.015;
-    else
-        options.threshold = options.threshold(1);
-    end 
-else
-    options.threshold = 0.015;
-end
+% Check input
+[mz, y, options] = parse(varargin);
     
 % Check for normalization
 if strcmpi(options.scale, 'relative')
@@ -212,7 +49,6 @@ if strcmpi(options.scale, 'relative')
     % Set y-axis label
     options.ylabel = 'Abundance (%)';
 else
-    options.ylabel = 'Intensity';
     
     % Check y-axis limits
     if ~isempty(options.ylimits) && options.ylimits(2) <= 1
@@ -221,9 +57,12 @@ else
     if ~isempty(options.ylimits) && options.ylimits(1) <= 1
         options.ylimits(1) = options.ylimits(1) * max(max(y));
     end
+    
+    % Set y-axis label
+    options.ylabel = 'Intensity';
 end
 
-% Set global options
+% Set figure options
 options.font.name = 'Avenir Next';
 options.font.size = 13.5;
 options.line.color = [0.22,0.22,0.22];
@@ -260,13 +99,14 @@ options.axes = axes(...
     'selectionhighlight', 'off',...
     'nextplot', 'replacechildren');
 
-% Set labels
+% Set x-label
 options.xlabel = xlabel(...
     'Mass (m/z)',...
     'fontname', options.font.name,...
     'fontsize', options.font.size,...
     'units', 'normalized');
 
+% Set y-label
 options.ylabel = ylabel(...
     options.ylabel,...
     'fontname', options.font.name,...
@@ -309,7 +149,7 @@ if strcmpi(options.labels, 'on')
     % Index local maxima: y(n-1) < y(n) > y(n+1)
     dy(3,:) = dy(1,:) & dy(2,:);
 
-    % Extract local maxima
+    % Extract local maxima ions
     xlocal = mz(dy(3,:));
     ylocal = y(dy(3,:));
     
@@ -564,4 +404,187 @@ set(options.figure, 'visible', 'on');
 
 % Set output
 varargout{1} = options;
+end
+
+% Parse user input
+function [mz, y, options] = parse(varargin)
+
+varargin = varargin{1};
+nargin = length(varargin);
+
+% Check input
+if nargin <= 1
+    error('Not enough input arguments');
+end
+
+% Check data
+if isnumeric(varargin{1})
+    mz = varargin{1};
+else
+    error('Undefined input arguments of type ''mz''');
+end
+if isnumeric(varargin{2})
+    y = varargin{2};
+else
+    error('Undefined input arguments of type ''y''');
+end
+
+% Check input length
+if length(mz(:,1)) > length(mz(1,:))
+    mz = mz';
+end
+if length(y(:,1)) == length(mz(1,:)) && length(y(:,1)) ~= length(y(1,:))
+    y = y';
+end
+if ~any(size(y) == 1)
+    y = sum(y);
+end
+if length(mz(1,:)) ~= length(y(1,:))
+    disp('Index exceeds matrix dimensions');
+    return
+end
+    
+% Check input precision
+if ~isa(mz, 'double')
+    mz = double(mz);
+end
+if ~isa(y, 'double')
+    y = double(y);
+end
+
+% Check for negative m/z values
+y(mz < 0) = [];
+mz(mz < 0) = [];
+
+% Check for negative intensity values
+y(y < 0) = 0;
+
+if isempty(mz)
+    disp('Input arguments of type ''mz'' must be positive'); 
+end
+
+% Check user input
+input = @(x) find(strcmpi(varargin, x),1);
+
+% Label options
+if ~isempty(input('labels'))
+    options.labels = varargin{input('labels')+1};
+                    
+    % Check for valid input
+    if any(strcmpi(options.labels, {'default', 'on', 'show', 'display'}))
+        options.labels = 'on';
+    elseif any(strcmpi(options.labels, {'off', 'hide'}))
+        options.labels = 'off';
+    else
+        options.labels = 'on';
+    end
+else
+    options.labels = 'on';
+end
+
+
+% Label size options
+if ~isempty(input('labelsize'))
+    fontsize = varargin{input('labelsize')+1};
+elseif ~isempty(input('fontsize'))
+    fontsize = varargin{input('fontsize')+1};
+else
+    fontsize = [];
+end
+
+% Check for valid input
+if ~isempty(fontsize)
+    if any(strcmpi(fontsize, {'default'})) || ~isnumeric(fontsize)
+        options.label.fontsize = 7.5;
+    elseif fontsize >= 30 || fontsize <= 1
+        options.label.fontsize = 7.5;
+    else
+        options.label.fontsize = fontsize;
+    end
+else
+    options.label.fontsize = 7.5;
+end
+
+
+% Scale options
+if ~isempty(input('scale'))
+    options.scale = varargin{input('scale')+1};
+                    
+    % Check for valid input
+    if any(strcmpi(options.scale, {'default', 'relative', 'normalize', 'normalized'}))
+        options.scale = 'relative';
+    elseif any(strcmpi(options.scale, {'full', 'separate'}))
+        options.scale = 'full';
+    else
+        options.scale = 'relative';
+    end
+else
+    options.scale = 'relative';
+end
+
+
+% Export options
+if ~isempty(input('export'))
+    options.export = varargin{input('export')+1};
+      
+    % Check for valid input
+    if strcmpi(options.export, 'on')
+        options.export = {'spectra', '-dpng', '-r300'};
+    elseif ~iscell(options.export)
+        options.export = 'off';
+    end
+else
+    options.export = 'off';
+end
+
+
+% X-limits options
+if ~isempty(input('xlim'))
+    xlimits = varargin{input('xlim')+1};
+    
+    % Check for valid input
+    if ~isnumeric(xlimits) || any(strcmpi(xlimits, {'default', 'auto'}))
+        options.xlimits = [];
+    elseif xlimits(2) < xlimits(1) || length(xlimits) ~= 2;
+        options.xlimits = [];
+    else
+        options.xlimits = xlimits;
+    end
+
+else
+    options.xlimits = [];
+end
+
+
+% Y-limits options
+if ~isempty(input('ylim'))
+    ylimits = varargin{input('ylim')+1};
+    
+    % Check user input
+    if ~isnumeric(ylimits) || any(strcmpi(ylimits, {'default', 'auto'}))
+        options.ylimits = [];
+    elseif ylimits(2) < ylimits(1) || length(ylimits) ~= 2
+        options.ylimits = [];
+    else 
+        options.ylimits = ylimits;
+    end    
+else
+    options.ylimits = [];
+end
+
+
+% Threshold options (experimental)
+if ~isempty(input('threshold'))
+    options.threshold = varargin{input('threshold')+1};
+                   
+    if ~isnumeric(opitons.threshold)
+        options.threshold = 0.015;
+    elseif options.threshold <= 0 || options.threshold > 1
+        options.threshold = 0.015;
+    else
+        options.threshold = options.threshold(1);
+    end 
+else
+    options.threshold = 0.015;
+end
 end

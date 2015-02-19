@@ -92,7 +92,7 @@ end
 if isnumeric(varargin{1})
     mz = varargin{1};
 else
-    error('Undefined input arguments of type ''x''');
+    error('Undefined input arguments of type ''mz''');
 end
 if isnumeric(varargin{2})
     y = varargin{2};

@@ -238,10 +238,10 @@ offset = file.address.data(1);
 n = sum(file.size);
 
 % Pre-allocate memory
-data.xic.values = zeros(1,n, 'single');
-data.mz = zeros(1,n, 'single');
-mz.integer = zeros(1,n, 'single');
-mz.decimal = zeros(1,n, 'single');
+data.xic.values = zeros(1, n, 'single');
+data.mz = zeros(1, n, 'single');
+mz.integer = zeros(1, n, 'single');
+mz.decimal = zeros(1, n, 'single');
 
 % Read intensity values
 fseek(file.name, offset, 'bof');
@@ -250,11 +250,11 @@ data.xic.values = data.xic.values / 256;
 
 % Read mass values integer
 fseek(file.name, offset+4, 'bof');
-mz.integer = fread(file.name, n, 'uint16=>single',6);
+mz.integer = fread(file.name, n, 'uint16=>single', 6);
 
 % Read mass values decimal
 fseek(file.name, offset+6, 'bof');
-mz.decimal = fread(file.name, n, 'uint16=>single',6);
+mz.decimal = fread(file.name, n, 'uint16=>single', 6);
 mz.decimal = mz.decimal / 65536;
 
 % Determine mass values
