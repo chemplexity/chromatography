@@ -18,10 +18,10 @@
 %   'smoothness' : smoothing factor (default = 0.1)
 %
 % Examples
-%   smoothed = Smooth(y)
-%   smoothed = Smooth(y, 'asymmetry', 0.4)
-%   smoothed = Smooth(y, 'smoothness', 500)
-%   smoothed = Smooth(y, 'smoothness', 10, 'asymmetry', 0.25)
+%   y = Smooth(y)
+%   y = Smooth(y, 'asymmetry', 0.4)
+%   y = Smooth(y, 'smoothness', 500)
+%   y = Smooth(y, 'smoothness', 10, 'asymmetry', 0.25)
 %
 % References
 %   P.H.C. Eilers, Analytical Chemistry, 75 (2003) 3631
@@ -93,21 +93,18 @@ else
     offset = zeros(1, length(y(1,:)));
 end
 
-% Pre-allocate memory
-smoothed = zeros(size(y));
-
 % Variables
 rows = length(y(:,1));
 index = 1:rows;
 
 % Pre-allocate memory
+smoothed = zeros(size(y));
 weights = ones(rows, 1);
+w = spdiags(weights, 0, rows, rows);
 
 % Variables
 d = diff(speye(rows), 2);
 d = smoothness * (d' * d);
-
-w = spdiags(weights, 0, rows, rows);
 
 % Calculate smoothed data
 for i = 1:length(y(1,:))
@@ -143,8 +140,14 @@ for i = 1:length(y(1,:))
     
     % Check offset
     if offset(i) ~= 0
+        
+        % Preserve negative values from input
         smoothed(:,i) = s - offset(i);
-    else
+        
+    elseif offset(i) == 0
+        
+        % Correct negative values from smoothing
+        s(s < 0) = 0;
         smoothed(:,i) = s;
     end
     

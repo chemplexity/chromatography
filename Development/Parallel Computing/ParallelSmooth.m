@@ -1,37 +1,37 @@
-% Method: ParallelBaseline
-%  -Asymmetric least squares baseline calculation with parallel computing
+% Method: ParallelSmooth
+%  -Asymmetric least squares smoothing filter with parallel computing
 %
 % Syntax
-%   baseline = ParallelBaseline(y)
-%   baseline = ParallelBaseline(y, 'OptionName', optionvalue...)
+%   y = ParallelSmooth(y)
+%   y = ParallelSmooth(y, 'OptionName', optionvalue...)
 %
 % Input
 %   y            : array or matrix
 %
 % Options
-%   'smoothness' : value (~10^3 to 10^9)
-%   'asymmetry'  : value (~10^-6 to 10^-1)
+%   'asymmetry'  : value (~0.01 to 0.99)
+%   'smoothness' : value (~0.01 to 10000)
 %   'parallel'   : 'on', 'off'
 %
 % Description
 %   y            : intensity values
-%   'smoothness' : smoothing parameter (default = 10^6)
-%   'asymmetry'  : asymmetry parameter (default = 10^-4)
+%   'asymmetry'  : asymmetry factor (default = 0.5)
+%   'smoothness' : smoothing factor (default = 0.1)
 %   'parallel'   : execute function with parallel computing (default = 'on')
 %
 % Requirements
 %   - Parallel Computing Toolbox (Version 6.3+)
 %
 % Examples
-%   baseline = ParallelBaseline(y)
-%   baseline = ParallelBaseline(y, 'asymmetry', 10^-2)
-%   baseline = ParallelBaseline(y, 'smoothness', 10^5)
-%   baseline = ParallelBaseline(y, 'parallel', 'on', 'asymmetry', 10^-3)
+%   y = ParallelSmooth(y)
+%   y = ParallelSmooth(y, 'asymmetry', 10^-2)
+%   y = ParallelSmooth(y, 'smoothness', 10^5)
+%   y = ParallelSmooth(y, 'parallel', 'on', 'asymmetry', 10^-3)
 %
 % References
 %   P.H.C. Eilers, Analytical Chemistry, 75 (2003) 3631
 
-function varargout = ParallelBaseline(y, varargin)
+function varargout = ParallelSmooth(y, varargin)
 
 % Check input
 if nargin < 1
@@ -41,8 +41,8 @@ elseif ~isnumeric(y)
 end
 
 % Default options
-smoothness = 10^6;
-asymmetry = 10^-4;
+smoothness = 0.1;
+asymmetry = 0.5;
 parallel = 'on';
 
 % Check user input
@@ -58,7 +58,7 @@ if nargin > 1
         if ~isnumeric(smoothness) || smoothness > 10^15
             smoothness = 10^6;
         elseif smoothness <= 0
-            smoothness = 10^6;
+            smoothness = 10^-6;
         end 
     end
     
@@ -133,7 +133,7 @@ else
 end
 
 % Pre-allocate memory
-baseline = zeros(size(y));
+smoothed = zeros(size(y));
 
 % Variables
 rows = length(y(:,1));
@@ -147,7 +147,7 @@ switch parallel
         d = diff(speye(rows), 2);
         d = smoothness * (d' * d);
 
-        % Calculate baseline
+        % Calculate smoothed data
         parfor i = 1:length(y(1,:))
     
             % Pre-allocate memory
@@ -166,7 +166,7 @@ switch parallel
                 continue
             end
     
-            b = zeros(rows,1);
+            s = zeros(rows,1);
     
             % Number of iterations
             for j = 1:10
@@ -175,10 +175,10 @@ switch parallel
                 w = chol(w + d);
         
                 % Left matrix divide, multiply matrices
-                b = w \ (w' \ (weights .* y(:,i)));
+                s = w \ (w' \ (weights .* y(:,i)));
         
                 % Determine weights
-                weights = asymmetry * (y(:,i) > b) + (1 - asymmetry) * (y(:,i) < b);
+                weights = asymmetry * (y(:,i) > s) + (1 - asymmetry) * (y(:,i) < s);
         
                 % Reset sparse matrix
                 w = sparse(index, index, weights);
@@ -188,16 +188,16 @@ switch parallel
             if offset(i) ~= 0
                 
                 % Preserve negative values from input
-                baseline(:,i) = b - offset(i);
+                smoothed(:,i) = s - offset(i);
                 
             elseif offset(i) == 0
                 
                 % Correct negative values from smoothing
-                b(b < 0) = 0;
-                baseline(:,i) = b;
+                s(s < 0) = 0;
+                smoothed(:,i) = s;
             end
         end
-    
+
     case 'off'
 
         % Pre-allocate memory
@@ -209,7 +209,7 @@ switch parallel
 
         w = spdiags(weights, 0, rows, rows);
 
-        % Calculate baseline
+        % Calculate smoothed data
         for i = 1:length(y(1,:))
     
             % Check offset
@@ -222,42 +222,42 @@ switch parallel
                 continue
             end
     
-            b = zeros(rows,1);
+            s = zeros(rows,1);
     
             % Number of iterations
-            for j = 1:10
+            for j = 1:15
         
                 % Cholesky factorization
                 w = chol(w + d);
         
                 % Left matrix divide, multiply matrices
-                b = w \ (w' \ (weights .* y(:,i)));
+                s = w \ (w' \ (weights .* y(:,i)));
         
                 % Determine weights
-                weights = asymmetry * (y(:,i) > b) + (1 - asymmetry) * (y(:,i) < b);
+                weights = asymmetry * (y(:,i) > s) + (1 - asymmetry) * (y(:,i) < s);
         
                 % Reset sparse matrix
                 w = sparse(index, index, weights);
             end
-            
+    
             % Check offset
             if offset(i) ~= 0
                 
                 % Preserve negative values from input
-                baseline(:,i) = b - offset(i);
+                smoothed(:,i) = s - offset(i);
                 
             elseif offset(i) == 0
                 
                 % Correct negative values from smoothing
-                b(b < 0) = 0;
-                baseline(:,i) = b;
+                s(s < 0) = 0;
+                smoothed(:,i) = s;
             end
-            
+    
             % Reset variables
             weights = ones(rows, 1);
         end
 end
 
 % Set output
-varargout{1} = baseline;
+varargout{1} = smoothed;
 end

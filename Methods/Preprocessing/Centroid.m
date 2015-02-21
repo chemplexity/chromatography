@@ -36,24 +36,24 @@ while counter ~= 0 && iterations <= 10
         upper = y(:, i+1) == 0;
         lower = y(:, i-1) == 0;
     
-        % Proceed if next column has more zeros
+        % Consolidate if next column has more zero elements
         if sum(middle) < sum(upper)
         
             % Index zeros adjacent to nonzeros
             index = xor(middle, upper);
         
-            % Place all nonzeros from adjacent column in current column
+            % Shift all nonzeros from adjacent column into current column
             y(index, i) = y(index, i) + y(index, i+1);
             y(index, i+1) = 0;
         end
     
-        % Proceed if previous column has more zeros
+        % Consolidate if previous column has more zero elements
         if sum(middle) < sum(lower)
     
             % Index zeros adjacent to nonzeros
             index = xor(middle, lower);
-    
-            % Place all nonzeros from adjacent column in current column
+
+            % Shift all nonzeros from adjacent column into current column
             y(index, i) = y(index, i) + y(index, i-1);
             y(index, i-1) = 0;
         end
@@ -108,16 +108,22 @@ if ~isa(y, 'double')
     y = double(y);
 end
 
-% Check data orientation
-if size(mz) > 1
-    error('Input dimensions must aggree');
-end
-if size(y) <= 1
-    error('Input dimensions must aggree');
-end
+% Incorrect 'mz' orientation
 if length(mz(:,1)) == length(y(1,:))
-    mz = mz';
+    mz = mz(:,1)';
 end
+
+% Incorrect 'mz' and 'y' orientation
+if length(mz(:,1)) == length(y(:,1)) && length(y(:,1)) ~= length(y(1,:))
+    mz = mz(:,1)';
+    y = y';
+end
+
+% Incorrect 'y' orientation
+if length(mz(1,:)) == length(y(:,1)) && length(y(:,1)) ~= length(y(1,:))
+    y = y';
+end
+    
 if length(mz(1,:)) ~= length(y(1,:))
     error('Input dimensions must aggree');
 end

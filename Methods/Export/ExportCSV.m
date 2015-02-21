@@ -4,25 +4,26 @@
 % Syntax:
 %   ExportCSV(y, 'OptionName', optionvalue,...)
 %   ExportCSV(x, y, 'OptionName', optionvalue,...)
+%   ExportCSV(x, y, z, 'OptionName', optionvalue,...)
 %
 % Input
-%   x        : array
-%   y        : array or matrix
+%   x          : array
+%   y          : array or matrix
+%   z          : array
 %
-% Options   
-%   'file'   : string
-%   'header' : array
+% Options
+%   'filename' : string
 %
 % Description
-%   x        : time values
-%   y        : intensity values
-%   'file'   : desired file name (default = 'data.csv')
-%   'header' : column names (default = 1:length(columns))
+%   x          : time values (#rows = n)
+%   y          : intensity values (#rows = n, #cols = m)
+%   z          : mass values (#cols =  m)
+%   'filename' : desired file name (default = 'data.csv')
 %
 % Examples:
 %   ExportCSV(y)
 %   ExportCSV(x, y, 'file', '001-03.csv')
-%   ExportCSV(x, y, 'file', '004-01.csv', 'header', mz)
+%   ExportCSV(x, y, z, 'file', '004-01.csv')
 
 function ExportCSV(varargin)
 
@@ -42,17 +43,31 @@ nargin = length(varargin);
 % Check input
 if nargin < 1
     error('Not enough input arguments');
-elseif nargin == 1 && isnumeric(varargin{1})
-    x = [];
-    y = varargin{1};
-elseif nargin >= 2 && isnumeric(varargin{1}) && isnumeric(varargin{2})
-    x = varargin{1};
-    y = varargin{2};
-elseif nargin >= 2 && isnumeric(varargin{1}) && ~isnumeric(varargin{2})
-    x = [];
-    y = varargin{1};
-else 
-    error('Undefined input arguments of type ''y''');
+elseif nargin <= 3
+    values = sum(cellfun(@isnumeric, varargin));
+elseif nargin > 3
+    values = sum(cellfun(@isnumeric, varargin(1:3)));
+end
+
+% Check for any data
+if values == 0
+    error('Incorrect input arguments of type ''y''');
+end
+
+% Check input data
+switch values
+    case 1
+        x = [];
+        y = varargin{1};
+        z = [];
+    case 2
+        x = varargin{1};
+        y = varargin{2};
+        z = [];
+    case 3
+        x = varargin{1};
+        y = varargin{2};
+        z = varargin{3};
 end
 
 % Check precision
@@ -62,17 +77,45 @@ end
 if ~isa(y, 'double')
     y = double(y);
 end
+if ~isa(z, 'double')
+    z = double(z);
+end
 
 % Check x data
 if ~isempty(x)
 
     % Check x for rows
-    if length(x(:,1)) ~= length(y(:,1))
+    if length(x(1,:)) == length(y(:,1))
+        x = x';
+    elseif length(x(:,1)) ~= length(y(:,1))
         x = [];
-    
-    % Check x for columns
-    elseif length(x(:,1)) == length(y(:,1)) && length(x(1,:)) > 1
+    end
+        
+    % Check x for matric
+    if length(x(:,1)) == length(y(:,1)) && length(x(1,:)) > 1
         x = x(:,1);
+    end
+end
+
+if ~isempty(z)
+    
+    % Check z for rows
+    if length(z(:,1)) == length(y(1,:))
+        z = z';
+    elseif length(z(:,1)) == length(y(1,:)) + 1
+        z = z';
+    elseif length(z(1,:)) ~= length(y(1,:)) && length(z(1,:)) ~= length(y(1,:)) + 1
+        z = [];
+    end
+    
+    % Check z for matrix
+    if length(z(:,1)) > 1
+        z = z(1,:);
+    end
+    
+    % Check z for columns
+    if length(z(1,:)) == length(y(1,:))
+        z = [0, z];
     end
 end
 
@@ -80,17 +123,17 @@ end
 input = @(x) find(strcmpi(varargin, x),1);
 
 % Name options
-if ~isempty(input('file'))
-    file = varargin{input('file')+1};
+if ~isempty(input('filename'))
+    file = varargin{input('filename')+1};
     
     % Check for string input
     if ischar(file) 
         
         % Check input length
         if length(file) <= 20
-            options.file = file;
-        elseif ischar(file) && length(file) > 20
-            options.file = file(1:20);
+            options.file = deblank(file);
+        elseif length(file) > 20
+            options.file = deblank(file(1:20));
         end
         
     % Check for cell input
@@ -98,79 +141,32 @@ if ~isempty(input('file'))
         
         % Check input length
         if length(file{1}) <= 20
-            options.file = file{1};
+            options.file = deblank(file{1});
         elseif length(file{1}) > 20
-            options.file = file{1}(1:20);
+            options.file = deblank(file{1}(1:20));
         end
         
     else
-        options.file = 'data.csv';
+        options.file = 'data.CSV';
     end
     
-    % Check file type
-    if length(options.file) >= 4;
-        
-        % Check for '.CSV' extension
-        if ~strcmpi(options.file(end-3:end), '.csv');
-            options.file = options.file(options.file ~= '.');
-            options.file = strcat(options.file, '.csv');
-        end
-    end
+    % Remove file extension
+    [~, options.file] = fileparts(options.file);
     
+    % Add '.CSV' extension
+    options.file = strcat(options.file, '.CSV');
 else
-    options.filename = 'data.csv';
+    options.filename = 'data.CSV';
 end
 
-% Header options
-if ~isempty(input('header'))
-    header = varargin{input('header')+1};
-    
-    % Check for string input
-    if isnumeric(header) 
-        
-        % Check input length
-        if length(header(1,:)) == length(y(1,:)) && ~isempty(x)
-            options.header = [0, header(1,:)];
-            
-        elseif length(header(1,:)) == length(y(1,:)) && isempty(x)
-            options.header = header(1,:);
-        end
-        
-    else
-        
-        % Check input data
-        if isempty(x)
-            options.header = 1:length(y(1,:));
-        else
-            options.header = 0:length(y(1,:));
-        end
-    end
-    
-else
-    
-    % Check input data
-    if isempty(x)
-        options.header = 1:length(y(1,:));
-    else
-        options.header = 0:length(y(1,:));
-    end
-end
-
-% Check header precision
-if ~isa(options.header, 'double')
-    options.header = double(options.header);
-end
 
 % Check data
-if ~isempty(x)
-    data = [x,y]; 
+if ~isempty(x) && isempty(z)
+    data = [x,y];
+elseif ~isempty(x) && ~isempty(z)
+    data = [z; x,y];
 else
     data = y;
-end
-
-% Check header length
-if length(options.header(1,:)) == length(data(1,:))
-    data = [options.header; data];
 end
 
 % Return input

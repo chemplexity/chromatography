@@ -6,42 +6,39 @@
 %   data = import(filetype, 'OptionName', optionvalue...)
 %
 % Input
-%   filetype   : '.CDF', '.D', '.MS', '.RAW'
+%   filetype    : '.CDF', '.D', '.MS', '.RAW'
 %
 % Options
-%   'append'   : structure
-%   'progress' : 'on', 'off'
+%   'append'    : structure
+%   'progress'  : 'on', 'off'
 %
 % Description
-%   filetype   : file extension (e.g. '.D', '.MS', '.CDF', '.RAW')
-%   'append'   : append data structure (default = none)
-%   'progress' : display import progress (default = 'on')
+%   filetype    : file extension (e.g. '.D', '.MS', '.CDF', '.RAW')
+%   'append'    : append data structure (default = none)
+%   'progress'  : display import progress (default = 'on')
 %
 % Examples
-%   data = obj.import('.D')
 %   data = obj.import('.CDF')
 %   data = obj.import('.D', 'append', data)
-%   data = obj.import('.MS', 'progress', 'off')
-%   data = obj.import('.D', 'append', data, 'progress', 'on')
+%   data = obj.import('.MS', 'progress', 'off', 'precision', 2)
+%   data = obj.import('.RAW', 'append', data, 'progress', 'on')
 
 function varargout = import(obj, varargin)
 
 % Check input
 [data, options] = parse(obj, varargin);
 
-% Variables
-options.compute_time = 0;
-
 % Open file selection dialog
 files = dialog(obj, varargin{1});
 
 % Check for any file selections
 if isempty(files)
+    varargout{1} = data;
     return
 end
 
 % Remove entries with incorrect filetype
-files(~strcmp(files(:,3), varargin{1}), :) = [];
+files(~strcmpi(files(:,3), varargin{1}), :) = [];
 
 % Set path to selected folder
 path(files{1,1}, path);
@@ -53,12 +50,21 @@ switch options.filetype
     case {'.CDF'}
         
         for i = 1:length(files(:,1))
+            
             % Start timer
             tic;
+            
             % Import data
             import_data(i) = ImportCDF(strcat(files{i,2},files{i,3}));
+            
             % Stop timer
             compute_time(i) = toc;
+            
+            % Check data
+            if isempty(import_data(i))
+                continue
+            end
+            
             % Assign a unique id
             id(i) = length(data) + i;
             
@@ -71,14 +77,24 @@ switch options.filetype
     case {'.MS'}
         
         for i = 1:length(files(:,1))
+            
             % Construct file path
             file_path = fullfile(files{i,1}, strcat(files{i,2}, files{i,3}));
+            
             % Start timer
             tic;
+            
             % Import data
             import_data(i) = ImportAgilent(file_path);
+            
             % Stop timer
             compute_time(i) = toc;
+            
+            % Check data
+            if isempty(import_data(i))
+                continue
+            end
+            
             % Assign a unique id
             id(i) = length(data) + i;
             
@@ -91,18 +107,29 @@ switch options.filetype
     case {'.D'}
         
         for i = 1:length(files(:,1))
+            
             % Construct file path
             file_path = fullfile(files{i,1}, strcat(files{i,2}, files{i,3}));
+            
             % Start timer
             tic;
+            
             % Import data
             import_data(i) = ImportAgilent(file_path);
+            
             % Stop timer
             compute_time(i) = toc;
-            % Assign a unique id
-            id(i) = length(data) + i;
+            
             % Remove file from path
             rmpath(file_path);
+            
+            % Check data
+            if isempty(import_data(i))
+                continue
+            end
+            
+            % Assign a unique id
+            id(i) = length(data) + i;
             
             % Display import progress
             options.compute_time = options.compute_time + compute_time(i);
@@ -113,12 +140,21 @@ switch options.filetype
     case {'.RAW'}
         
         for i = 1:length(files(:,1))
+            
             % Start timer
             tic;
+            
             % Import data
             import_data(i) = ImportThermo(strcat(files{i,2},files{i,3}));
+            
             % Stop timer
             compute_time(i) = toc;
+            
+            % Check data
+            if isempty(import_data(i))
+                continue
+            end
+            
             % Assign a unique id
             id(i) = length(data) + i;
             
@@ -145,8 +181,8 @@ for i = 1:length(id)
     import_data(i).xic.backup = import_data(i).xic.values;
     
     % Initialize baseline values
-    import_data(i).tic.baseline = zeros(size(import_data(i).tic.values));
-    import_data(i).xic.baseline = zeros(size(import_data(i).xic.values));
+    import_data(i).tic.baseline = [];
+    import_data(i).xic.baseline = [];
 end
 
 % Append any existing data with new data
@@ -244,7 +280,7 @@ end
 % Check user input
 input = @(x) find(strcmpi(varargin, x),1);
 
-% Append options
+% Append
 if ~isempty(input('append'))
     options.append = varargin{input('append')+1};
     
@@ -258,17 +294,24 @@ else
     data = DataStructure();
 end
 
-% Progress options
+% Progress 
 if ~isempty(input('progress'))
     options.progress = varargin{input('progress')+1};
     
     % Check for valid input
-    if ~strcmpi(options.progress, 'off')
+    if any(strcmpi(options.progress, {'off', 'hide'}))
+        options.progress = 'off';
+    elseif any(strcmpi(options.progress, {'default', 'on', 'show', 'display'}))
+        options.progress = 'on';
+    else
         options.progress = 'on';
     end
 else
     options.progress = 'on';
 end
+
+% Variables
+options.compute_time = 0;
 
 % Return input
 varargout{1} = data;

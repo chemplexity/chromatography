@@ -42,11 +42,16 @@ smoothness =  options.smoothness;
 % Calculate baseline
 for i = 1:length(samples)
 
+    % Variables
+    n = length(data(samples(i)).xic.values(:,1));
+    m = length(data(samples(i)).xic.values(1,:));
+    
     % Pre-allocate memory
     if isempty(data(samples(i)).xic.baseline)
-        data(samples(i)).xic.baseline = zeros(...
-            length(data(samples(i)).xic.values(:,1)),...
-            length(data(samples(i)).xic.values(1,:)));
+        data(samples(i)).xic.baseline = zeros(n, m);
+        
+    elseif length(data(samples(i)).xic.baseline(1,:)) ~= m
+        data(samples(i)).xic.baseline = zeros(n, m);
     end
     
     % Check ion options

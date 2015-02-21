@@ -3,51 +3,26 @@
 %
 % Syntax
 %   data = ImportAgilent(file)
+%   data = ImportAgilent(file, 'OptionName', optionvalue...)
 %
 % Input
-%   file : string
+%   file        : string
+%
+% Options
+%   'precision' : integer
 %
 % Description
-%   file : file name with valid extension (.D, .MS)
+%   file        : file name with valid extension (.D, .MS)
+%   'precision' : number of decimal places allowed for m/z values (default = 3)
 %
 % Examples
 %   data = ImportAgilent('MSD1.MS')
-%   data = ImportAgilent('Trial1.D')
+%   data = ImportAgilent('Trial1.D', 'precision', 2)
 
 function varargout = ImportAgilent(varargin)
 
 % Check input
-if ~ischar(varargin{1})
-    return
-end
-
-% Check file extension
-[~, file] = fileattrib(varargin{1});
-[~, ~, extension] = fileparts(file.Name);
-
-% Read Agilent '.D' files
-if strcmp(extension, '.D')
-
-    % Set path
-    path(file.Name, path);
-    
-    % Determine OS and parse file names
-    if ispc
-        contents = cellstr(ls(file.Name));
-        contents(strcmp(contents, '.') | strcmp(contents, '..')) = [];
-    elseif isunix
-        contents = strsplit(ls(file.Name))';
-        contents(cellfun(@isempty, contents)) = [];
-    end
-    
-    % Parse folder contents
-    files(:,1) = fullfile(file.Name, contents);
-    [~, ~, files(:,2)] = cellfun(@fileparts, contents, 'uniformoutput', false);
-    
-else
-    files{1,1} = file.Name;
-    files{1,2} = extension;
-end
+[files, options] = parse(varargin);
 
 % Load data
 for i = 1:length(files(:,1))
@@ -55,7 +30,7 @@ for i = 1:length(files(:,1))
     switch files{i,2};
    
         case {'.MS'}
-            varargout{1} = AgilentMS(files{i,1});
+            varargout{1} = AgilentMS(files{i,1}, options);
             return
         
         case {'.CH'}
@@ -71,8 +46,12 @@ end
 % Agilent '.MS'
 function varargout = AgilentMS(varargin)
 
+% Variables
+file = varargin{1};
+options = varargin{2};
+
 % Open file
-file = fopen(varargin{1}, 'r', 'b', 'UTF-8');
+file = fopen(file, 'r', 'b', 'UTF-8');
 
 % Read sample name
 fseek(file, 25, 'bof');
@@ -104,7 +83,8 @@ offset.xic = zeros(scans, 1, 'single');
 
 % Read data offset
 fseek(file, offset.tic, 'bof');
-offset.xic = fread(file, scans, 'int', 8) * 2 - 2;
+offset.xic = fread(file, scans, 'int', 8);
+offset.xic = (offset.xic * 2) - 2;
 
 % Read time values
 fseek(file, offset.tic+4, 'bof');
@@ -115,14 +95,15 @@ fseek(file, offset.tic+8, 'bof');
 data.tic.values = fread(file, scans, 'int', 8);
 
 % Variables
-xic = [];
 mz = [];
+xic = [];
 
 for i = 1:scans
 
     % Read scan size
     fseek(file, offset.xic(i,1), 'bof');
-    n = (fread(file, 1, 'short') - 18) / 2;
+    n = fread(file, 1, 'short') - 18;
+    n = (n/2) + 2;
 
     % Read mass values
     fseek(file, offset.xic(i,1)+18, 'bof');
@@ -139,32 +120,137 @@ end
 % Close file
 fclose(file);
 
-% Format mass values
+% Convert intensity values to abundance
+xic = bitand(xic, 16383, 'int16') .* (8 .^ bitshift(xic, -14, 'int16'));
+
+% Convert mass values to m/z
 mz = mz / 20;
-data.mz = unique(mz);
 
-% Determine data index
-index.end = cumsum(offset.xic(:,2));
-index.start = circshift(index.end,[1,0]);
-index.start = index.start + 1;
-index.start(1,1) = 1;
+% Variables
+precision = options.precision;
 
-% Pre-allocate memory
-data.xic.values = zeros(length(data.time), length(data.mz), 'single');
+% Determine precision of mass values
+mz = round(mz * 10^precision) / 10^precision;
+data.mz = unique(mz, 'sorted');
 
-for i = 1:scans
-    
-    % Determine row index of current frame
-    frame = index.start(i):index.end(i);
-    offset = index.start(i) - 1;
-    
-    % Determine column index of current frame
-    [~, row_index, column_index] = intersect(mz(frame), data.mz);
+% Reshape data (rows = time, columns = m/z) 
+if length(data.mz) == length(xic) / length(data.time)
     
     % Reshape intensity values
-    data.xic.values(i, column_index) = xic(row_index + offset);
+    data.xic.values = reshape(xic, length(data.mz), length(data.time))';
+else
+
+    % Determine data index
+    index.end = cumsum(offset.xic(:,2));
+    index.start = circshift(index.end,[1,0]);
+    index.start = index.start + 1;
+    index.start(1,1) = 1;
+    
+    % Pre-allocate memory
+    data.xic.values = zeros(length(data.time), length(data.mz), 'single');
+
+    % Determine column index for reshaping
+    [~, column_index] = ismember(mz, data.mz);
+
+    for i = 1:scans
+    
+        % Variables
+        m = index.start(i);
+        n = index.end(i);
+    
+        % Reshape instensity values
+        data.xic.values(i, column_index(m:n)) = xic(m:n);
+    end
 end
 
-% Return data
+% Output data
 varargout{1} = data;
+end
+
+% Parse user input
+function varargout = parse(varargin)
+
+varargin = varargin{1};
+nargin = length(varargin);
+
+% Check number of inputs
+if nargin < 1
+    error('Not enough input arguments');
+elseif ~ischar(varargin{1})
+    error('Undefined input arguments of type ''file''');
+elseif ischar(varargin{1})
+    file = varargin{1};
+else
+    varargout{2} = [];
+    return
+end
+
+% Check file extension
+[~, file] = fileattrib(file);
+[~, ~, extension] = fileparts(file.Name);
+
+% Read Agilent '.D' files
+if strcmp(extension, '.D')
+
+    % Set path
+    path(file.Name, path);
+    
+    % Determine OS and parse file names
+    if ispc
+        contents = cellstr(ls(file.Name));
+        contents(strcmp(contents, '.') | strcmp(contents, '..')) = [];
+    elseif isunix
+        contents = strsplit(ls(file.Name))';
+        contents(cellfun(@isempty, contents)) = [];
+    end
+    
+    % Parse folder contents
+    files(:,1) = fullfile(file.Name, contents);
+    [~, ~, files(:,2)] = cellfun(@fileparts, contents, 'uniformoutput', false);
+    
+else
+    files{1,1} = file.Name;
+    files{1,2} = extension;
+end
+
+% Check user input
+input = @(x) find(strcmpi(varargin, x),1);
+
+% Precision
+if ~isempty(input('precision'))
+    precision = varargin{input('precision')+1};
+    
+    % Check for valid input
+    if ~isnumeric(precision)
+        options.precision = 3;
+        
+    % Check input range
+    elseif precision < 0
+        
+        % Check for case: 10^-x
+        if log10(precision) >= -9 && log10(precision) <= 0
+            options.precision = abs(log10(precision));
+        else
+            options.precision = 1;
+            disp('Input arguments of type ''precision'' invalid. Value set to: ''0'''); 
+        end
+        
+    elseif precision > 9
+        
+        % Check for case: 10^x
+        if log10(precision) <= 9 && log10(precision) >= 0
+            options.precision = log10(precision);
+        else
+            options.precision = 9;
+            disp('Input arguments of type ''precision'' invalid. Value set to: ''9''');
+        end
+    else
+        options.precision = precision;
+    end
+else
+    options.precision = 3;
+end
+
+varargout{1} = files;
+varargout{2} = options;
 end

@@ -1,29 +1,31 @@
 % Method: ImportThermo
 %  -Extract data from Thermo (.RAW) files
 %
-% Syntax:
+% Syntax
 %   data = ImportThermo(file)
+%   data = ImportThermo(file, 'OptionName', optionvalue...)
 %
 % Input
-%   file : string
+%   file        : string
 %
-% Description:
-%   file : file name with valid extension (.RAW)
+% Options
+%   'precision' : integer
 %
-% Examples:
-%   data = ImportThermo('MyData.RAW')
+% Description
+%   file        : file name with valid extension (.RAW)
+%   'precision' : number of decimal places allowed for m/z values (default = 3)
+%
+% Examples
+%   data = ImportThermo('001-32-2.RAW')
+%   data = ImportThermo('06b.RAW', 'precision', 4)
 
 function varargout = ImportThermo(varargin)
 
-% Variables
-data = [];
-file = [];
-
-% Settings
-file.limit = 10;
+% Check input
+[file, data] = parse(varargin);
 
 % Open file
-file.name = fopen(varargin{1}, 'r', 'l', 'UTF-8');
+file.name = fopen(file.name, 'r', 'l', 'UTF-8');
 
 % Read file
 [file, data] = FileHeader(file, data);
@@ -63,10 +65,14 @@ switch version
     case 57
         file.key = 17;
     otherwise
-        file.key = 13;
+        if version > 63
+            file.key = 32;
+        else
+            file.key = 13;
+        end
 end
 
-% Skip to next section
+% Skip to end of section
 fseek(file.name, 1356, 'bof');
 file.address.injection_data = ftell(file.name);
 end
@@ -77,7 +83,7 @@ function [file, data] = InjectionData(file, data)
 % Find section
 fseek(file.name, file.address.injection_data, 'bof');
 
-% Skip to next section
+% Skip to end of section
 fseek(file.name, 64, 'cof');
 file.address.sequence_data = ftell(file.name);
 end
@@ -94,34 +100,34 @@ data.method.name = '';
 data.method.date = '';
 data.method.time = '';
 
+% Read pascal string header
+pascal = @(x) fread(x, 1, 'uint32');
+
 % Read sequence data
 for i = 1:file.key
+        
+    % Read size of pascal string
+    n = pascal(file.name);
+    
+    % Check value
+    if n <= 0 || i == 17
+        continue
+    end
+    
+    % Read pascal string
     switch i
         
-        % Read method name
+        % Method name
         case 10
-            offset = fread(file.name, 1, 'uint32');
-            if offset > 0
-                data.method.name = deblank(fread(file.name, offset, 'uint16=>char')');
-            end
+            data.method.name = deblank(fread(file.name, n, 'uint16=>char')');
             
-        % Read method name
+        % File path
         case 12
-            offset = fread(file.name, 1, 'uint32');
-            if offset > 0
-                file.path = deblank(fread(file.name, offset, 'uint16=>char')');
-            end
-            
-        % Skip unknown long
-        case 17
-            fseek(file.name, 4, 'cof');
-            
-        % Skip pascal string
+            file.path = deblank(fread(file.name, n, 'uint16=>char')');
+      
+        % Skip field
         otherwise
-            offset = fread(file.name, 1, 'uint32');
-            if offset > 0
-                fread(file.name, offset, 'uint16=>char');
-            end
+            fread(file.name, n, 'uint16=>char');
     end
 end
 
@@ -139,7 +145,6 @@ if isempty(data.sample.name) && ~isempty(file.path)
     end
 end
 
-% Skip to next section
 file.address.autosampler_data = ftell(file.name);
 end
 
@@ -149,7 +154,7 @@ function [file, data] = AutosamplerData(file, data)
 % Find section
 fseek(file.name, file.address.autosampler_data, 'bof');
 
-% Skip to next section
+% Skip to end of section
 fseek(file.name, 24, 'cof');
 fseek(file.name, fread(file.name, 1, 'uint32'), 'cof');
 file.address.file_information = ftell(file.name);
@@ -239,7 +244,6 @@ n = sum(file.size);
 
 % Pre-allocate memory
 data.xic.values = zeros(1, n, 'single');
-data.mz = zeros(1, n, 'single');
 mz.integer = zeros(1, n, 'single');
 mz.decimal = zeros(1, n, 'single');
 
@@ -265,10 +269,11 @@ end
 function [file, data] = FormatData(file, data)
 
 % Variables
-data.mz = round(data.mz * file.limit) / file.limit;
-mz = unique(data.mz);
-n = length(data.time);
-m = length(mz);
+precision = file.precision;
+
+% Determine precision of mass values
+mz = round(data.mz * 10^precision) / 10^precision;
+data.mz = unique(mz, 'sorted');
 
 % Determine data index
 index.end = cumsum(file.size);
@@ -277,22 +282,90 @@ index.start = index.start + 1;
 index.start(1,1) = 1;
 
 % Pre-allocate memory
-xic = zeros(n, m, 'single');
+xic = zeros(length(data.time), length(data.mz), 'single');
 
-for i = 1:n-1
+% Determine column index for reshaping
+[~, column_index] = ismember(mz, data.mz);
+
+for i = 1:length(data.time)
     
-    % Determine current frame
-    frame = index.start(i):index.end(i);
-    offset = index.start(i) - 1;
-    
-    % Determine column index of current frame
-    [~, row_index, column_index] = intersect(data.mz(frame), mz);
+    % Variables
+    m = index.start(i);
+    n = index.end(i);
     
     % Reshape instensity values
-    xic(i, column_index) = data.xic.values(row_index + offset);
+    xic(i, column_index(m:n)) = data.xic.values(m:n);
 end
 
 % Output data
-data.mz = mz';
+data.mz = data.mz';
 data.xic.values = xic;
+end
+
+% Parse user input
+function varargout = parse(varargin)
+
+varargin = varargin{1};
+nargin = length(varargin);
+
+% Check number of inputs
+if nargin < 1
+    error('Not enough input arguments');
+elseif ~ischar(varargin{1})
+    error('Undefined input arguments of type ''file''');
+elseif ischar(varargin{1})
+    file.name = varargin{1};
+else
+    varargout{2} = [];
+    return
+end
+
+% Check file extension
+[~, ~, extension] = fileparts(file.name);
+
+if ~strcmpi(extension, '.RAW')
+    varargout{2} = [];
+    return
+end
+
+% Check user input
+input = @(x) find(strcmpi(varargin, x),1);
+
+% Precision
+if ~isempty(input('precision'))
+    precision = varargin{input('precision')+1};
+    
+    % Check for valid input
+    if ~isnumeric(precision)
+        file.precision = 3;
+        
+    % Check input range
+    elseif precision < 0
+        
+        % Check for case: 10^-x
+        if log10(precision) >= -9 && log10(precision) <= 0
+            file.precision = abs(log10(precision));
+        else
+            file.precision = 1;
+            disp('Input arguments of type ''precision'' invalid. Value set to: ''0'''); 
+        end
+        
+    elseif precision > 9
+        
+        % Check for case: 10^x
+        if log10(precision) <= 9 && log10(precision) >= 0
+            file.precision = log10(precision);
+        else
+            file.precision = 9;
+            disp('Input arguments of type ''precision'' invalid. Value set to: ''9''');
+        end
+    else
+        file.precision = precision;
+    end
+else
+    file.precision = 3;
+end
+
+varargout{1} = file;
+varargout{2} = [];
 end

@@ -66,7 +66,7 @@ if nargin > 1
         if ~isnumeric(smoothness) || smoothness > 10^15
             smoothness = 10^6;
         elseif smoothness <= 0
-            smoothness = 10^-6;
+            smoothness = 10^6;
         end
     end
 end
@@ -92,21 +92,18 @@ else
     offset = zeros(1, length(y(1,:)));
 end
 
-% Pre-allocate memory
-baseline = zeros(size(y));
-
 % Variables
 rows = length(y(:,1));
 index = 1:rows;
 
 % Pre-allocate memory
+baseline = zeros(size(y));
 weights = ones(rows, 1);
+w = spdiags(weights, 0, rows, rows);
 
 % Variables
 d = diff(speye(rows), 2);
 d = smoothness * (d' * d);
-
-w = spdiags(weights, 0, rows, rows);
 
 % Calculate baseline
 for i = 1:length(y(1,:))
@@ -142,8 +139,14 @@ for i = 1:length(y(1,:))
     
     % Check offset
     if offset(i) ~= 0
+        
+        % Preserve negative values from input
         baseline(:,i) = b - offset(i);
-    else
+        
+    elseif offset(i) == 0
+        
+        % Correct negative values from smoothing
+        b(b < 0) = 0;
         baseline(:,i) = b;
     end
     
