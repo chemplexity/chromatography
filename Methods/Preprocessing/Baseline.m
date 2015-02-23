@@ -36,8 +36,8 @@ elseif ~isnumeric(y)
 end
 
 % Default options
-asymmetry = 10^-4;
 smoothness = 10^6;
+asymmetry = 10^-4;
 
 % Check user input
 if nargin > 1

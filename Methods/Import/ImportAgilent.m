@@ -30,18 +30,25 @@ for i = 1:length(files(:,1))
     switch files{i,2};
    
         case {'.MS'}
-            varargout{1} = AgilentMS(files{i,1}, options);
-            return
+            data{i} = AgilentMS(files{i,1}, options);
         
         case {'.CH'}
-            return
-    
+            data{i} = [];
+            
         otherwise
-            varargout{1} = [];
+            data{i} = [];
     end
 end
-end
 
+% Set output data
+data(cellfun(@isempty, data)) = [];
+
+if ~isempty(data)
+    varargout(1) = {[data{:}]};
+else
+    varargout{1} = [];
+end
+end
 
 % Agilent '.MS'
 function varargout = AgilentMS(varargin)
@@ -56,6 +63,10 @@ file = fopen(file, 'r', 'b', 'UTF-8');
 % Read sample name
 fseek(file, 25, 'bof');
 data.sample.name = strtrim(deblank(fread(file, 61, 'char=>char')'));
+
+% Read instrument model
+fseek(file, 209, 'bof');
+data.method.instrument = deblank(fread(file, 9, 'char=>char')');
 
 % Read method name
 fseek(file, 229, 'bof');

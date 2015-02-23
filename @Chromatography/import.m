@@ -28,6 +28,9 @@ function varargout = import(obj, varargin)
 % Check input
 [data, options] = parse(obj, varargin);
 
+% Supress warnings
+warning off all
+
 % Open file selection dialog
 files = dialog(obj, varargin{1});
 
@@ -85,13 +88,14 @@ switch options.filetype
             tic;
             
             % Import data
-            import_data(i) = ImportAgilent(file_path);
+            import_data{i} = ImportAgilent(file_path);
             
             % Stop timer
             compute_time(i) = toc;
             
             % Check data
-            if isempty(import_data(i))
+            if isempty(import_data{i})
+                disp(['Unrecognized file format (', num2str(i), '/', num2str(length(files(:,1))), ')']);
                 continue
             end
             
@@ -115,7 +119,7 @@ switch options.filetype
             tic;
             
             % Import data
-            import_data(i) = ImportAgilent(file_path);
+            import_data{i} = ImportAgilent(file_path);
             
             % Stop timer
             compute_time(i) = toc;
@@ -124,7 +128,8 @@ switch options.filetype
             rmpath(file_path);
             
             % Check data
-            if isempty(import_data(i))
+            if isempty(import_data{i})
+                disp(['Unrecognized file format (', num2str(i), '/', num2str(length(files(:,1))), ')']);
                 continue
             end
             
@@ -145,13 +150,14 @@ switch options.filetype
             tic;
             
             % Import data
-            import_data(i) = ImportThermo(strcat(files{i,2},files{i,3}));
+            import_data{i} = ImportThermo(strcat(files{i,2},files{i,3}));
             
             % Stop timer
             compute_time(i) = toc;
             
             % Check data
-            if isempty(import_data(i))
+            if isempty(import_data{i})
+                disp(['Unrecognized file format (', num2str(i), '/', num2str(length(files(:,1))), ')']);
                 continue
             end
             
@@ -162,6 +168,15 @@ switch options.filetype
             options.compute_time = options.compute_time + compute_time(i);
             update(i, length(files(:,1)), options.compute_time, options.progress);
         end
+end
+
+% Remove missing data
+import_data(cellfun(@isempty, import_data)) = [];
+
+if isempty(import_data)
+    return
+else
+    import_data = [import_data{:}];
 end
 
 % Add missing fields to data structure

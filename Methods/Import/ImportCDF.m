@@ -68,8 +68,12 @@ if isfield(info, 'Attributes')
         data.method.date = '';
         data.method.time = '';
     end
+    
+    % Check instrument type
+    data.method.instrument = '';
 else
     data.sample.name = '';
+    data.method.instrument = '';
     data.method_name = '';
     data.method.date = '';
     data.method.time = '';

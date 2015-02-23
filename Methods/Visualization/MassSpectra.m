@@ -14,6 +14,7 @@
 %   'scale'     : 'relative', 'full'
 %   'xlim'      : 'auto', [xmin, xmax]
 %   'ylim'      : 'auto', [ymin, ymax]
+%   'barwidth'  : value
 %   'export'    : see MATLAB documentation on print functions
 %
 % Description
@@ -24,6 +25,7 @@
 %   'scale'     : display relative or total intensity (default = 'relative')
 %   'xlim'      : x-axis limits (default = 'auto')
 %   'ylim'      : y-axis limits (default = 'auto')
+%   'barwidth'  : width of individual bars (default = 7)
 %   'export'    : cell array passed to the MATLAB print function (default = none)
 %
 % Examples
@@ -67,9 +69,14 @@ options.font.name = 'Avenir Next';
 options.font.size = 13.5;
 options.line.color = [0.22,0.22,0.22];
 options.line.width = 1.25;
-options.bar.width = 7;
-options.bar.color = [0.0,0.0,0.0];
+options.bar.color = [0,0,0];
 options.ticks.size = [0.007, 0.0075];
+
+if options.bar.width >= 10
+    options.line.style = '-';
+else
+    options.line.style = 'none';
+end
 
 % Initialize figure
 options.figure = figure(...
@@ -117,8 +124,8 @@ options.ylabel = ylabel(...
 options.plot = bar(mz, y,...
     'parent', options.axes,...
     'barwidth', options.bar.width, ...
-    'linestyle', 'none',...
-    'edgecolor', [0,0,0], ...
+    'linestyle', options.line.style,...
+    'edgecolor', options.bar.color, ...
     'facecolor', options.bar.color);
 
 % Determine x-axis limits
@@ -570,6 +577,22 @@ if ~isempty(input('ylim'))
     end    
 else
     options.ylimits = [];
+end
+
+
+% Barwidth options
+if ~isempty(input('barwidth'))
+    options.bar.width = varargin{input('barwidth')+1};
+                   
+    if ~isnumeric(options.bar.width)
+        options.bar.width = 7;
+    elseif options.bar.width <= 0 || options.bar.width > 999
+        options.bar.width = 7;
+    else
+        options.bar.width = options.bar.width(1);
+    end 
+else
+    options.bar.width = 7;
 end
 
 
