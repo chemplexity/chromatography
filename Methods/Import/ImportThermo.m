@@ -22,7 +22,11 @@
 % Compatibility
 %   Thermo Scientific, LC/MS
 %       LTQ XL : V.57, V.62, V.63
-%       LCQ XP : V.62
+%       LCQ XP : V.57, V.62, V.63
+%
+% Issues
+%   -Large files >200 MB
+%   -Unable to import 'profile' MS/MS data
 
 function varargout = ImportThermo(varargin)
 

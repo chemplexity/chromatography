@@ -112,7 +112,7 @@ if isfield(info, 'Variables')
     if any(strcmpi('scan_acquisition_time', {info.Variables.Name}))
         
         % Read time values
-        data.time = ncread(file, 'scan_acquisition_time') / 60;
+        data.time = ncread(file, 'scan_acquisition_time') ./ 60;
     else
         data.time = [];
     end
@@ -124,6 +124,13 @@ if isfield(info, 'Variables')
         data.tic.values = ncread(file, 'total_intensity');
     else
         data.tic.values = [];
+    end
+    
+    % Check for total intensity values (legacy)
+    if any(strcmpi('global_intensity_max', {info.Variables.Name})) && isempty(data.tic.values)
+        
+        % Read total intensity values (legacy)
+        data.tic.values = ncread(file, 'global_intensity_max');
     end
     
     % Check for mass values

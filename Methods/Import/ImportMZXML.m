@@ -17,11 +17,17 @@
 %
 % Examples
 %   data = ImportMZXML('31a-051c.mzXML')
-%   data = ImportMZXML('43f-trial1.mzxml', 'precision', 2)
+%   data = ImportMZXML('43f-trial1.mzxml', 'precision', 4)
+%
+% Compatibility
+%   mzXML, v2.0-3.2
+%
+% Issues
+%   -Large files >200 MB
+%   -Files with 'zlib' compression
+
 
 function varargout = ImportMZXML(varargin)
-
-warning off all
 
 % Check input
 [mzxml, data] = parse(varargin);
@@ -39,6 +45,8 @@ file.value = @(x,y,i) char(x.item(i).getAttribute(y));
 
 file.element = @(x,y) x.getElementsByTagName(y);
 file.attribute = @(x,y) char(x.getAttribute(y));
+
+file.read = @(x,i) x.item(i).getTextContent;
 
 % Open document
 document = xmlread(mzxml);
@@ -64,9 +72,12 @@ end
 [file, data] = ScanInfo(file, data);
 
 % Data
-[~, data] = ReadTIC(file, data);
+[file, data] = ReadTIC(file, data);
+[file, data] = PeakInfo(file, data);
+%[file, data] = ReadXIC(file, data);
 
 varargout{1} = data;
+varargout{2} = file;
 end
 
 
@@ -95,7 +106,7 @@ switch file.attribute(file.mzxml, 'xmlns')
         file.version = 3.1;
     case [url, '3.2']
         file.version = 3.2;
-
+        
     otherwise
         file.version = [];
         return
@@ -111,7 +122,7 @@ end
 
 %
 % File Information
-% 
+%
 function [file, data] = FileInfo(file, data)
 
 % Anonymous functions
@@ -122,13 +133,12 @@ value = file.value;
 parentFile = key(file.msRun, 'parentFile', 0);
 
 if parentFile.getLength > 0
-
+    
     % /msRun/parentFile/fileName
-    data.file.name = value(parentFile, 'fileName', 0);
-
+    data.file.fileName = value(parentFile, 'fileName', 0);
+    
     % /msRun/parentFile/fileType
-    data.file.type = value(parentFile, 'fileType', 0);
-
+    data.file.fileType = value(parentFile, 'fileType', 0);
 end
 end
 
@@ -146,12 +156,12 @@ value = file.value;
 msInstrument = key(file.msRun, 'msInstrument', 0);
 
 if msInstrument.getLength > 0
-
+    
     % /msRun/msInstrument/msManufacturer
     msManufacturer = key(msInstrument, 'msManufacturer', 0);
     
     if msManufacturer.getLength > 0
-        data.instrument.vendor = value(msManufacturer, 'value', 0);
+        data.instrument.manufacturer = value(msManufacturer, 'value', 0);
     end
     
     % /msRun/msInstrument/msModel
@@ -165,7 +175,7 @@ if msInstrument.getLength > 0
     msIonisation = key(msInstrument, 'msIonisation', 0);
     
     if msIonisation.getLength > 0
-        data.instrument.ionisation = value(msIonisation, 'value', 0);
+        data.instrument.ionization = value(msIonisation, 'value', 0);
     end
     
     % /msRun/msInstrument/msMassAnalyzer
@@ -193,7 +203,7 @@ if msInstrument.getLength > 0
     software = key(msInstrument, 'software', 0);
     
     if software.getLength > 0
-        data.instrument.software = value(software, 'name', 0);
+        data.instrument.software_name = value(software, 'name', 0);
         data.instrument.software_version = value(software, 'version', 0);
     end
     
@@ -226,10 +236,10 @@ dataProcessing = key(file.msRun, 'dataProcessing', 0);
 if dataProcessing.getLength > 0
     
     % /msRun/dataProcessing/intensityCutoff
-    cutoff = value(dataProcessing, 'intensityCutoff', 0);
+    intensityCutoff = value(dataProcessing, 'intensityCutoff', 0);
     
-    if ~isempty(cutoff)
-        data.processing.cutoff = cutoff;
+    if ~isempty(intensityCutoff)
+        data.processing.intensityCutoff = intensityCutoff;
     end
     
     % /msRun/dataProcessing/centroided
@@ -250,31 +260,31 @@ if dataProcessing.getLength > 0
     chargeDeconvoluted = value(dataProcessing, 'chargeDeconvoluted', 0);
     
     if ~isempty(chargeDeconvoluted)
-        data.processing.charge_deconvoluted = chargeDeconvoluted;
+        data.processing.chargeDeconvoluted = chargeDeconvoluted;
     end
     
     % /msRun/dataProcessing/spotIntegration
     spotIntegration = value(dataProcessing, 'spotIntegration', 0);
     
     if ~isempty(spotIntegration)
-        data.processing.spot_integration = spotIntegration;
+        data.processing.spotIntegration = spotIntegration;
     end
     
     % /msRun/dataProcessing/software
     software = key(dataProcessing, 'software', 0);
     
     if software.getLength > 0
-        data.processing.type = value(software, 'type', 0);
-        data.processing.name = value(software, 'name', 0);
-        data.processing.version = value(software, 'version', 0);
-    end 
+        data.processing.software_type = value(software, 'type', 0);
+        data.processing.software_name = value(software, 'name', 0);
+        data.processing.software_version = value(software, 'version', 0);
+    end
 end
 end
 
 
 %
 % Scan Information
-% 
+%
 function [file, data] = ScanInfo(file, data)
 
 % Anonymous functions
@@ -287,26 +297,31 @@ file.scan = element(file.mzxml, 'scan');
 if file.scan.getLength > 0
     
     % Display number of scans
-    disp(['Reading ', file.scan.getLength, ' scans']);
+    disp(['Indexing ', num2str(file.scan.getLength), ' scans...']);
+    tic;
     
     % Index scans
     for i = 1:file.scan.getLength
+        data.index(i).id = i-1;
         
         % /msRun/scan/num
-        data.index(i).scan = str2double(value(file.scan, 'num', i-1));
+        data.index(i).num = str2double(value(file.scan, 'num', i-1));
         
         % /msRun/scan/msLevel
-        data.index(i).level = str2double(value(file.scan, 'msLevel', i-1));
+        data.index(i).msLevel = str2double(value(file.scan, 'msLevel', i-1));
         
         % /msRun/scan/peaksCount
-        data.index(i).peaks = str2double(value(file.scan, 'peaksCount', i-1));
+        data.index(i).peaksCount = str2double(value(file.scan, 'peaksCount', i-1));
     end
+    
+    % Display number of scans
+    disp(['Indexing complete... (', num2str(toc, '% 10.2f'), ' sec)']);
 end
 end
 
 
 %
-% Total Intensity Values
+% Total Ion Chromatograms (TIC)
 %
 function [file, data] = ReadTIC(file, data)
 
@@ -318,10 +333,14 @@ data.time{file.scan.getLength} = [];
 data.tic{file.scan.getLength} = [];
 
 if file.scan.getLength > 0
-
+    
+    % Display progress
+    disp(['Importing ', num2str(file.scan.getLength), ' total intensity values...']);
+    tic;
+    
     % Read time, total intensity values
     for i = 1:file.scan.getLength
-    
+        
         % /msRun/scan/retentionTime
         data.time{i} = value(file.scan, 'retentionTime', i-1);
         
@@ -349,9 +368,287 @@ if file.scan.getLength > 0
     % Replace NaN values with 0
     data.time(isnan(data.time)) = 0;
     data.tic(isnan(data.tic)) = 0;
+    
+    % Display progress
+    disp(['Import complete... (', num2str(toc, '% 10.2f'), ' sec)']);
 end
 end
 
+
+%
+% Peak Information
+%
+function [file, data] = PeakInfo(file, data)
+
+% Anonymous functions
+value = file.value;
+element = file.element;
+
+% /msRun/peaks
+file.peaks = element(file.mzxml, 'peaks');
+
+if file.peaks.getLength > 0
+    
+    % Display progress
+    disp(['Indexing ', num2str(sum([data.index.peaksCount])), ' peaks...']);
+    tic;
+    
+    for i = 1:length(data.index)
+        
+        % /msRun/peaks/precision
+        precision = value(file.peaks, 'precision', i-1);
+        
+        if ~isempty(precision) && strcmpi(precision, '32')
+            data.peaks(i).precision = 'single';
+        elseif ~isempty(precision) && strcmpi(precision, '64')
+            data.peaks(i).precision = 'double';
+        end
+        
+        % /msRun/peaks/byteOrder
+        byteOrder = value(file.peaks, 'byteOrder', i-1);
+        
+        if ~isempty(byteOrder)
+            data.peaks(i).byteOrder = byteOrder;
+        end
+        
+        % /msRun/peaks/contentType
+        contentType = value(file.peaks, 'contentType', i-1);
+        
+        if ~isempty(contentType)
+            data.peaks(i).contentType = contentType;
+        end
+        
+        % /msRun/peaks/compressionType
+        compressionType = value(file.peaks, 'compressionType', i-1);
+        
+        if ~isempty(compressionType)
+            data.peaks(i).compressionType = compressionType;
+        end
+        
+        % /msRun/peaks/compressedLen
+        compressedLen = value(file.peaks, 'compressedLen', i-1);
+        
+        if ~isempty(compressedLen)
+            data.peaks(i).compressedLen = str2double(compressedLen);
+        end
+    end
+    
+    % Display progress
+    disp(['Indexing complete... (', num2str(toc, '% 10.2f'), ' sec)']);
+end
+end
+
+
+%
+% Extracted Ion Chromatograms (XIC, MS1)
+%
+function [file, data] = ReadXIC(file, data)
+
+% Anonymous functions
+read = file.read;
+
+% Read MS1 scans locations
+id = [data.index.id];
+index = id([data.index.msLevel] == 1);
+
+% Read MS1 data
+if ~isempty(index)
+    
+    % Display progress
+    disp(['Importing ', num2str(length(index)), ' scans of intensity values...']);
+    tic;
+    
+    for i = 1:length(index)
+        
+        % Check for peaks
+        if data.index(i).peaksCount ~= 0
+            
+            % /msRun/peaks/
+            peaks{i} = read(file.peaks, index(i));
+        end
+    end
+    
+    % Display progress
+    disp(['Import complete... (', num2str(toc, '% 10.2f'), ' sec)']);
+    
+    % Display progress
+    disp('Decoding values...');
+    tic;
+    
+    % Decode peak values
+    data = Decoder(data, peaks, index, 1);
+    
+    % Display progress
+    disp(['Decoding complete... (', num2str(toc, '% 10.2f'), ' sec)']);
+end
+end
+
+
+%
+% Base64 Decoder
+%
+function data = Decoder(data, peaks, index, level)
+
+% Check endianness
+[~, ~, endian] = computer;
+
+% Decoder functions
+base64 = org.apache.commons.codec.binary.Base64( );
+
+if strcmpi(endian, 'l')
+    decoder = @(x,n) swapbytes(typecast(x,n));
+else
+    decoder = @(x,n) typecast(x,n);
+end
+
+% Find empty values
+filter = cellfun(@isempty, peaks);
+index(filter) = [];
+peaks(filter) = [];
+
+% Inialize variables
+mz{length(peaks)} = [];
+xic{length(peaks)} = [];
+
+% Parse peak data
+expression = '([A-Za-z0-9/\+=])*';
+peaks = cellfun(@(x) regexp(char(x), expression, 'match'), peaks);
+
+% Convert to bytes
+peaks = cellfun(@(x) uint8(x), peaks, 'uniformoutput', false);
+
+% Check compression type
+if ~isfield(data.index, 'compressionType') || ~strcmpi(data.index(1).compressionType, 'zlib')
+    
+    for i = 1:length(peaks)
+    
+        % Decode Base64
+        peaks{i} = base64.decode(peaks{i});
+        
+        % Convert to 32 or 64 bit values
+        precision = data.peaks(index(i)).precision;
+        
+        if any(strcmpi(precision, {'single', 'double'}))
+            peaks{i} = decoder(peaks{i}, precision);
+        else
+            peaks{i} = decoder(peaks{i}, 'single');
+        end
+        
+        % Check data format
+        if ~isfield(data.index, 'contentType')
+            contentType = 'm/z-int';
+        else
+            contentType = data.index(index(i)).contentType;
+        end
+        
+        % Parse data
+        switch contentType
+            
+            case 'm/z-int'
+                mz{i} = peaks{i}(1:2:end-1);
+                xic{i} = peaks{i}(2:2:end);
+                
+            case {'m/z', 'm/z ruler'}
+                mz{i} = peaks{i};
+                xic{i} = [];
+                
+            case {'intensity', 'TOF', 'S/N', 'charge'}
+                mz{i} = [];
+                xic{i} = peaks{i};
+                
+            otherwise
+                mz{i} = peaks{i}(1:2:end-1);
+                xic{i} = peaks{i}(2:2:end);
+        end
+    end
+    
+    % Reshape data
+    if ~isempty(xic) && ~isempty(mz)
+        
+        % Index scan size
+        index.end = cumsum(cellfun(@length, xic)');
+        index.start = circshift(index.end,[1,0]);
+        index.start = index.start + 1;
+        index.start(1,1) = 1;
+        
+        % Pre-allocate memory
+        data.mz = zeros(max(index.end), length(mz));
+        data.xic = zeros(max(index.end), length(xic));
+        
+        % Expand cells
+        for i = 1:length(mz)
+            
+            % Remove zeros from m/z values
+            filter = mz{i} == 0;
+            mz{i}(filter) = [];
+            xic{i}(filter) = [];
+            
+            % Expand cell in column
+            data.mz(1:length(mz{i}),i) = mz{i};
+            data.xic(1:length(xic{i}),i) = xic{i};
+        end
+        
+        % Reshape values
+        data.mz = reshape(data.mz, 1, []);
+        data.xic = reshape(data.xic, 1, []);
+        
+        % Remove zeros
+        filter = data.mz == 0;
+        data.mz(filter) = [];
+        data.xic(filter) = [];
+        
+        % Clear xic from memory
+        clear xic;
+        
+        % Non-zero elements
+        points = length(data.mz);
+        
+        % Determine precision of mass values
+        z = round(data.mz .* (10^3)) ./ (10^3);
+        data.mz = unique(z, 'sorted');
+        
+        % Determine column index for reshaping
+        [~, column_index] = ismember(z, data.mz);
+        
+        % Clear m/z from memory
+        clear z
+        
+        % Pre-allocate memory
+        if length(index.end) * length(data.mz) > 6.25E6
+            xic = spalloc(length(index.end), length(data.mz), points);
+        else
+            xic = zeros(length(index.end), length(data.mz));
+        end
+        
+        for i = 1:length(index.start)
+            
+            % Variables
+            m = index.start(i);
+            n = index.end(i);
+            
+            % Reshape instensity values
+            xic(i, column_index(m:n)) = data.xic(m:n);
+        end
+        
+        % Format output
+        data.xic = xic;
+        data.xic(:,data.mz == 0) = [];
+        data.mz(:,data.mz == 0) = [];
+    end
+        
+    % Assign outputs
+    switch level
+        
+        case 1
+            data.xic = xic;
+            data.mz = mz;
+            
+        case 2
+            data.ms2.xic = xic;
+            data.ms2.mz = mz;
+    end
+end
+end
 
 % Parse user input
 function varargout = parse(varargin)
