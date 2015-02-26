@@ -1,5 +1,5 @@
 % Method: ImportThermo
-%  -Extract data from Thermo (.RAW) files
+%  -Extract raw data from Thermo (.RAW) files
 %
 % Syntax
 %   data = ImportThermo(file)
@@ -18,26 +18,50 @@
 % Examples
 %   data = ImportThermo('001-32-2.RAW')
 %   data = ImportThermo('06b.RAW', 'precision', 4)
+%
+% Compatibility
+%   Thermo Scientific, LC/MS
+%       LTQ XL : V.57, V.62, V.63
+%       LCQ XP : V.57, V.62, V.63
+%
+% Issues
+%   -Large files >200 MB
+%   -Unable to import 'profile' MS/MS data
 
 function varargout = ImportThermo(varargin)
 
 % Check input
 [file, data] = parse(varargin);
 
+% Check file name
+if isempty(file)
+    varargout{1} = [];
+    disp('Error: Input file invalid.');
+    return
+end
+
 % Open file
 file.name = fopen(file.name, 'r', 'l', 'UTF-8');
 
-% Read file
+% Read file header
 [file, data] = FileHeader(file, data);
+
+% Check version
+if isempty(file.key)
+    disp(['Error: Input data of type ''V.', num2str(file.version), ''' is currently unsupported.']);
+    return
+end
+
+% Read data
 [file, data] = InjectionData(file, data);
 [file, data] = SequenceData(file, data);
 [file, data] = AutosamplerData(file, data);
 [file, data] = FileInfo(file, data);
 [file, data] = RunHeader(file, data);
-[file, data] = InstrumentID(file, data);
+[file, data] = InstrumentInfo(file, data);
 [file, data] = ScanInfo(file, data);
 [file, data] = ScanData(file, data);
-    
+
 % Close file
 fclose(file.name);
 
@@ -61,13 +85,12 @@ switch file.version
     
     case {62, 63}
         file.key = 32;
-            
+        
     case 57
         file.key = 17;
-    
+        
     otherwise
-        error(['Input data of type ''v', num2str(file.version), ''' is currently unsupported']);
-
+        file.key = [];
 end
 
 % Skip to end of section
@@ -99,13 +122,13 @@ data.method.date = '';
 data.method.time = '';
 file.filename = '';
 file.path = '';
-    
+
 % Function to read size of pascal string
 pascal = @(x) fread(x, 1, 'uint32');
 
 % Read sequence data
 for i = 1:file.key
-        
+    
     % Read size of pascal string
     n = pascal(file.name);
     
@@ -120,7 +143,7 @@ for i = 1:file.key
         % ID
         case 3
             file.id = deblank(fread(file.name, n, 'uint16=>char')');
-        
+            
         % Method name
         case 10
             data.method.name = deblank(fread(file.name, n, 'uint16=>char')');
@@ -132,7 +155,7 @@ for i = 1:file.key
         % Path name
         case 13
             file.path = deblank(fread(file.name, n, 'uint16=>char')');
-      
+            
         % Vial
         case 14
             file.vial = deblank(fread(file.name, n, 'uint16=>char')');
@@ -159,9 +182,9 @@ end
 
 % Check method name
 if ~isempty(data.method.name)
-    [~, name, ~] = fileparts(data.method.name);
+    name = data.method.name;
     
-    % Check for valid name
+    % Remove path from method name
     if any('\' == name)
         data.method.name = name(find(name == '\', 1, 'last')+1:end);
     elseif any('/' == name)
@@ -196,8 +219,8 @@ end
 % Address of next section
 file.address.file_information = ftell(file.name);
 end
-    
-    
+
+
 function [file, data] = FileInfo(file, data)
 
 % Variables
@@ -214,7 +237,7 @@ data.method.time = strtrim(datestr(x, 'HH:MM PM'));
 
 % Determine offset of address values
 switch file.version
-
+    
     case {62, 63}
         n = offset + 24;
         m = offset + 44;
@@ -272,7 +295,7 @@ file.address.instrument_id = file.address.run_header + 7408;
 end
 
 
-function [file, data] = InstrumentID(file, data)
+function [file, data] = InstrumentInfo(file, data)
 
 % Variables
 data.method.instrument = '';
@@ -286,17 +309,17 @@ skip = @(x,n) fread(x, n, 'uint16=>char');
 fseek(file.name, offset+12, 'bof');
 n = pascal(file.name);
 
-if n > 0 && n <= 50
+if n > 0 && n <= 100
     file.model = deblank(fread(file.name, n, 'uint16=>char')');
 else
     file.model = [];
 end
 
-% Read instrument model if previous is empty
+% Read instrument model extended
 n = pascal(file.name);
 
-if n > 0 && n <= 50
-    if isempty(file.model)
+if n > 0 && n <= 100
+    if isempty(file.model) || n > length(file.model)
         file.model = deblank(fread(file.name, n, 'uint16=>char')');
     else
         skip(file.name, n);
@@ -306,15 +329,15 @@ end
 % Read serial number
 n = pascal(file.name);
 
-if n > 0 && n <= 50
+if n > 0 && n <= 100
     file.serial = deblank(fread(file.name, n, 'uint16=>char')');
 else
     file.serial = [];
 end
-    
+
 % Read software version
 n = pascal(file.name);
-    
+
 if n > 0 && n <= 100
     file.software = deblank(fread(file.name, n, 'uint16=>char')');
 else
@@ -323,9 +346,11 @@ end
 
 % Check instrument model
 if ~isempty(file.model)
-    data.method.instrument = file.model;
+    data.method.instrument = strcat(file.model, ' V.', num2str(file.version));
+    data.method.instrument = ['Thermo ', data.method.instrument];
 else
-    data.method.instrument = '';
+    data.method.instrument = strcat('V.', num2str(file.version));
+    data.method.instrument = ['Thermo ', data.method.instrument];
 end
 end
 
@@ -345,51 +370,49 @@ data.tic.values = zeros(1,n);
 
 % Read offset values
 fseek(file.name, offset+10, 'bof');
-file.offset = fread(file.name, n, 'uint32', 68);
+file.offset = fread(file.name, n, 'uint32=>single', 68);
 
 % Read scan level
 fseek(file.name, offset+16, 'bof');
-file.level = fread(file.name, n, 'uint32', 68);
+file.level = fread(file.name, n, 'uint32=>single', 68);
 
 % Read scan size
 fseek(file.name, offset+20, 'bof');
-file.size = fread(file.name, n, 'uint32', 68);
+file.size = fread(file.name, n, 'uint32=>single', 68);
 
 % Read time values
 fseek(file.name, offset+24, 'bof');
-data.time = fread(file.name, n, 'float64', 64);
+data.time = fread(file.name, n, 'float64=>single', 64);
 
 % Read total intensity values
 fseek(file.name, offset+32, 'bof');
-data.tic.values = fread(file.name, n, 'float64', 64);
+data.tic.values = fread(file.name, n, 'float64=>single', 64);
 end
 
 
 function [file, data] = ScanData(file, data)
 
-% Check available data
-levels = unique(file.level);
+% Check available data types
+levels = unique(file.level, 'sorted');
 
 for i = 1:length(levels)
-
+    
     switch levels(i)
-
+        
         % MS1 / No Header
         case 15
             
             % Variables
-            offset = file.address.data(1);
+            offset = file.address.data;
             n = sum(file.size);
             
-            % Pre-allocate memory
-            data.xic.values = zeros(1, n, 'single');
-            mz.integer = zeros(1, n, 'single');
-            mz.decimal = zeros(1, n, 'single');
+            % Initialize data
+            mz = [];
             
             % Read intensity values
             fseek(file.name, offset, 'bof');
-            data.xic.values = fread(file.name, n, 'uint32=>single', 4);
-            data.xic.values = data.xic.values / 256;
+            xic = fread(file.name, n, 'uint32=>single', 4);
+            xic = xic / 256;
             
             % Read mass values integer
             fseek(file.name, offset+4, 'bof');
@@ -401,25 +424,32 @@ for i = 1:length(levels)
             mz.decimal = mz.decimal / 65536;
             
             % Calculate mass values
-            data.mz = mz.integer + mz.decimal;
+            mz = mz.integer + mz.decimal;
             
-            clear mz
+            % Variables
+            size = cumsum(file.size);
+            rows = sum(file.level == 15);
+            
+            % Reduce memory
+            mz = single(mz);
+            xic = single(xic);
             
             % Reshape data
-            [file, data] = FormatData(file, data, cumsum(file.size), 1:length(file.size));
+            [data.mz, data.xic.values] = FormatData(file, mz, xic, size, rows);
             
-
+            % Clear memory
+            clear mz xic
+            
         % MS1 / Header
         case 21
             
             % Variables
-            offset = file.address.data(1);
-            offset = [offset; offset + cumsum(file.size(1:end-1))];
+            offset = [file.address.data; file.address.data + cumsum(file.size(1:end-1))];
             index = offset(file.level == 21);
             
-            % Pre-allocate memory
-            data.xic.values = [];
-            data.mz = [];
+            % Initialize data
+            xic = [];
+            mz = [];
             n = [];
             
             for j = 1:length(index)
@@ -442,42 +472,122 @@ for i = 1:length(levels)
                     
                     % Read mass values
                     fseek(file.name, offset+4, 'bof');
-                    data.mz(end+1:end+n(j)) = fread(file.name, n(j), 'float32', 4);
+                    mz(end+1:end+n(j)) = fread(file.name, n(j), 'float32=>single', 4);
                     
                     % Read intensity values
                     fseek(file.name, offset+8, 'bof');
-                    data.xic.values(end+1:end+n(j)) = fread(file.name, n(j), 'float32', 4);
+                    xic(end+1:end+n(j)) = fread(file.name, n(j), 'float32=>single', 4);
+                else
+                    n(end+1) = 0;
                 end
             end
             
+            % Variables
+            size = cumsum(n)';
+            rows = sum(file.level == 21);
+            
+            % Reduce memory
+            mz = single(mz);
+            xic = single(xic);
+            
             % Reshape data
-            data.mz = data.mz';
-            [file, data] = FormatData(file, data, cumsum(n)', file.level == 21);
+            [data.mz, data.xic.values] = FormatData(file, mz', xic, size, rows);
             
-            % Remove empty columns
-            filter = sum(data.xic.values ~= 0) == 0;
-            data.xic.values(:,filter) = [];
-            data.mz(:,filter) = [];
+            % Clear memory
+            clear mz xic
             
-            % Filter data
-            data.time = data.time(file.level == 21);
-            data.tic.values = data.tic.values(file.level == 21);
+        % MS2 / Centroid
+        case 18
+            
+            % Variables
+            offset = [file.address.data; file.address.data + cumsum(file.size(1:end-1))];
+            index = offset(file.level == 18);
+            scan = file.size(file.level == 18);
+            
+            % Initialize data
+            xic = [];
+            mz = [];
+            cols = [];
+            
+            for j = 1:length(index)
+                
+                % Profile size
+                fseek(file.name, index(j)+4, 'bof');
+                p = fread(file.name, 1, 'uint32');
+                
+                % Check allowable size
+                if p > scan(j)
+                    cols(end+1) = 0;
+                    continue
+                end
+                
+                if fread(file.name, 1, 'uint32') > 0
+                    
+                    % Variables
+                    offset = index(j) + 40 + (p*4);
+                    
+                    % Read size
+                    fseek(file.name, offset, 'bof');
+                    n = fread(file.name, 1, 'uint32');
+                    
+                    % Check allowable size
+                    if n > scan(j)
+                        cols(end+1) = 0;
+                        continue
+                    end
 
+                    % Read mass values
+                    fseek(file.name, offset+4, 'bof');
+                    mz(end+1:end+n) = fread(file.name, n, 'float32', 4);
+                    
+                    % Read intensity values
+                    fseek(file.name, offset+8, 'bof');
+                    xic(end+1:end+n) = fread(file.name, n, 'float32', 4);
+                    
+                    % Update column index
+                    cols(end+1) = n;
+                else
+                    cols(end+1) = 0;
+                end
+            end
+            
+            % Variables
+            data.ms2.time = data.time(file.level == 18);
+            data.ms2.time(cols == 0) = [];
+            
+            size = cumsum(cols)';
+            size(cols == 0) = [];
+            
+            rows = length(data.ms2.time);
+            
+            % Reduce memory
+            mz = single(mz);
+            xic = single(xic);
+            
+            % Reshape data
+            [data.ms2.mz, data.ms2.xic] = FormatData(file, mz', xic, size, rows);
+            
+            % Clear memory
+            clear mz xic
     end
 end
 end
-    
 
-function [file, data] = FormatData(file, data, varargin)
+
+function varargout = FormatData(file, mz, xic, size, rows)
 
 % Variables
 precision = file.precision;
-size = varargin{1};
-rows = varargin{2};
 
 % Determine precision of mass values
-mz = round(data.mz * 10^precision) / 10^precision;
-data.mz = unique(mz, 'sorted');
+mz = round(mz .* 10^precision) ./ 10^precision;
+z = unique(mz, 'sorted');
+
+% Determine column index for reshaping
+[~, column_index] = ismember(mz, z);
+
+% Clear m/z from memory
+clear mz
 
 % Determine data index
 index.end = size;
@@ -486,10 +596,11 @@ index.start = index.start + 1;
 index.start(1,1) = 1;
 
 % Pre-allocate memory
-xic = zeros(length(data.time(rows)), length(data.mz), 'single');
-
-% Determine column index for reshaping
-[~, column_index] = ismember(mz, data.mz);
+if rows * length(z) > 6.25E6
+    y = spalloc(rows, length(z), length(xic));
+else
+    y = zeros(rows, length(z));
+end
 
 for i = 1:length(index.start)
     
@@ -498,12 +609,15 @@ for i = 1:length(index.start)
     n = index.end(i);
     
     % Reshape instensity values
-    xic(i, column_index(m:n)) = data.xic.values(m:n);
+    y(i, column_index(m:n)) = xic(m:n);
 end
 
+% Clear xic from memory
+clear xic
+
 % Output data
-data.mz = data.mz';
-data.xic.values = xic;
+varargout{1} = z';
+varargout{2} = y;
 end
 
 
@@ -514,10 +628,8 @@ varargin = varargin{1};
 nargin = length(varargin);
 
 % Check number of inputs
-if nargin < 1
-    error('Not enough input arguments');
-elseif ~ischar(varargin{1})
-    error('Undefined input arguments of type ''file''');
+if nargin < 1 || ~ischar(varargin{1})
+    error('Undefined input arguments of type ''file''.');
 elseif ischar(varargin{1})
     file.name = varargin{1};
 else
@@ -544,15 +656,24 @@ if ~isempty(input('precision'))
     if ~isnumeric(precision)
         file.precision = 3;
         
-    % Check input range
     elseif precision < 0
+        
+        % Check for case: -x
+        if precision >= -9 && precision <= 0
+            file.precision = abs(precision);
+        else
+            file.precision = 3;
+            disp('Input arguments of type ''precision'' invalid. Value set to: ''3''.');
+        end
+        
+    elseif precision > 0 && log10(precision) < 0
         
         % Check for case: 10^-x
         if log10(precision) >= -9 && log10(precision) <= 0
             file.precision = abs(log10(precision));
         else
-            file.precision = 1;
-            disp('Input arguments of type ''precision'' invalid. Value set to: ''0'''); 
+            file.precision = 3;
+            disp('Input arguments of type ''precision'' invalid. Value set to: ''3''.');
         end
         
     elseif precision > 9
@@ -561,8 +682,8 @@ if ~isempty(input('precision'))
         if log10(precision) <= 9 && log10(precision) >= 0
             file.precision = log10(precision);
         else
-            file.precision = 9;
-            disp('Input arguments of type ''precision'' invalid. Value set to: ''9''');
+            file.precision = 3;
+            disp('Input arguments of type ''precision'' invalid. Value set to: ''3''.');
         end
     else
         file.precision = precision;

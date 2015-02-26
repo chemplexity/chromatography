@@ -1,5 +1,5 @@
 % Method: ImportAgilent
-%  -Extract data from Agilent (.D, .MS) files
+%  -Extract raw data from Agilent (.D, .MS) files
 %
 % Syntax
 %   data = ImportAgilent(file)
@@ -18,20 +18,33 @@
 % Examples
 %   data = ImportAgilent('MSD1.MS')
 %   data = ImportAgilent('Trial1.D', 'precision', 2)
+%
+% Compatibility
+%   Agilent, LC/MS
+%       6100 Series Single Quadrupole LC/MS
+%   Agilent, GC/MS
+%       5970 Series GC/MSD
 
 function varargout = ImportAgilent(varargin)
 
 % Check input
 [files, options] = parse(varargin);
 
+% Check file name
+if isempty(files)
+    varargout{1} = [];
+    disp('Error: Input file invalid.');
+    return
+end
+
 % Load data
 for i = 1:length(files(:,1))
-
+    
     switch files{i,2};
-   
-        case {'.MS'}
-            data{i} = AgilentMS(files{i,1}, options);
         
+        case {'.MS', '.ms'}
+            data{i} = AgilentMS(files{i,1}, options);
+            
         case {'.CH'}
             data{i} = [];
             
@@ -40,9 +53,10 @@ for i = 1:length(files(:,1))
     end
 end
 
-% Set output data
+% Remove missing data
 data(cellfun(@isempty, data)) = [];
 
+% Output
 if ~isempty(data)
     varargout(1) = {[data{:}]};
 else
@@ -64,13 +78,14 @@ file = fopen(file, 'r', 'b', 'UTF-8');
 fseek(file, 25, 'bof');
 data.sample.name = strtrim(deblank(fread(file, 61, 'char=>char')'));
 
-% Read instrument model
-fseek(file, 209, 'bof');
-data.method.instrument = deblank(fread(file, 9, 'char=>char')');
-
 % Read method name
 fseek(file, 229, 'bof');
 data.method.name = deblank(fread(file, 19, 'char=>char')');
+
+% Read instrument name
+fseek(file, 209, 'bof');
+data.method.instrument = deblank(fread(file, 9, 'char=>char')');
+data.method.instrument = ['Agilent ', data.method.instrument];
 
 % Read date/time
 fseek(file, 179, 'bof');
@@ -81,7 +96,7 @@ data.method.time = strtrim(datestr(datetime, 'HH:MM PM'));
 
 % Read directory offset
 fseek(file, 260, 'bof');
-offset.tic = fread(file, 1, 'int') * 2 - 2;
+offset.tic = fread(file, 1, 'int') .* 2 - 2;
 
 % Read number of scans
 fseek(file, 278, 'bof');
@@ -95,11 +110,11 @@ offset.xic = zeros(scans, 1, 'single');
 % Read data offset
 fseek(file, offset.tic, 'bof');
 offset.xic = fread(file, scans, 'int', 8);
-offset.xic = (offset.xic * 2) - 2;
+offset.xic = (offset.xic .* 2) - 2;
 
 % Read time values
 fseek(file, offset.tic+4, 'bof');
-data.time = fread(file, scans, 'int', 8) / 60000;
+data.time = fread(file, scans, 'int', 8) ./ 60000;
 
 % Read total intensity values
 fseek(file, offset.tic+8, 'bof');
@@ -110,12 +125,12 @@ mz = [];
 xic = [];
 
 for i = 1:scans
-
+    
     % Read scan size
     fseek(file, offset.xic(i,1), 'bof');
     n = fread(file, 1, 'short') - 18;
     n = (n/2) + 2;
-
+    
     % Read mass values
     fseek(file, offset.xic(i,1)+18, 'bof');
     mz(end+1:end+n) = fread(file, n, 'ushort', 2);
@@ -135,22 +150,22 @@ fclose(file);
 xic = bitand(xic, 16383, 'int16') .* (8 .^ bitshift(xic, -14, 'int16'));
 
 % Convert mass values to m/z
-mz = mz / 20;
+mz = mz ./ 20;
 
 % Variables
 precision = options.precision;
 
 % Determine precision of mass values
-mz = round(mz * 10^precision) / 10^precision;
+mz = round(mz .* 10^precision) ./ 10^precision;
 data.mz = unique(mz, 'sorted');
 
-% Reshape data (rows = time, columns = m/z) 
+% Reshape data (rows = time, columns = m/z)
 if length(data.mz) == length(xic) / length(data.time)
     
     % Reshape intensity values
     data.xic.values = reshape(xic, length(data.mz), length(data.time))';
 else
-
+    
     % Determine data index
     index.end = cumsum(offset.xic(:,2));
     index.start = circshift(index.end,[1,0]);
@@ -159,18 +174,32 @@ else
     
     % Pre-allocate memory
     data.xic.values = zeros(length(data.time), length(data.mz), 'single');
-
+    
     % Determine column index for reshaping
     [~, column_index] = ismember(mz, data.mz);
-
-    for i = 1:scans
     
+    for i = 1:scans
+        
         % Variables
         m = index.start(i);
         n = index.end(i);
-    
+        
         % Reshape instensity values
         data.xic.values(i, column_index(m:n)) = xic(m:n);
+    end
+end
+
+% Check values
+if isempty(data.sample.name)
+    name = varargin{1};
+    
+    % Remove path from sample name
+    if any('\' == name)
+        data.sample.name = name(find(name == '\', 1, 'last')+1:end);
+    elseif any('/' == name)
+        data.sample.name = name(find(name == '/', 1, 'last')+1:end);
+    else
+        data.sample.name = name;
     end
 end
 
@@ -185,10 +214,8 @@ varargin = varargin{1};
 nargin = length(varargin);
 
 % Check number of inputs
-if nargin < 1
-    error('Not enough input arguments');
-elseif ~ischar(varargin{1})
-    error('Undefined input arguments of type ''file''');
+if nargin < 1 || ~ischar(varargin{1})
+    error('Undefined input arguments of type ''file''.');
 elseif ischar(varargin{1})
     file = varargin{1};
 else
@@ -198,11 +225,17 @@ end
 
 % Check file extension
 [~, file] = fileattrib(file);
+
+% Check file exists
+if strcmpi(file, 'No such file or directory.')
+    error('Undefined input arguments of type ''file''.');
+end
+
 [~, ~, extension] = fileparts(file.Name);
 
 % Read Agilent '.D' files
-if strcmp(extension, '.D')
-
+if strcmpi(extension, '.D')
+    
     % Set path
     path(file.Name, path);
     
@@ -235,15 +268,24 @@ if ~isempty(input('precision'))
     if ~isnumeric(precision)
         options.precision = 3;
         
-    % Check input range
     elseif precision < 0
+        
+        % Check for case: -x
+        if precision >= -9 && precision <= 0
+            options.precision = abs(precision);
+        else
+            options.precision = 3;
+            disp('Input arguments of type ''precision'' invalid. Value set to: ''3''.');
+        end
+        
+    elseif precision > 0 && log10(precision) < 0
         
         % Check for case: 10^-x
         if log10(precision) >= -9 && log10(precision) <= 0
             options.precision = abs(log10(precision));
         else
-            options.precision = 1;
-            disp('Input arguments of type ''precision'' invalid. Value set to: ''0'''); 
+            options.precision = 3;
+            disp('Input arguments of type ''precision'' invalid. Value set to: ''3''.');
         end
         
     elseif precision > 9
@@ -252,8 +294,8 @@ if ~isempty(input('precision'))
         if log10(precision) <= 9 && log10(precision) >= 0
             options.precision = log10(precision);
         else
-            options.precision = 9;
-            disp('Input arguments of type ''precision'' invalid. Value set to: ''9''');
+            options.precision = 3;
+            disp('Input arguments of type ''precision'' invalid. Value set to: ''3''.');
         end
     else
         options.precision = precision;

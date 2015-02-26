@@ -61,6 +61,11 @@ peaks = {...
     'fit',...
     'error'};
 
+ms2 = {...
+    'time',...
+    'xic',...
+    'mz'};
+
 % Check number of inputs
 if nargin < 2
     
@@ -97,6 +102,16 @@ elseif nargin >= 2
         % Extracted ion chromatograms
         data(i).xic = check(data(i).xic, xic);
         data(i).xic.peaks = check(data(i).xic.peaks, peaks);
+    end
+    
+    % Check for extra fields
+    if ~isempty(find(strcmpi(varargin, 'extra'),1))
+        extra = varargin{find(strcmpi(varargin, 'extra'),1)+1};
+        
+        % Add MS2 field
+        if strcmpi(extra, 'ms2')
+            data = check(data, {'ms2'});
+        end
     end
 end
 end

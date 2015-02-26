@@ -10,11 +10,13 @@
 %
 % Options
 %   'append'    : structure
+%   'precision' : integer
 %   'progress'  : 'on', 'off'
 %
 % Description
 %   filetype    : file extension (e.g. '.D', '.MS', '.CDF', '.RAW')
 %   'append'    : append data structure (default = none)
+%   'precision' : number of decimal places allowed for m/z values (default = 3)
 %   'progress'  : display import progress (default = 'on')
 %
 % Examples
@@ -58,7 +60,7 @@ switch options.filetype
             tic;
             
             % Import data
-            import_data(i) = ImportCDF(strcat(files{i,2},files{i,3}));
+            import_data{i} = ImportCDF(strcat(files{i,2},files{i,3}), 'precision', options.precision);
             
             % Stop timer
             compute_time(i) = toc;
@@ -67,9 +69,6 @@ switch options.filetype
             if isempty(import_data(i))
                 continue
             end
-            
-            % Assign a unique id
-            id(i) = length(data) + i;
             
             % Display import progress
             options.compute_time = options.compute_time + compute_time(i);
@@ -88,7 +87,7 @@ switch options.filetype
             tic;
             
             % Import data
-            import_data{i} = ImportAgilent(file_path);
+            import_data{i} = ImportAgilent(file_path, 'precision', options.precision);
             
             % Stop timer
             compute_time(i) = toc;
@@ -98,9 +97,6 @@ switch options.filetype
                 disp(['Unrecognized file format (', num2str(i), '/', num2str(length(files(:,1))), ')']);
                 continue
             end
-            
-            % Assign a unique id
-            id(i) = length(data) + i;
             
             % Display import progress
             options.compute_time = options.compute_time + compute_time(i);
@@ -119,7 +115,7 @@ switch options.filetype
             tic;
             
             % Import data
-            import_data{i} = ImportAgilent(file_path);
+            import_data{i} = ImportAgilent(file_path, 'precision', options.precision);
             
             % Stop timer
             compute_time(i) = toc;
@@ -132,9 +128,6 @@ switch options.filetype
                 disp(['Unrecognized file format (', num2str(i), '/', num2str(length(files(:,1))), ')']);
                 continue
             end
-            
-            % Assign a unique id
-            id(i) = length(data) + i;
             
             % Display import progress
             options.compute_time = options.compute_time + compute_time(i);
@@ -150,7 +143,7 @@ switch options.filetype
             tic;
             
             % Import data
-            import_data{i} = ImportThermo(strcat(files{i,2},files{i,3}));
+            import_data{i} = ImportThermo(strcat(files{i,2},files{i,3}), 'precision', options.precision);
             
             % Stop timer
             compute_time(i) = toc;
@@ -161,8 +154,14 @@ switch options.filetype
                 continue
             end
             
-            % Assign a unique id
-            id(i) = length(data) + i;
+            % Check fields
+            if ~isfield(import_data{i}, 'xic')
+                import_data{i}.xic = [];
+            end
+            
+            if isfield(import_data{i}, 'ms2')
+                options.extra = 'ms2';
+            end
             
             % Display import progress
             options.compute_time = options.compute_time + compute_time(i);
@@ -173,22 +172,50 @@ end
 % Remove missing data
 import_data(cellfun(@isempty, import_data)) = [];
 
+% Check remaining data
 if isempty(import_data)
+    varargout{1} = data;
     return
-else
+
+else    
+    % Add file names
+    for i = 1:length(import_data)
+        
+        % Check for multiple files
+        if length(import_data{i}) == 1
+            import_data{i}.file.name = strcat(files{i,2}, files{i,3});
+        else
+            for j = 1:length(import_data{i})
+                import_data{i}(j).file.name = strcat(files{i,2}, files{i,3}); 
+            end
+        end
+    end
+    
+    % Convert to structure
     import_data = [import_data{:}];
 end
 
 % Add missing fields to data structure
-import_data = DataStructure('validate', import_data);
+if ~isempty(options.extra)
+    data = DataStructure('validate', data, 'extra', options.extra);
+    import_data = DataStructure('validate', import_data, 'extra', options.extra);
+elseif isfield(data, 'ms2')
+    import_data = DataStructure('validate', import_data, 'extra', 'ms2');
+else
+    import_data = DataStructure('validate', import_data);
+end
+
+% Check data
+if ~isempty(data) && isempty(data(1).id) && isempty(data(1).name)
+    data(1) = [];
+end
 
 % Update data structure
-for i = 1:length(id)
+for i = 1:length(import_data)
     
     % File information
-    import_data(i).id = id(i);
+    import_data(i).id = length(data) + i;
     import_data(i).name = import_data(i).sample.name;
-    import_data(i).file.name = strcat(files{i,2}, files{i,3});
     import_data(i).file.type = options.filetype;
     
     % Data backup
@@ -309,7 +336,51 @@ else
     data = DataStructure();
 end
 
-% Progress 
+% Precision
+if ~isempty(input('precision'))
+    precision = varargin{input('precision')+1};
+    
+    % Check for valid input
+    if ~isnumeric(precision)
+        options.precision = 3;
+        
+    elseif precision < 0
+        
+        % Check for case: -x
+        if precision >= -9 && precision <= 0
+            options.precision = abs(precision);
+        else
+            options.precision = 3;
+            disp('Input arguments of type ''precision'' invalid. Value set to: ''3''.');
+        end
+        
+    elseif precision > 0 && log10(precision) < 0
+        
+        % Check for case: 10^-x
+        if log10(precision) >= -9 && log10(precision) <= 0
+            options.precision = abs(log10(precision));
+        else
+            options.precision = 3;
+            disp('Input arguments of type ''precision'' invalid. Value set to: ''3''.');
+        end
+ 
+    elseif precision > 9
+        
+        % Check for case: 10^x
+        if log10(precision) <= 9 && log10(precision) >= 0
+            options.precision = log10(precision);
+        else
+            options.precision = 3;
+            disp('Input arguments of type ''precision'' invalid. Value set to: ''3''.');
+        end
+    else
+        options.precision = precision;
+    end
+else
+    options.precision = 3;
+end
+
+% Progress
 if ~isempty(input('progress'))
     options.progress = varargin{input('progress')+1};
     
@@ -327,6 +398,7 @@ end
 
 % Variables
 options.compute_time = 0;
+options.extra = '';
 
 % Return input
 varargout{1} = data;
