@@ -1,5 +1,5 @@
 % Method: Baseline
-%  -Asymmetric least squares baseline correction
+%  -Asymmetric least squares baseline calculation
 %
 % Syntax
 %   baseline = Baseline(y)
@@ -10,12 +10,12 @@
 %
 % Options
 %   'smoothness' : value (~10^3 to 10^9)
-%   'asymmetry'  : value (~10^-1 to 10^-6)
+%   'asymmetry'  : value (~10^-6 to 10^-1)
 %
 % Description
 %   y            : intensity values
-%   'smoothness' : smoothing factor (default = 10^6)
-%   'asymmetry'  : asymmetry factor (default = 10^-4)
+%   'smoothness' : smoothing parameter (default = 10^6)
+%   'asymmetry'  : asymmetry parameter (default = 10^-4)
 %
 % Examples
 %   baseline = Baseline(y)
@@ -26,106 +26,134 @@
 % References
 %   P.H.C. Eilers, Analytical Chemistry, 75 (2003) 3631
 
-function [baseline, weights] = Baseline(y, varargin)
+function varargout = Baseline(y, varargin)
 
 % Check input
 if nargin < 1
-    error('Not enough input arguments');
+    error('Not enough input arguments.');
 elseif ~isnumeric(y)
-    error('Undefined input arguments of type ''y''');
+    error('Undefined input arguments of type ''y''.');
 end
 
+% Default options
+smoothness = 10^6;
+asymmetry = 10^-4;
+
 % Check user input
-if nargin == 1
+if nargin > 1
     
-    % Default pararmeters
-    smoothness = 10^6;
-    asymmetry = 10^-4;
-    
-% Check options
-elseif nargin > 1
-    
-    % Check user input
-    input = @(x) find(strcmpi(varargin, x),1);
-
-    % Check smoothness options
-    if ~isempty(input('smoothness'));
-        smoothness = varargin{input('smoothness')+1};
-
-        % Check user input
-        if ~isnumeric(smoothness)
-            smoothness = 10^6;
-        elseif smoothness <= 0
-            smoothness = 10^-6;
-        end 
-    else
-        smoothness = 10^6;
-    end
+    input = @(x) find(strcmpi(varargin,x),1);
     
     % Check asymmetry options
     if ~isempty(input('asymmetry'));
         asymmetry = varargin{input('asymmetry')+1};
-
-        % Check user input
+        
+        % Check for valid input
         if ~isnumeric(asymmetry)
             asymmetry = 10^-4;
         elseif asymmetry <= 0
-            asymmetry = 10^-6;
+            asymmetry = 10^-9;
         elseif asymmetry >= 1
-            asymmetry = 0.99999;
+            asymmetry = 1 - 10^-6;
         end
-    else
-        asymmetry = 10^-4;
+    end
+    
+    % Check smoothness options
+    if ~isempty(input('smoothness'));
+        smoothness = varargin{input('smoothness')+1};
+        
+        % Check for valid input
+        if ~isnumeric(smoothness) || smoothness > 10^15
+            smoothness = 10^6;
+        elseif smoothness <= 0
+            smoothness = 10^6;
+        end
     end
 end
 
-% Check precision
+% Check data precision
 if ~isa(y, 'double')
     y = double(y);
 end
 
-% Perform baseline calculation on each vector
+% Check data length
+if all(size(y) <= 3)
+    error('Insufficient number of points.');
+end
+
+% Check for negative values
+if any(min(y) < 0)
+    
+    % Determine offset
+    offset = min(y);
+    offset(offset > 0) = 0;
+    offset(offset < 0) = abs(offset(offset < 0));
+else
+    offset = zeros(1, length(y(1,:)));
+end
+
+% Variables
+rows = length(y(:,1));
+index = 1:rows;
+
+% Pre-allocate memory
+baseline = zeros(size(y));
+weights = ones(rows, 1);
+w = spdiags(weights, 0, rows, rows);
+
+% Variables
+d = diff(speye(rows), 2);
+d = smoothness * (d' * d);
+
+% Calculate baseline
 for i = 1:length(y(1,:))
     
-    % Correct negative y-values
-    if min(y(:,i)) < 0
-        correction = abs(min(y(:,i)));
-        y(:,i) = y(:,i) + correction;
-        
-    % Correct non-positive definite y-values
-    elseif max(y(:,i)) == 0
-        continue
-    else 
-        correction = 0;
+    % Check offset
+    if offset(i) ~= 0
+        y(:,i) = y(:,i) + offset(i);
     end
     
-    % Get length of y vector
-    length_y = length(y(:,i));
-
-    % Initialize variables needed for calculation
-    diff_matrix = diff(speye(length_y), 2);
-    weights = ones(length_y, 1);
-
-    % Pre-allocate memory for baseline
-    baseline(:,i) = zeros(length_y, 1);
-
+    % Check values
+    if ~any(y(:,i) ~= 0)
+        continue
+    end
+    
+    % Pre-allocate memory
+    b = zeros(rows,1);
+    
     % Number of iterations
     for j = 1:10
-            
-        % Sparse diagonal matrix
-        weights_diagonal = spdiags(weights, 0, length_y, length_y);
         
         % Cholesky factorization
-        cholesky_factor = chol(weights_diagonal + smoothness * diff_matrix' * diff_matrix);
+        w = chol(w + d);
         
         % Left matrix divide, multiply matrices
-        baseline(:,i) = cholesky_factor \ (cholesky_factor' \ (weights .* y(:,i)));
+        b = w \ (w' \ (weights .* y(:,i)));
         
-        % Reassign weights
-        weights = asymmetry * (y(:,i) > baseline(:,i)) + (1 - asymmetry) * (y(:,i) < baseline(:,i));
+        % Determine weights
+        weights = asymmetry * (y(:,i) > b) + (1 - asymmetry) * (y(:,i) < b);
+        
+        % Reset sparse matrix
+        w = sparse(index, index, weights);
     end
     
-    % Correct for negative y-values
-    y(:,i) = y(:,i) - correction;
+    % Check offset
+    if offset(i) ~= 0
+        
+        % Preserve negative values from input
+        baseline(:,i) = b - offset(i);
+        
+    elseif offset(i) == 0
+        
+        % Correct negative values from smoothing
+        b(b < 0) = 0;
+        baseline(:,i) = b;
+    end
+    
+    % Reset variables
+    weights = ones(rows, 1);
 end
+
+% Set output
+varargout{1} = baseline;
 end

@@ -258,7 +258,7 @@ nargin = length(varargin);
 
 % Check input
 if nargin < 1
-    error('Not enough input arguments');
+    error('Not enough input arguments.');
 elseif nargin >= 1 && isnumeric(varargin{1}) && ~isnumeric(varargin{2})
     y = varargin{1};
     x = 1:length(y(:,1));
@@ -266,7 +266,7 @@ elseif nargin >1 && isnumeric(varargin{1}) && isnumeric(varargin{2})
     x = varargin{1};
     y = varargin{2};
 else
-    error('Undefined input arguments of type ''xy''');
+    error('Undefined input arguments of type ''xy''.');
 end
     
 % Check data precision
@@ -285,7 +285,7 @@ if length(y(1,:)) == length(x(:,1))
     y = y';
 end
 if length(x(:,1)) ~= length(y(:,1))
-    error('Input dimensions must aggree');
+    error('Input dimensions must aggree.');
 end
     
 % Check user input
@@ -306,7 +306,7 @@ if isempty(options.center)
     [~,index] = max(y);
     options.center = x(index);
 elseif ~isnumeric(options.center)
-    error('Undefined input arguments of type ''center''');
+    error('Undefined input arguments of type ''center''.');
 elseif max(options.center) > max(x) || min(options.center) < min(x)
     [~,index] = max(y);
     options.center = x(index);
@@ -325,7 +325,7 @@ end
 if isempty(options.width) || min(options.width) <= 0
     options.width(1:length(options.center),1) = max(x) * 0.05;
 elseif ~isnumeric(options.width)
-    error('Undefined input arguments of type ''width''');
+    error('Undefined input arguments of type ''width''.');
 end
 
 % Find out of range values (maximum)

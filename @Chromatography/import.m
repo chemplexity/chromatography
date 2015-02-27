@@ -6,42 +6,50 @@
 %   data = import(filetype, 'OptionName', optionvalue...)
 %
 % Input
-%   filetype   : '.CDF', '.D', '.MS', '.RAW'
+%   filetype    : '.CDF', '.D', '.MS', '.RAW'
 %
 % Options
-%   'append'   : structure
-%   'progress' : 'on', 'off'
+%   'append'    : structure
+%   'precision' : integer
+%   'progress'  : 'on', 'off'
 %
 % Description
-%   filetype   : file extension (e.g. '.D', '.MS', '.CDF', '.RAW')
-%   'append'   : append data structure (default = none)
-%   'progress' : display import progress (default = 'on')
+%   filetype    : file extension (e.g. '.D', '.MS', '.CDF', '.RAW')
+%   'append'    : append data structure (default = none)
+%   'precision' : number of decimal places allowed for m/z values (default = 3)
+%   'progress'  : display import progress (default = 'on')
 %
 % Examples
-%   data = obj.import('.D')
 %   data = obj.import('.CDF')
 %   data = obj.import('.D', 'append', data)
-%   data = obj.import('.MS', 'progress', 'off')
-%   data = obj.import('.D', 'append', data, 'progress', 'on')
+%   data = obj.import('.MS', 'progress', 'off', 'precision', 2)
+%   data = obj.import('.RAW', 'append', data, 'progress', 'on')
 
 function varargout = import(obj, varargin)
 
 % Check input
 [data, options] = parse(obj, varargin);
 
-% Variables
-options.compute_time = 0;
+% Check for errors
+if isempty(data) && isempty(options)
+    disp('Unrecognized file format.');
+    return
+end
+
+% Supress warnings
+warning off all
 
 % Open file selection dialog
 files = dialog(obj, varargin{1});
 
 % Check for any file selections
 if isempty(files)
+    varargout{1} = data;
     return
 end
 
 % Remove entries with incorrect filetype
-files(~strcmp(files(:,3), varargin{1}), :) = [];
+files(~strcmpi(files(:,3), varargin{1}), :) = [];
 
 % Set path to selected folder
 path(files{1,1}, path);
@@ -53,14 +61,20 @@ switch options.filetype
     case {'.CDF'}
         
         for i = 1:length(files(:,1))
+            
             % Start timer
             tic;
+            
             % Import data
-            import_data(i) = ImportCDF(strcat(files{i,2},files{i,3}));
+            import_data{i} = ImportCDF(strcat(files{i,2},files{i,3}), 'precision', options.precision);
+            
             % Stop timer
             compute_time(i) = toc;
-            % Assign a unique id
-            id(i) = length(data) + i;
+            
+            % Check data
+            if isempty(import_data(i))
+                continue
+            end
             
             % Display import progress
             options.compute_time = options.compute_time + compute_time(i);
@@ -71,16 +85,24 @@ switch options.filetype
     case {'.MS'}
         
         for i = 1:length(files(:,1))
+            
             % Construct file path
             file_path = fullfile(files{i,1}, strcat(files{i,2}, files{i,3}));
+            
             % Start timer
             tic;
+            
             % Import data
-            import_data(i) = ImportAgilent(file_path);
+            import_data{i} = ImportAgilent(file_path, 'precision', options.precision);
+            
             % Stop timer
             compute_time(i) = toc;
-            % Assign a unique id
-            id(i) = length(data) + i;
+            
+            % Check data
+            if isempty(import_data{i})
+                disp(['Unrecognized file format (', num2str(i), '/', num2str(length(files(:,1))), ').']);
+                continue
+            end
             
             % Display import progress
             options.compute_time = options.compute_time + compute_time(i);
@@ -91,18 +113,27 @@ switch options.filetype
     case {'.D'}
         
         for i = 1:length(files(:,1))
+            
             % Construct file path
             file_path = fullfile(files{i,1}, strcat(files{i,2}, files{i,3}));
+            
             % Start timer
             tic;
+            
             % Import data
-            import_data(i) = ImportAgilent(file_path);
+            import_data{i} = ImportAgilent(file_path, 'precision', options.precision);
+            
             % Stop timer
             compute_time(i) = toc;
-            % Assign a unique id
-            id(i) = length(data) + i;
+            
             % Remove file from path
             rmpath(file_path);
+            
+            % Check data
+            if isempty(import_data{i})
+                disp(['Unrecognized file format (', num2str(i), '/', num2str(length(files(:,1))), ').']);
+                continue
+            end
             
             % Display import progress
             options.compute_time = options.compute_time + compute_time(i);
@@ -113,14 +144,30 @@ switch options.filetype
     case {'.RAW'}
         
         for i = 1:length(files(:,1))
+            
             % Start timer
             tic;
+            
             % Import data
-            import_data(i) = ImportThermo(strcat(files{i,2},files{i,3}));
+            import_data{i} = ImportThermo(strcat(files{i,2},files{i,3}), 'precision', options.precision);
+            
             % Stop timer
             compute_time(i) = toc;
-            % Assign a unique id
-            id(i) = length(data) + i;
+            
+            % Check data
+            if isempty(import_data{i})
+                disp(['Unrecognized file format (', num2str(i), '/', num2str(length(files(:,1))), ').']);
+                continue
+            end
+            
+            % Check fields
+            if ~isfield(import_data{i}, 'xic')
+                import_data{i}.xic = [];
+            end
+            
+            if isfield(import_data{i}, 'ms2')
+                options.extra = 'ms2';
+            end
             
             % Display import progress
             options.compute_time = options.compute_time + compute_time(i);
@@ -128,16 +175,53 @@ switch options.filetype
         end
 end
 
+% Remove missing data
+import_data(cellfun(@isempty, import_data)) = [];
+
+% Check remaining data
+if isempty(import_data)
+    varargout{1} = data;
+    return
+
+else    
+    % Add file names
+    for i = 1:length(import_data)
+        
+        % Check for multiple files
+        if length(import_data{i}) == 1
+            import_data{i}.file.name = strcat(files{i,2}, files{i,3});
+        else
+            for j = 1:length(import_data{i})
+                import_data{i}(j).file.name = strcat(files{i,2}, files{i,3}); 
+            end
+        end
+    end
+    
+    % Convert to structure
+    import_data = [import_data{:}];
+end
+
 % Add missing fields to data structure
-import_data = DataStructure('validate', import_data);
+if ~isempty(options.extra)
+    data = DataStructure('validate', data, 'extra', options.extra);
+    import_data = DataStructure('validate', import_data, 'extra', options.extra);
+elseif isfield(data, 'ms2')
+    import_data = DataStructure('validate', import_data, 'extra', 'ms2');
+else
+    import_data = DataStructure('validate', import_data);
+end
+
+% Check data
+if ~isempty(data) && isempty(data(1).id) && isempty(data(1).name)
+    data(1) = [];
+end
 
 % Update data structure
-for i = 1:length(id)
+for i = 1:length(import_data)
     
     % File information
-    import_data(i).id = id(i);
+    import_data(i).id = length(data) + i;
     import_data(i).name = import_data(i).sample.name;
-    import_data(i).file.name = strcat(files{i,2}, files{i,3});
     import_data(i).file.type = options.filetype;
     
     % Data backup
@@ -145,8 +229,8 @@ for i = 1:length(id)
     import_data(i).xic.backup = import_data(i).xic.values;
     
     % Initialize baseline values
-    import_data(i).tic.baseline = zeros(size(import_data(i).tic.values));
-    import_data(i).xic.baseline = zeros(size(import_data(i).xic.values));
+    import_data(i).tic.baseline = [];
+    import_data(i).xic.baseline = [];
 end
 
 % Append any existing data with new data
@@ -229,14 +313,16 @@ nargin = length(varargin);
 
 % Check number of inputs
 if nargin < 1
-    error('Not enough input arguments');
+    error('Not enough input arguments.');
 elseif ~ischar(varargin{1})
-    error('Undefined input arguments of type ''filetype''');
+    error('Undefined input arguments of type ''filetype''.');
 end
 
 % Check for supported file extension
 if ~any(find(strcmp(varargin{1}, obj.options.import)))
-    error('Unrecognized file format');
+    varargout{1} = [];
+    varargout{2} = [];
+    return
 else
     options.filetype = varargin{1};
 end
@@ -244,7 +330,7 @@ end
 % Check user input
 input = @(x) find(strcmpi(varargin, x),1);
 
-% Append options
+% Append
 if ~isempty(input('append'))
     options.append = varargin{input('append')+1};
     
@@ -258,17 +344,69 @@ else
     data = DataStructure();
 end
 
-% Progress options
+% Precision
+if ~isempty(input('precision'))
+    precision = varargin{input('precision')+1};
+    
+    % Check for valid input
+    if ~isnumeric(precision)
+        options.precision = 3;
+        
+    elseif precision < 0
+        
+        % Check for case: -x
+        if precision >= -9 && precision <= 0
+            options.precision = abs(precision);
+        else
+            options.precision = 3;
+            disp('Input arguments of type ''precision'' invalid. Value set to: ''3''.');
+        end
+        
+    elseif precision > 0 && log10(precision) < 0
+        
+        % Check for case: 10^-x
+        if log10(precision) >= -9 && log10(precision) <= 0
+            options.precision = abs(log10(precision));
+        else
+            options.precision = 3;
+            disp('Input arguments of type ''precision'' invalid. Value set to: ''3''.');
+        end
+ 
+    elseif precision > 9
+        
+        % Check for case: 10^x
+        if log10(precision) <= 9 && log10(precision) >= 0
+            options.precision = log10(precision);
+        else
+            options.precision = 3;
+            disp('Input arguments of type ''precision'' invalid. Value set to: ''3''.');
+        end
+    else
+        options.precision = precision;
+    end
+else
+    options.precision = 3;
+end
+
+% Progress
 if ~isempty(input('progress'))
     options.progress = varargin{input('progress')+1};
     
     % Check for valid input
-    if ~strcmpi(options.progress, 'off')
+    if any(strcmpi(options.progress, {'off', 'hide'}))
+        options.progress = 'off';
+    elseif any(strcmpi(options.progress, {'default', 'on', 'show', 'display'}))
+        options.progress = 'on';
+    else
         options.progress = 'on';
     end
 else
     options.progress = 'on';
 end
+
+% Variables
+options.compute_time = 0;
+options.extra = '';
 
 % Return input
 varargout{1} = data;

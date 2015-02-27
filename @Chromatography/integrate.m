@@ -207,11 +207,11 @@ nargin = length(varargin);
 
 % Check input
 if nargin < 1
-    error('Not enough input arguments');
+    error('Not enough input arguments.');
 elseif isstruct(varargin{1})
     data = DataStructure('validate', varargin{1});
 else
-    error('Undefined input arguments of type ''data''');
+    error('Undefined input arguments of type ''data''.');
 end
 
 % Check user input

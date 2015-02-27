@@ -4,7 +4,7 @@
 <tr>
 
 <td align="center">
-	Open-source code for processing chromatography data in the MATLAB programming environment
+	Open-source code for processing chromatography and mass spectrometry data in the MATLAB programming environment
 </td>
 
 <td>
@@ -43,6 +43,9 @@ Check out the [in-depth guide](https://github.com/chemplexity/chromatography/wik
 	</tr><tr></tr><tr>
 		<td align="center">netCDF</td>
 		<td align="center"><code>.CDF</code></td>
+    </tr><tr></tr><tr>
+		<td align="center">mzXML</td>
+		<td align="center"><code>.mzXML</code></td>
 	</tr>
 	</table>
 </td>
