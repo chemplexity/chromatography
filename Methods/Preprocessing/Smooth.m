@@ -30,9 +30,9 @@ function varargout = Smooth(y, varargin)
 
 % Check input
 if nargin < 1
-    error('Not enough input arguments');
+    error('Not enough input arguments.');
 elseif ~isnumeric(y)
-    error('Undefined input arguments of type ''y''');
+    error('Undefined input arguments of type ''y''.');
 end
 
 % Default options
@@ -79,7 +79,7 @@ end
 
 % Check data length
 if all(size(y) <= 3)
-    error('Insufficient number of points');
+    error('Insufficient number of points.');
 end
 
 % Check for negative values

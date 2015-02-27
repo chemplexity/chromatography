@@ -42,7 +42,7 @@ nargin = length(varargin);
 
 % Check input
 if nargin < 1
-    error('Not enough input arguments');
+    error('Not enough input arguments.');
 elseif nargin <= 3
     values = sum(cellfun(@isnumeric, varargin));
 elseif nargin > 3
@@ -51,7 +51,7 @@ end
 
 % Check for any data
 if values == 0
-    error('Incorrect input arguments of type ''y''');
+    error('Incorrect input arguments of type ''y''.');
 end
 
 % Check input data
@@ -156,7 +156,7 @@ if ~isempty(input('filename'))
     % Add '.CSV' extension
     options.file = strcat(options.file, '.CSV');
 else
-    options.filename = 'data.CSV';
+    options.file = 'data.CSV';
 end
 
 

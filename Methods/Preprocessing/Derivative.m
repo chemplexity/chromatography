@@ -58,7 +58,7 @@ nargin = length(varargin);
 switch nargin
     
     case 0
-        error('Not enough input arguments');
+        error('Not enough input arguments.');
         
     case 1
         if isnumeric(varargin{1})
@@ -66,7 +66,7 @@ switch nargin
             x = x';
             y = varargin{1};
         else
-            error('Undefined input arguments of type ''y''');
+            error('Undefined input arguments of type ''y''.');
         end
         
     otherwise
@@ -78,7 +78,7 @@ switch nargin
             x = x';
             y = varargin{1};
         else
-            error('Undefined input arguments of type ''y''');
+            error('Undefined input arguments of type ''y''.');
         end
 end
 

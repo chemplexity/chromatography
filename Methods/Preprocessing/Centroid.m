@@ -85,19 +85,19 @@ nargin = length(varargin);
 
 % Check input
 if nargin <= 1
-    error('Not enough input arguments');
+    error('Not enough input arguments.');
 end
 
 % Check data
 if isnumeric(varargin{1})
     mz = varargin{1};
 else
-    error('Undefined input arguments of type ''mz''');
+    error('Undefined input arguments of type ''mz''.');
 end
 if isnumeric(varargin{2})
     y = varargin{2};
 else
-    error('Undefined input arguments of type ''y''');
+    error('Undefined input arguments of type ''y''.');
 end
 
 % Check data precision
@@ -125,7 +125,7 @@ if length(mz(1,:)) == length(y(:,1)) && length(y(:,1)) ~= length(y(1,:))
 end
     
 if length(mz(1,:)) ~= length(y(1,:))
-    error('Input dimensions must aggree');
+    error('Input dimensions must aggree.');
 end
     
 % Return input

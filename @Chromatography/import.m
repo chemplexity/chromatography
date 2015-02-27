@@ -30,6 +30,12 @@ function varargout = import(obj, varargin)
 % Check input
 [data, options] = parse(obj, varargin);
 
+% Check for errors
+if isempty(data) && isempty(options)
+    disp('Unrecognized file format.');
+    return
+end
+
 % Supress warnings
 warning off all
 
@@ -94,7 +100,7 @@ switch options.filetype
             
             % Check data
             if isempty(import_data{i})
-                disp(['Unrecognized file format (', num2str(i), '/', num2str(length(files(:,1))), ')']);
+                disp(['Unrecognized file format (', num2str(i), '/', num2str(length(files(:,1))), ').']);
                 continue
             end
             
@@ -125,7 +131,7 @@ switch options.filetype
             
             % Check data
             if isempty(import_data{i})
-                disp(['Unrecognized file format (', num2str(i), '/', num2str(length(files(:,1))), ')']);
+                disp(['Unrecognized file format (', num2str(i), '/', num2str(length(files(:,1))), ').']);
                 continue
             end
             
@@ -150,7 +156,7 @@ switch options.filetype
             
             % Check data
             if isempty(import_data{i})
-                disp(['Unrecognized file format (', num2str(i), '/', num2str(length(files(:,1))), ')']);
+                disp(['Unrecognized file format (', num2str(i), '/', num2str(length(files(:,1))), ').']);
                 continue
             end
             
@@ -307,14 +313,16 @@ nargin = length(varargin);
 
 % Check number of inputs
 if nargin < 1
-    error('Not enough input arguments');
+    error('Not enough input arguments.');
 elseif ~ischar(varargin{1})
-    error('Undefined input arguments of type ''filetype''');
+    error('Undefined input arguments of type ''filetype''.');
 end
 
 % Check for supported file extension
 if ~any(find(strcmp(varargin{1}, obj.options.import)))
-    error('Unrecognized file format');
+    varargout{1} = [];
+    varargout{2} = [];
+    return
 else
     options.filetype = varargin{1};
 end

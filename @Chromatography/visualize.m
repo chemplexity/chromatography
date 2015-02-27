@@ -19,7 +19,8 @@
 %   'xlim'      : 'auto', [xmin, xmax]
 %   'ylim'      : 'auto', [ymin, ymax]
 %   'legend'    : 'on', 'off'
-%   'export'    : see MATLAB documentation on print functions
+%   'export'    : see MATLAB documentation on print functions (ex. {'myfig', '-dtiff', '-r300'})
+%   'color'     : RGB array
 %   'colormap'  : 'parula', 'jet', 'hsv', 'hot', 'cool', 'spring', 'summer',
 %                 'autumn', 'winter', 'gray', 'bone', 'copper', 'pink'
 %
@@ -39,6 +40,7 @@
 %   'ylim'      : y-axis limits (default = 'auto')
 %   'legend'    : display legend (default = 'on')
 %   'export'    : options passed to the MATLAB print function (default = 'off')
+%   'color'     : manually set the RGB values used for line colors (default = 'off')
 %   'colormap'  : select colormap to use for plotting (default = 'parula')
 %
 % Examples
@@ -86,7 +88,12 @@ for i = 1:length(samples)
             
             % Input values
             y = data(samples(i)).tic.values;
-                    
+
+            % Check for sparse matrix
+            if issparse(y)
+                y = full(y);
+            end
+            
             % Check baseline
             if any(strcmpi(options.baseline, {'on', 'corrected'}))
                 baseline = data(samples(i)).tic.baseline;
@@ -105,7 +112,7 @@ for i = 1:length(samples)
             if strcmpi(options.legend, 'on')
                 names = options.name(i);
             else
-                names = '';
+                names = {''};
             end
                 
         case 'all'
@@ -113,6 +120,11 @@ for i = 1:length(samples)
             % Input values
             y = data(samples(i)).xic.values;
 
+            % Check for sparse matrix
+            if issparse(y)
+                y = full(y);
+            end
+            
             % Check baseline
             if any(strcmpi(options.baseline, {'on', 'corrected'}))
                 baseline = data(samples(i)).xic.baseline;
@@ -140,6 +152,11 @@ for i = 1:length(samples)
             % Input values
             y = data(samples(i)).xic.values(:, options.ions);
         
+            % Check for sparse matrix
+            if issparse(y)
+                y = full(y);
+            end
+            
             % Check baseline
             if any(strcmpi(options.baseline, {'on', 'corrected'}))
                 baseline = data(samples(i)).xic.baseline;
@@ -195,13 +212,13 @@ for i = 1:length(samples)
     switch version('-release')
 
         case '2014b'
-            line(x, y,...
+            plot(x, y,...
                 'parent', options.axes, ...
                 'linewidth', options.linewidth, ...
                 'displayname', [names{:}]);
 
         otherwise
-            line(x, y,...
+            plot(x, y,...
                 'parent', options.axes,...
                 'linewidth', options.linewidth,...
                 'linesmoothing', 'on',...
@@ -473,7 +490,11 @@ options.figure = figure(...
 
 % Check color options
 if isempty(options.colormap) && ~isempty(options.color)
-    options.colormap = options.color;
+    if iscell(options.color)
+        options.colormap = options.color{1};
+    else
+        options.colormap = options.color;
+    end
 end
 
 % Determine color order
@@ -533,8 +554,9 @@ options.axes = axes(...
     'color', 'none',...
     'linewidth', options.line.width,...
     'tickdir', 'out',...
-    'ticklength', options.ticks.size,...
-    'nextplot', 'add');
+    'ticklength', options.ticks.size);
+
+hold all
 
 % Set x-axis label
 options.xlabel = xlabel(...
@@ -620,11 +642,11 @@ nargin = length(varargin);
 
 % Check input
 if nargin < 1
-    error('Not enough input arguments');
+    error('Not enough input arguments.');
 elseif isstruct(varargin{1})
     data = DataStructure('validate', varargin{1});
 else
-    error('Undefined input arguments of type ''data''');
+    error('Undefined input arguments of type ''data''.');
 end
 
 % Check user input
@@ -1096,11 +1118,13 @@ if ~isempty(input('export'))
         % Set default options
         options.export = {'chromatography_export', '-dpng', '-r300'};
     
+    elseif iscell(export)
+        options.export = export;
+        
     elseif any(strcmpi(export, {'default', 'off'}))
         options.export = [];
-        
-    % Check input type 
-    elseif ~iscell(export)
+
+    else
         options.export = [];
     end
     
