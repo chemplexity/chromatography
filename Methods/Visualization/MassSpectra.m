@@ -81,7 +81,7 @@ end
 % Initialize figure
 options.figure = figure(...
     'units', 'normalized',...
-    'position', [(1-0.4)/2, 0.2, 0.38, 0.4],...%'position', [(1-0.6)/2, 0.2, 0.625, 0.56],...
+    'position', [(1-0.4)/2, 0.2, 0.42, 0.44],...%'position', [(1-0.6)/2, 0.2, 0.625, 0.56],...
     'color', 'white',...
     'paperpositionmode', 'auto',...
     'papertype', 'usletter',...
@@ -490,7 +490,7 @@ else
 end
 
 
-% Label size options
+% Label font size options
 if ~isempty(input('labelsize'))
     fontsize = varargin{input('labelsize')+1};
 elseif ~isempty(input('fontsize'))
@@ -499,7 +499,7 @@ else
     fontsize = [];
 end
 
-% Check for valid input
+% Check for valid font size
 if ~isempty(fontsize)
     if any(strcmpi(fontsize, {'default'})) || ~isnumeric(fontsize)
         options.label.fontsize = 7.5;
@@ -600,7 +600,7 @@ end
 if ~isempty(input('threshold'))
     options.threshold = varargin{input('threshold')+1};
                    
-    if ~isnumeric(opitons.threshold)
+    if ~isnumeric(options.threshold)
         options.threshold = 0.015;
     elseif options.threshold <= 0 || options.threshold > 1
         options.threshold = 0.015;

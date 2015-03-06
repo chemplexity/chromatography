@@ -86,7 +86,7 @@ nargin = length(varargin);
 if nargin < 1
     error('Not enough input arguments.');
 elseif isstruct(varargin{1})
-    data = DataStructure('validate', varargin{1});
+    data = obj.format('validate', varargin{1});
 else
     error('Undefined input arguments of type ''data''.');
 end

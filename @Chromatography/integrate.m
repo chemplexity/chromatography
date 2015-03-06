@@ -32,7 +32,7 @@
 function varargout = integrate(obj, varargin)
 
 % Check input
-[data, options] = parse(varargin);
+[data, options] = parse(obj, varargin);
 
 % Variables
 samples = options.samples;
@@ -200,7 +200,7 @@ end
 
 
 % Parse user input
-function varargout = parse(varargin)
+function varargout = parse(obj, varargin)
 
 varargin = varargin{1};
 nargin = length(varargin);
@@ -209,7 +209,7 @@ nargin = length(varargin);
 if nargin < 1
     error('Not enough input arguments.');
 elseif isstruct(varargin{1})
-    data = DataStructure('validate', varargin{1});
+    data = obj.format('validate', varargin{1});
 else
     error('Undefined input arguments of type ''data''.');
 end

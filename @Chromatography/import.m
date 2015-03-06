@@ -203,12 +203,12 @@ end
 
 % Add missing fields to data structure
 if ~isempty(options.extra)
-    data = DataStructure('validate', data, 'extra', options.extra);
-    import_data = DataStructure('validate', import_data, 'extra', options.extra);
+    data = obj.format('validate', data, 'extra', options.extra);
+    import_data = obj.format('validate', import_data, 'extra', options.extra);
 elseif isfield(data, 'ms2')
-    import_data = DataStructure('validate', import_data, 'extra', 'ms2');
+    import_data = obj.format('validate', import_data, 'extra', 'ms2');
 else
-    import_data = DataStructure('validate', import_data);
+    import_data = obj.format('validate', import_data);
 end
 
 % Check data
@@ -336,12 +336,12 @@ if ~isempty(input('append'))
     
     % Check for valid input
     if isstruct(options.append)
-        data = DataStructure('validate', options.append);
+        data = obj.format('validate', options.append);
     else
-        data = DataStructure();
+        data = obj.format();
     end
 else
-    data = DataStructure();
+    data = obj.format();
 end
 
 % Precision
