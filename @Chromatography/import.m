@@ -2,8 +2,8 @@
 %  -Import chromatography data into the MATLAB workspace
 %
 % Syntax
-%   data = import(filetype)
-%   data = import(filetype, 'OptionName', optionvalue...)
+%   data = obj.import(filetype)
+%   data = obj.import(filetype, 'OptionName', optionvalue...)
 %
 % Input
 %   filetype    : '.CDF', '.D', '.MS', '.RAW'
@@ -257,7 +257,7 @@ end
 
 % Determine file description and file extension
 filter = com.mathworks.hg.util.dFilter;
-description = [obj.options.import{strcmp(obj.options.import(:,1), extension), 2}];
+description = [obj.Options.import{strcmp(obj.Options.import(:,1), extension), 2}];
 extension = lower(extension(2:end));
 
 % Set file description and file extension
@@ -319,7 +319,7 @@ elseif ~ischar(varargin{1})
 end
 
 % Check for supported file extension
-if ~any(find(strcmp(varargin{1}, obj.options.import)))
+if ~any(find(strcmp(varargin{1}, obj.Options.import)))
     varargout{1} = [];
     varargout{2} = [];
     return

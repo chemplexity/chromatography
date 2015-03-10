@@ -2,8 +2,8 @@
 %  -Apply smoothing filter for chromatographic data
 %
 % Syntax
-%   data = smooth(data)
-%   data = smooth(data, 'OptionName', optionvalue...)
+%   data = obj.smooth(data)
+%   data = obj.smooth(data, 'OptionName', optionvalue...)
 %
 % Options
 %   'samples'    : 'all', [index]
@@ -50,11 +50,11 @@ for i = 1:length(samples)
     % Input values
     switch ions
         case 'tic'
-            y = data(samples(i)).tic.backup;
+            y = data(samples(i)).tic.values;
         case 'all'
-            y = data(samples(i)).xic.backup;
+            y = data(samples(i)).xic.values;
         otherwise
-            y = data(samples(i)).xic.backup(:, options.ions);
+            y = data(samples(i)).xic.values(:, options.ions);
     end
     
     % Calculate smoothed values
@@ -182,12 +182,12 @@ if ~isempty(input('smoothness'))
     
     % Check for valid input
     if ~isnumeric(smoothness)
-        options.smoothness = obj.options.smoothing.smoothness;
+        options.smoothness = obj.Defaults.smoothing.smoothness;
     else
         options.smoothness = smoothness;
     end
 else
-    options.smoothness = obj.options.smoothing.smoothness;
+    options.smoothness = obj.Defaults.smoothing.smoothness;
 end
 
 
@@ -197,12 +197,12 @@ if ~isempty(input('asymmetry'))
     
     % Check for valid input
     if ~isnumeric(asymmetry)
-        options.asymmetry = obj.options.smoothing.asymmetry;
+        options.asymmetry = obj.Defaults.smoothing.asymmetry;
     else
         options.asymmetry = asymmetry;
     end
 else
-    options.asymmetry = obj.options.smoothing.asymmetry;
+    options.asymmetry = obj.Defaults.smoothing.asymmetry;
 end
 
 % Return input

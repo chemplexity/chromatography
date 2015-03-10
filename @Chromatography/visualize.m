@@ -2,8 +2,8 @@
 %  -Plot chromatograms, baselines, and curve fitting results
 %
 % Syntax
-%   fig = visualize(data)
-%   fig = visualize(data, 'OptionName', optionvalue...)
+%   fig = obj.visualize(data)
+%   fig = obj.visualize(data, 'OptionName', optionvalue...)
 %
 % Options
 %   'samples'   : 'all', [index]
@@ -128,6 +128,13 @@ for i = 1:length(samples)
             % Check baseline
             if any(strcmpi(options.baseline, {'on', 'corrected'}))
                 baseline = data(samples(i)).xic.baseline;
+                
+                if ~isempty(baseline)
+                    
+                    if sum(sum(baseline)) == 0
+                        baseline = [];
+                    end
+                end
             else
                 baseline = [];
             end
@@ -162,7 +169,12 @@ for i = 1:length(samples)
                 baseline = data(samples(i)).xic.baseline;
                 
                 if ~isempty(baseline)
-                    baseline = baseline(:, options.ions);
+                    
+                    if sum(sum(baseline)) > 0
+                        baseline = baseline(:, options.ions);
+                    else
+                        baseline = [];
+                    end
                 end
             else
                 baseline = [];
@@ -191,6 +203,7 @@ for i = 1:length(samples)
     % Check baseline
     if ~isempty(baseline) && strcmpi(options.baseline, 'corrected');
         y = y - baseline;
+        
     elseif isempty(baseline)
         options.baseline = 'off';
     end
@@ -200,18 +213,20 @@ for i = 1:length(samples)
         options.peaks = 'off';
     end
     
+    % Determine x-axis limits
+    options = plot_xlim(x, options);
+    
     % Calculate scale and layout
-    y = plot_scale(y, options);
+    [y, options] = plot_scale(y, options);
     y = plot_layout(y, options);
     
-    % Determine axes limits
-    options = plot_xlim(x, options);
-    options = plot_ylim(y, options);
+    % Determine y-axis limits
+    options = plot_ylim(x, y, options);
     
     % Initialize plots
     switch version('-release')
 
-        case '2014b'
+        case {'2014b', '2015a'}
             plot(x, y,...
                 'parent', options.axes, ...
                 'linewidth', options.linewidth, ...
@@ -227,17 +242,19 @@ for i = 1:length(samples)
     
     % Check baseline options
     if strcmpi(options.baseline, 'on')
+
+        baseline = plot_scale(baseline, options, 1);
         
-        if strcmpi(scale, 'normalized')
-            baseline = (baseline - min(min(y))) / (max(max(y))-min(min(y)));
+        if strcmpi(options.scale, 'normalized')
+            baseline = baseline ./ 100;
         end
         
         baseline = plot_layout(baseline, options);
         
-        line(x, baseline, ...
+        plot(x, baseline, ...
             'parent', options.axes, ...
             'linewidth', options.linewidth, ...
-            'color', [0.99,0.25,0.23]);
+            'color', [0.99,0.1,0.23]);
     end
 end
 
@@ -322,22 +339,68 @@ end
 
 
 % Scale options
-function y = plot_scale(y, options)
+function varargout = plot_scale(varargin)
 
-% Normalize each vector between 0 and 1
-if strcmpi(options.scale, 'normalized') && strcmpi(options.scale_ref, 'local')
-    y = bsxfun(@rdivide, bsxfun(@minus, y, min(y)), (max(y)-min(y)));
+% Input
+y = varargin{1};
+options = varargin{2};
+
+if nargin == 3
+    extra = varargin{3};
+else
+    extra = 0;
+end
     
-% Normalize each vector between absolute min and absolute max of all vectors
-elseif strcmpi(options.scale, 'normalized') && strcmpi(options.scale_ref, 'global')
-    y = bsxfun(@rdivide, bsxfun(@minus, y, min(min(y))), (max(max(y))-min(min(y))));
+% Normalized scale
+if strcmpi(options.scale, 'normalized')
     
-% Determine stacking offset for full scale
+    % Normalization factor
+    switch options.scale_ref
+        
+        case 'local'
+            y = bsxfun(@rdivide, bsxfun(@minus, y, min(y)), (max(y)-min(y)));
+            y = y .* 100;
+    
+        case 'global'
+            y = bsxfun(@rdivide, bsxfun(@minus, y, min(min(y))), (max(max(y))-min(min(y))));
+            y = y .* 100;
+    end
+    
+% Full scale + stacked layout
 elseif strcmpi(options.scale, 'full') && strcmpi(options.layout, 'stacked')
-    if strcmpi(options.scale_ref, 'local')
-        y = bsxfun(@rdivide, bsxfun(@minus, y, min(min(y))), (max(max(y))-min(min(y))));
+    
+    switch options.scale_ref
+        
+        case 'local'
+            
+            index = options.i;
+
+            xmin = options.xmin.index(index);
+            xmax = options.xmax.index(index);
+
+            ymin = min(min(y(xmin:xmax,:)));
+            ymax = max(max(y(xmin:xmax,:)));
+            
+            if index == 1 && extra == 0
+                options.scaling_factor(1) = ymin;
+                options.scaling_factor(2) = ymax;
+            
+            elseif ymax > options.scaling_factor(2)
+                
+                options.scaling_factor(2) = ymax;
+                
+            else
+                ymin = options.scaling_factor(1);
+                ymax = options.scaling_factor(2);
+            end
+
+            y = bsxfun(@rdivide, bsxfun(@minus, y, ymin), (ymax - ymin));
     end
 end
+
+% Output
+varargout{1} = y;
+varargout{2} = options;
 end
 
 
@@ -351,7 +414,7 @@ if strcmpi(options.layout, 'stacked') && length(options.samples) > 1
     if strcmpi(options.scale, 'normalized')
         
         % Calculate offset
-        y = y - options.i * (1 + options.padding + options.offset);
+        y = y - (options.i * 100) * (1 + options.padding + options.offset);
     
     % Full scale
     elseif strcmpi(options.scale, 'full')
@@ -375,7 +438,7 @@ elseif strcmpi(options.layout, 'overlaid') && length(options.samples) > 1
     if options.offset ~= 0 && strcmpi(options.scale, 'normalized')
         
         % Calculate offset
-        y = y - options.i * options.offset;
+        y = y - (options.i * 100) * options.offset;
 
     % Full scale
     elseif options.offset ~= 0 && strcmpi(options.scale, 'full')
@@ -396,9 +459,16 @@ end
 % Check x-limits options
 function options = plot_xlim(x, options)
 
-% Determine y-limits
+% Variables
+index = options.i;
+
+% Determine x-limit values
 xmin = min(min(x));
 xmax = max(max(x));
+
+% Determine x-limit indices
+options.xmin.index(index) = find(x >= xmin, 1);
+options.xmax.index(index) = find(x >= xmax, 1);
 
 % Automatic x-limits
 if isempty(options.xlimits)
@@ -417,11 +487,29 @@ end
 
 
 % Check y-limits options
-function options = plot_ylim(y, options)
+function options = plot_ylim(x, y, options)
+
+% Find x-limits
+if options.xlimits(1) >= min(x)
+    xmin = find(x >= options.xlimits(1), 1);
+else
+    xmin = 1;
+end
+
+if options.xlimits(2) <= max(x)
+    xmax = find(x >= options.xlimits(2), 1);
+else
+    xmax = length(x);
+end
 
 % Determine y-limits
-ymin = min(min(y));
-ymax = max(max(y));
+ymin = min(min(y(xmin:xmax,:)));
+
+if strcmpi(options.layout, 'stacked') && strcmpi(options.scale, 'normalized')
+    y = y + (options.i * 100) - 100;
+end
+
+ymax = max(max(y(xmin:xmax,:)));
 
 % Automatic y-limits
 if isempty(options.ylimits)
@@ -444,7 +532,7 @@ end
 function plot_update(options)
 
 % Axes padding
-padding.x = (options.xlimits(2) - options.xlimits(1)) * options.padding;
+padding.x = (options.xlimits(2) - options.xlimits(1)) * (options.padding);
 padding.y = (options.ylimits(2) - options.ylimits(1)) * options.padding;
 
 % Axes limits
@@ -484,7 +572,7 @@ options.figure = figure(...
     'numbertitle', 'off',...
     'name', 'Chromatography Toolbox',...
     'units', 'normalized',....
-    'position', obj.options.visualization.position,...
+    'position', obj.Defaults.visualize.position,...
     'visible', 'off',...
     'paperpositionmode', 'auto');
 
@@ -608,7 +696,7 @@ linkaxes([options.axes, options.empty]);
 % Version specific options
 switch version('-release')
     
-    case '2014b'
+    case {'2014b', '2015a'}
         
         % Resize callback
         set(options.figure, 'sizechangedfcn', @(varargin) set(options.empty, 'position', get(options.axes, 'position')));
@@ -1068,7 +1156,7 @@ if ~isempty(input('colormap')) && isempty(options.color)
     
     % Check MATLAB version
     switch version('-release')
-        case '2014b'
+        case {'2014b', '2015a'}
             default = 'parula';
             colormaps = {'parula', 'jet', 'hsv', 'hot', 'cool', 'spring', 'summer',...
                 'autumn', 'winter', 'gray', 'bone', 'copper', 'pink', 'lines'};
@@ -1100,7 +1188,7 @@ elseif ~isempty(options.color)
 else
     % Check MATLAB version
     switch version('-release')
-        case '2014b'
+        case {'2014b', '2015a'}
             options.colormap = 'parula';
         otherwise
             options.colormap = 'jet';

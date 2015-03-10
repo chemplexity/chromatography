@@ -1,5 +1,5 @@
 % Class: Chromatography
-%  -Data processing methods for liquid and gas chromatography
+%  -Methods for processing chromatography and mass spectrometry data
 %
 % Initialize
 %   obj = Chromatography
@@ -10,6 +10,7 @@
 %       data = obj.import(filetype, 'OptionName', optionvalue...)
 %
 %   Preprocessing
+%       data = obj.centroid(data, 'OptionName', optionvalue...)
 %       data = obj.baseline(data, 'OptionName', optionvalue...)
 %       data = obj.smooth(data, 'OptionName', optionvalue...)
 %
@@ -18,52 +19,83 @@
 %
 %   Visualization
 %       fig = obj.visualize(data, 'OptionName', optionvalue...)
+%
 
 classdef Chromatography
     
+    properties
+        Defaults
+    end
+    
     properties (SetAccess = private)
-        options
+        Data
+        Options
+        Diagnostics
     end
     
     methods
         
-        % Constructor method
+        % Initialize class
         function obj = Chromatography()
+
+            % Initialize properties
+            obj = defaults(obj);
+            obj = options(obj);
+            obj = diagnostics(obj);            
+        end
+        
+        
+        % Initialize default options
+        function obj = defaults(obj, varargin)
+           
+            % Baseline
+            obj.Defaults.baseline.smoothness = 1E6;
+            obj.Defaults.baseline.asymmetry = 1E-4;
             
-            % General informations
-            obj.options.system_os = computer;
-            obj.options.matlab_version = version('-release');
-            obj.options.toolbox_version = '0.1.4';
+            % Smoothing
+            obj.Defaults.smoothing.smoothness = 5;
+            obj.Defaults.smoothing.asymmetry = 0.5;
             
-            % Import options
-            obj.options.import = {...
+            % Integration
+            obj.Defaults.integrate.model = 'exponential gaussian hybrid';
+            
+            % Visualization
+            obj.Defaults.visualize.position = [0.25, 0.25, 0.5, 0.5];
+            
+        end
+        
+        
+        % Initialize fixed options
+        function obj = options(obj, varargin)
+           
+            % Import
+            obj.Options.import = {...
                 '.CDF', 'netCDF (*.CDF)';
                 '.D',   'Agilent (*.D)';
                 '.MS',  'Agilent (*.MS)';
                 '.RAW', 'Thermo (*.RAW)'};
             
-            % Export options
-            obj.options.export = {...
+            % Export
+            obj.Options.export = {...
                 '.CSV', '(*.CSV)'};
-            
-            % Baseline options
-            obj.options.baseline.smoothness = 1E6;
-            obj.options.baseline.asymmetry = 1E-4;
-            
-            % Smoothing options
-            obj.options.smoothing.smoothness = 5;
-            obj.options.smoothing.asymmetry = 0.5;
-            
-            % Integration options
-            obj.options.integration.model = 'exponential gaussian hybrid';
-            
-            % Visualization options
-            obj.options.visualization.position = [0.25, 0.25, 0.5, 0.5];
+
         end
         
+        
+        % Initialize diagnostic information
+        function obj = diagnostics(obj, varargin)
+            
+            % Diagnostics
+            obj.Diagnostics.system_os = computer;
+            obj.Diagnostics.matlab_version = version('-release');
+            obj.Diagnostics.toolbox_version = '0.1.4';
+        end
+        
+        
+        % Core data structure
         function data = format(varargin)
             
-            % Field names
+            % Top-level fields
             basic = {...
                 'id',...
                 'name',...
@@ -75,6 +107,7 @@ classdef Chromatography
                 'xic',...
                 'mz'};
             
+            % Sub-level fields
             file = {...
                 'name',...
                 'type'};
@@ -113,8 +146,6 @@ classdef Chromatography
                 
                 % Create an empty data structure
                 data = cell2struct(cell(1,length(basic)), basic, 2);
-                
-                % Clear first line
                 data(1) = [];
                 
             elseif nargin >= 2
@@ -187,7 +218,6 @@ classdef Chromatography
                     end
                 end
             end
-        end
-        
+        end        
     end
 end

@@ -375,7 +375,7 @@ align([options.axes,options.empty],'HorizontalAlignment','left');
 % Set version specific properties
 switch version('-release')
     
-    case '2014b'
+    case {'2014b', '2015a'}
         
         % Resize callback
         set(options.figure, 'sizechangedfcn', @(varargin) set(options.empty, 'position', get(options.axes, 'position')));

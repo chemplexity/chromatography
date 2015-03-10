@@ -2,8 +2,8 @@
 %  -Find and integrate chromatographic peaks
 %
 % Syntax
-%   data = integrate(data)
-%   data = integrate(data, 'OptionName', optionvalue...)
+%   data = obj.integrate(data)
+%   data = obj.integrate(data, 'OptionName', optionvalue...)
 %
 % Options
 %   'samples' : 'all', [index]
@@ -74,7 +74,7 @@ for i = 1:length(samples)
     end
     
     % Calculate curve fitting results
-    switch obj.options.integration.model
+    switch obj.Defaults.integrate.model
         
         case 'exponential gaussian hybrid'
             peaks = ExponentialGaussian(x, y, 'center', center, 'width', width);
