@@ -81,7 +81,7 @@ end
 % Initialize figure
 options.figure = figure(...
     'units', 'normalized',...
-    'position', [(1-0.4)/2, 0.2, 0.38, 0.4],...%'position', [(1-0.6)/2, 0.2, 0.625, 0.56],...
+    'position', [(1-0.4)/2, 0.2, 0.42, 0.44],...
     'color', 'white',...
     'paperpositionmode', 'auto',...
     'papertype', 'usletter',...
@@ -181,7 +181,7 @@ if strcmpi(options.labels, 'on')
     counter = 1;
     padding = 0.01 * (max(mz) - min(mz));
     
-    % Filter values within noise
+    % Filter noise
     while counter ~= 0 && ~isempty(ylocal)
     
         % Determine m/z between peaks
@@ -214,7 +214,7 @@ if strcmpi(options.labels, 'on')
         counter = sum(remove);
     end
     
-    % Check for labels 
+    % Check for any labels
     if ~isempty(ylocal)
         
         % Initialize labels
@@ -290,7 +290,7 @@ if strcmpi(options.labels, 'on')
                 % Display labels
                 cellfun(@(x) set(x, 'visible', 'on'), options.text);
                 
-                % Check label distance
+            % Check label distance
             elseif counter == 0
                 
                 % Check label overlap from distant columns
@@ -375,7 +375,7 @@ align([options.axes,options.empty],'HorizontalAlignment','left');
 % Set version specific properties
 switch version('-release')
     
-    case '2014b'
+    case {'2014b', '2015a'}
         
         % Resize callback
         set(options.figure, 'sizechangedfcn', @(varargin) set(options.empty, 'position', get(options.axes, 'position')));
@@ -490,7 +490,7 @@ else
 end
 
 
-% Label size options
+% Label font size options
 if ~isempty(input('labelsize'))
     fontsize = varargin{input('labelsize')+1};
 elseif ~isempty(input('fontsize'))
@@ -499,7 +499,7 @@ else
     fontsize = [];
 end
 
-% Check for valid input
+% Check for valid font size
 if ~isempty(fontsize)
     if any(strcmpi(fontsize, {'default'})) || ~isnumeric(fontsize)
         options.label.fontsize = 7.5;
@@ -600,7 +600,7 @@ end
 if ~isempty(input('threshold'))
     options.threshold = varargin{input('threshold')+1};
                    
-    if ~isnumeric(opitons.threshold)
+    if ~isnumeric(options.threshold)
         options.threshold = 0.015;
     elseif options.threshold <= 0 || options.threshold > 1
         options.threshold = 0.015;

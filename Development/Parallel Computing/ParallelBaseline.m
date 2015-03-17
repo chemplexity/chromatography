@@ -20,7 +20,7 @@
 %   'parallel'   : execute function with parallel computing (default = 'on')
 %
 % Requirements
-%   - Parallel Computing Toolbox (Version 6.3+)
+%   - Parallel Computing Toolbox (Version 6.2+)
 %
 % Examples
 %   baseline = ParallelBaseline(y)
@@ -87,11 +87,11 @@ if nargin > 1
             % Check for 'Parallel Computing Toolbox'
             if any(strcmpi('Parallel Computing Toolbox', {tools.Name}))
                 
-                % Check version (6.3+)
-                if str2double(tools(strcmpi('Parallel Computing Toolbox', {tools.Name})).Version) >= 6.3
+                % Check version (6.2+)
+                if str2double(tools(strcmpi('Parallel Computing Toolbox', {tools.Name})).Version) >= 6.2
                     parallel = 'on';
                 else
-                    disp('Parallel Computing Toolbox < v6.3. Proceeding without parallel computing');
+                    disp('Parallel Computing Toolbox < v6.2. Proceeding without parallel computing');
                     parallel = 'off';
                 end
             else

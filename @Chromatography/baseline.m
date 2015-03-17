@@ -2,8 +2,8 @@
 %  -Calculate baseline of chromatographic data
 %
 % Syntax
-%   data = baseline(data)
-%   data = baseline(data, 'OptionName', optionvalue...)
+%   data = obj.baseline(data)
+%   data = obj.baseline(data, 'OptionName', optionvalue...)
 %
 % Options
 %   'samples'    : 'all', [index]
@@ -98,7 +98,7 @@ nargin = length(varargin);
 if nargin < 1
     error('Not enough input arguments.');
 elseif isstruct(varargin{1})
-    data = DataStructure('validate', varargin{1});
+    data = obj.format('validate', varargin{1});
 else
     error('Undefined input arguments of type ''data''.');
 end
@@ -194,12 +194,12 @@ if ~isempty(input('smoothness'))
     
     % Check for valid input
     if ~isnumeric(smoothness)
-        options.smoothness = obj.options.baseline.smoothness;
+        options.smoothness = obj.Defaults.baseline.smoothness;
     else
         options.smoothness = smoothness;
     end
 else
-    options.smoothness = obj.options.baseline.smoothness;
+    options.smoothness = obj.Defaults.baseline.smoothness;
 end
 
 
@@ -209,12 +209,12 @@ if ~isempty(input('asymmetry'))
     
     % Check for valid input
     if ~isnumeric(asymmetry)
-        options.asymmetry = obj.options.baseline.asymmetry;
+        options.asymmetry = obj.Defaults.baseline.asymmetry;
     else
         options.asymmetry = asymmetry;
     end
 else
-    options.asymmetry = obj.options.baseline.asymmetry;
+    options.asymmetry = obj.Defaults.baseline.asymmetry;
 end
 
 % Return input
