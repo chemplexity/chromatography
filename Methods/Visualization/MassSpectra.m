@@ -81,7 +81,7 @@ end
 % Initialize figure
 options.figure = figure(...
     'units', 'normalized',...
-    'position', [(1-0.4)/2, 0.2, 0.42, 0.44],...%'position', [(1-0.6)/2, 0.2, 0.625, 0.56],...
+    'position', [(1-0.4)/2, 0.2, 0.42, 0.44],...
     'color', 'white',...
     'paperpositionmode', 'auto',...
     'papertype', 'usletter',...
@@ -181,7 +181,7 @@ if strcmpi(options.labels, 'on')
     counter = 1;
     padding = 0.01 * (max(mz) - min(mz));
     
-    % Filter values within noise
+    % Filter noise
     while counter ~= 0 && ~isempty(ylocal)
     
         % Determine m/z between peaks
@@ -214,7 +214,7 @@ if strcmpi(options.labels, 'on')
         counter = sum(remove);
     end
     
-    % Check for labels 
+    % Check for any labels
     if ~isempty(ylocal)
         
         % Initialize labels
@@ -290,7 +290,7 @@ if strcmpi(options.labels, 'on')
                 % Display labels
                 cellfun(@(x) set(x, 'visible', 'on'), options.text);
                 
-                % Check label distance
+            % Check label distance
             elseif counter == 0
                 
                 % Check label overlap from distant columns
