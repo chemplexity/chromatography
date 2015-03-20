@@ -146,20 +146,17 @@ end
 % Close file
 fclose(file);
 
-% Convert intensity values to abundance
+% Convert intensity values to abundance (mantissa and exponent)
 xic = bitand(xic, 16383, 'int16') .* (8 .^ bitshift(xic, -14, 'int16'));
 
-% Convert mass values to m/z
+% Convert mass values to m/z (20-bit ADC)
 mz = mz ./ 20;
 
-% Variables
-precision = options.precision;
-
-% Determine precision of mass values
-mz = round(mz .* 10^precision) ./ 10^precision;
+% Limit precision of mass values
+mz = round(mz .* 10^options.precision) ./ 10^options.precision;
 data.mz = unique(mz, 'sorted');
 
-% Reshape data (rows = time, columns = m/z)
+% Reshape vector to matrix (rows = time, columns = m/z)
 if length(data.mz) == length(xic) / length(data.time)
     
     % Reshape intensity values

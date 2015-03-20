@@ -307,7 +307,7 @@ switch ions
         
     case 'all'
         mz = [data(options.samples).mz];
-        mz = unique(mz, 'sorted');
+        mz = unique(mz, 'stable');
         
         % Convert values to strings
         names = arrayfun(@num2str, mz, 'uniformoutput', false);
@@ -325,7 +325,7 @@ switch ions
             mz = [mz, data(options.samples(i)).mz(options.ions)];
         end
         
-        mz = unique(mz, 'sorted');
+        mz = unique(mz, 'stable');
         
         % Convert values to strings
         names = arrayfun(@num2str, mz, 'uniformoutput', false);
@@ -573,7 +573,7 @@ options.figure = figure(...
     'name', 'Chromatography Toolbox',...
     'units', 'normalized',....
     'position', obj.Defaults.visualize.position,...
-    'visible', 'off',...
+    'visible', 'on',...
     'paperpositionmode', 'auto');
 
 % Check color options
@@ -702,7 +702,7 @@ switch version('-release')
         set(options.figure, 'sizechangedfcn', @(varargin) set(options.empty, 'position', get(options.axes, 'position')));
         
         % Zoom callback
-        set(zoom(options.figure), 'actionpostcallback', @(varargin) set(options.empty, 'position', get(options.axes, 'position')));
+        set(zoom(gcf), 'actionpostcallback', @(varargin) set(options.empty, 'position', get(options.axes, 'position')));
 
         % Axes overlap
         set(get(get(options.axes, 'yruler'),'axle'), 'visible', 'off');
@@ -715,7 +715,7 @@ switch version('-release')
             set(options.figure, 'resizefcn', @(varargin) set(options.empty, 'position', get(options.axes, 'position')));
             
             % Zoom callback
-            set(zoom(options.figure), 'actionpostcallback', @(varargin) set(options.empty, 'position', get(options.axes, 'position')));
+            set(zoom(gcf), 'actionpostcallback', @(varargin) set(options.empty, 'position', get(options.axes, 'position')));
         catch
         end
 end
@@ -817,7 +817,7 @@ if ~isempty(input('ions'))
         end
         
         % Filter duplicates and sort
-        options.ions = unique(options.ions, 'sorted');
+        options.ions = unique(options.ions, 'stable');
     end
     
 else

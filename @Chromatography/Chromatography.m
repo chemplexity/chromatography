@@ -92,7 +92,7 @@ classdef Chromatography
         end
         
         
-        % Core data structure
+        % Create data structure
         function data = format(varargin)
             
             % Top-level fields
