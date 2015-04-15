@@ -93,10 +93,28 @@ switch options.filetype
             tic;
             
             % Import data
-            import_data{i} = ImportAgilent(file_path, 'precision', options.precision);
+            temp_data{i} = ImportAgilent(file_path, 'precision', options.precision);
             
             % Stop timer
             compute_time(i) = toc;
+            
+            % TEMPORARY
+            import_data{i}.name = temp_data.sample.name;
+            import_data{i}.sample = temp_data.sample;
+            import_data{i}.method = temp_data.method;
+            import_data{i}.time = temp_data.time;
+            
+            if isfield(temp_data, 'tic')
+                import_data{i}.tic.values = temp_data.tic;
+            end
+            
+            if isfield(temp_data, 'xic')
+                import_data{i}.xic.values = temp_data.xic;
+            end
+            
+            if isfield(temp_data, 'mz')
+                import_data{i}.mz = temp_data.mz;
+            end
             
             % Check data
             if isempty(import_data{i})
@@ -121,10 +139,32 @@ switch options.filetype
             tic;
             
             % Import data
-            import_data{i} = ImportAgilent(file_path, 'precision', options.precision);
-            
+            temp_data = ImportAgilent(file_path, 'precision', options.precision);
+          
             % Stop timer
             compute_time(i) = toc;
+            
+            % TEMPORARY
+            import_data{i}.name = temp_data.sample.name;
+            import_data{i}.sample = temp_data.sample;
+            import_data{i}.method = temp_data.method;
+            import_data{i}.time = temp_data.time;
+            
+            if isfield(temp_data, 'tic')
+                import_data{i}.tic.values = temp_data.tic;
+            end
+            
+            if isfield(temp_data, 'xic')
+                import_data{i}.xic.values = temp_data.xic;
+            end
+            
+            if isfield(temp_data, 'mz')
+                import_data{i}.mz = temp_data.mz;
+            end
+            
+            if isfield(temp_data, 'intensity')
+                import_data{i}.tic.values = temp_data.intensity;
+            end
             
             % Remove file from path
             rmpath(file_path);
