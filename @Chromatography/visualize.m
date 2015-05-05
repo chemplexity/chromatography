@@ -11,7 +11,7 @@
 %   'baseline'  : 'on', 'off', 'corrected'
 %   'peaks'     : 'on', 'off', 'residuals'
 %   'layout'    : 'stacked', 'overlaid'
-%   'scale'     : 'normalized', 'full'
+%   'scale'     : 'relative', 'absolute'
 %   'scale_ref' : 'local', 'global'
 %   'padding'   : value
 %   'offset'    : value
@@ -30,8 +30,8 @@
 %   'ions'      : column index of ions (default = 'tic')
 %   'baseline'  : display baseline results (default = 'off')
 %   'peaks'     : display curve fitting results (default = 'off')
-%   'layout'    : stacked or overlaid spectra (default = 'overlaid')
-%   'scale'     : normalized or full scale (default = 'full')
+%   'layout'    : stacked or overlaid spectra (default = 'stacked')
+%   'scale'     : relative or absolute scale (default = 'relative')
 %   'scale_ref' : reference scale for stacked spectra (default = 'local')
 %   'padding'   : whitespace between axes and spectra (default = 0.05)
 %   'offset'    : y-offset between spectra (default = 0.0);
@@ -888,8 +888,8 @@ if ~isempty(input('layout'))
     layout = varargin{input('layout')+1};
     
     % Set keywords
-    layout_stacked = {'stacked', 'stack', 'separate', 'separated'};
-    layout_overlaid = {'default', 'overlaid', 'overlay', 'overlap', 'full'};
+    layout_stacked = {'default', 'stacked', 'stack', 'separate', 'separated'};
+    layout_overlaid = {'overlaid', 'overlay', 'overlap', 'full'};
     
     % Check for valid input
     if any(strcmpi(layout, layout_stacked))
@@ -899,11 +899,11 @@ if ~isempty(input('layout'))
         options.layout = 'overlaid';
         
     else
-        options.layout = 'overlaid';
+        options.layout = 'stacked';
     end
     
 else
-    options.layout = 'overlaid';
+    options.layout = 'stacked';
 end
 
 
@@ -912,8 +912,8 @@ if ~isempty(input('scale'))
     scale = varargin{input('scale')+1};
     
     % Set keywords
-    scale_normalize = {'normalize', 'normalized', 'relative', 'separate', 'separated'};
-    scale_full = {'default', 'full', 'all'};
+    scale_normalize = {'default', 'normalize', 'normalized', 'relative', 'separate'};
+    scale_full = {'absolute', 'full', 'all'};
     
     % Check for valid input
     if any(strcmpi(scale, scale_normalize))
@@ -923,11 +923,11 @@ if ~isempty(input('scale'))
         options.scale = 'full';
         
     else
-        options.scale = 'full';
+        options.scale = 'normalized';
     end
     
 else
-    options.scale = 'full';
+    options.scale = 'normalized';
 end
 
 
@@ -1156,7 +1156,7 @@ if ~isempty(input('colormap')) && isempty(options.color)
     
     % Check MATLAB version
     switch version('-release')
-        case {'2014b', '2015a'}
+        case {'2014b', '2015a', '2015b'}
             default = 'parula';
             colormaps = {'parula', 'jet', 'hsv', 'hot', 'cool', 'spring', 'summer',...
                 'autumn', 'winter', 'gray', 'bone', 'copper', 'pink', 'lines'};

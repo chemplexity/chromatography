@@ -371,6 +371,8 @@ if strcmpi(options.labels, 'on')
             % Check for overlap
             if any(ytext(1,i) + 0.1 < ydata)
                 remove(5,i) = 1; 
+            else
+                remove(5,i) = 0;
             end
         end
         
