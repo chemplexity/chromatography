@@ -50,7 +50,7 @@ EGH.e = @(a,b,alpha) (-1 ./ log(alpha)) .* (b-a);
 EGH.a = @(h,w,e,e0) h .* (w .* sqrt(pi/8) + abs(e)) .* e0;
 EGH.t = @(w,e) atan(abs(e)./w);
 
-% Set proporationality constants
+% Set proporationality constants (for peak area calculation)
 EGH.factors = [4, -6.293724, 9.232834, -11.34291, 9.123978, -4.173753, 0.827797];
 EGH.c = @(t,a0) a0(1) + a0(2)*t + a0(3)*t^2 + a0(4)*t^3 + a0(5)*t^4 + a0(6)*t^5 + a0(7)*t^6;
 
