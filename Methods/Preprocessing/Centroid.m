@@ -36,7 +36,7 @@ while counter ~= 0 && iterations <= 10
         upper = y(:, i+1) == 0;
         lower = y(:, i-1) == 0;
     
-        % Consolidate if next column has more zero elements
+        % Consolidate if next column has more zeros
         if sum(middle) < sum(upper)
         
             % Index zeros adjacent to nonzeros

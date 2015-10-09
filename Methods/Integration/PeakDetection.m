@@ -80,7 +80,7 @@ for i = 1:length(y(1,:))
         continue
     end
     
-    % Determine peak location
+    % Determine peak center at max height
     p.x = p.x(p.y == max(p.y(window)),1);
     p.y = p.y(p.y == max(p.y(window)),1);
     
@@ -240,7 +240,7 @@ for i = 1:length(y(1,:))
     % Update peak values
     peak.center(:,i) = center;
     peak.height(:,i) = height;
-    peak.width(:,i) = width;
+    peak.width(:,i) = widsth;
     peak.a(:,i) = a;
     peak.b(:,i) = b;
     peak.alpha(:,i) = alpha;
