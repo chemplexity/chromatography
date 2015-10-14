@@ -29,24 +29,20 @@
 
 function data = ImportAgilentFID(varargin)
 
-file = [];
-agilent = AgilentFileStructure();
+filename = parseInput(varargin);
+filepath = getFilePath(filename);
 
-data = [];
-%    'id', [],...
-%     'file', [],...
-%    'sample', [],...
-%    'method', [],...
-%    'instrument', [],...
-%    'time', [],...
-%    'intensity', [],...
-%    'units', [],...
-%    'checksum', []...
-%    );
+data = getFileInfo(filepath);
+
+end
+
+function filename = parseInput(varargin)
+
+filename = [];
 
 % Input: none
-if nargin == 0
-   
+if nargin-1 == 0
+    
     % Initialize JFileChooser
     fc = javax.swing.JFileChooser(java.io.File(pwd));
     
@@ -72,51 +68,57 @@ if nargin == 0
         
         % java.io.File to char
         for i = 1:size(fs, 1)
-            [~, fa] = fileattrib(char(fs(i).getAbsolutePath));
+            [~, fattrib] = fileattrib(char(fs(i).getAbsolutePath));
             
             % Append file list
-            if isstruct(fa)
-                file = [file; fa];
+            if isstruct(fattrib)
+                filename = [filename; fattrib];
             end
         end
     end
     
-% Input: files/folders
-elseif nargin > 0
+% Input: files or folders
+elseif nargin-1 > 0
     
     for i = 1:length(varargin)
         
         % Check input name
         if ischar(varargin{i})
-            [~, fa] = fileattrib(varargin{i});
+            [~, fattrib] = fileattrib(varargin{i});
             
             % Append file list
-            if isstruct(fa)
-                file = [file; fa];
+            if isstruct(fattrib)
+                filename = [filename; fattrib];
             end
         end
     end
 end
+end
+   
+
+function filepath = getFilePath(filename)
+
+filepath = [];
 
 % Search function
 fsearch = @(x) regexp(x, '(?i)[.](D|MS|CH)', 'match');
 
 % Validate selection
-for i = 1:length(file)
+for i = 1:length(filename)
     
     % Search directory
-    if file(i).directory
-        fdir = dir(file(i).Name);
+    if filename(i).directory
+        fdir = dir(filename(i).Name);
         
         % Get file extensions
         fext = cellfun(@(x) fsearch(x), {fdir.name}, 'uniformoutput', 0);
         fdir(cellfun(@isempty, fext)) = [];
         
         for j = 1:length(fdir)
-        
+            
             % Get absolute path
-            fpath = fullfile(file(i).Name, filesep, fdir(j).name);
-        
+            fpath = fullfile(filename(i).Name, filesep, fdir(j).name);
+            
             % Case: '.D'
             if fdir(j).isdir
                 
@@ -133,72 +135,76 @@ for i = 1:length(file)
                     % Get absolute path
                     fpath = fullfile(fpath, filesep, fsub(k).name);
                     [~, fa] = fileattrib(fpath);
-                        
+                    
                     % Append file list
                     if isstruct(fa)
-                        data(end+1).file = fa.Name;
+                        filepath(end+1).filepath = fa.Name;
                     end
                 end
                 
-            % Case: '.CH', '.MS'
+                % Case: '.CH', '.MS'
             elseif ~fdir(j).isdir
                 [~, fa] = fileattrib(fpath);
-        
+                
                 % Append file list
                 if isstruct(fa)
-                    data(end+1).file = fa.Name;
+                    filepath(end+1).filepath = fa.Name;
                 end
             end
         end
         
-    % Search file
+        % Search file
     else
-        fname = file(i).Name;
+        fname = filename(i).Name;
         
         % Append file list
         if ~isempty(fsearch(fname))
-            data(end+1).file = fname;
+            filepath(end+1).filepath = fname;
         end
     end
 end
-
-% Display start message
-if ~isempty(data)
-    fprintf(['\nInitializing file import...\n\n',...
-             'Files: ', num2str(length(data)), '\n']);
 end
 
-% Read pascal string
-fpascal = @(f, type) fread(f, fread(f, 1, 'uint8'), [type,'=>char'], 'l')';
 
-for i = 1:length(data)
+function data = getFileInfo(filepath)
+
+data = [];
+reference = AgilentFileStructure();
+
+fpascal = @(f,type) fread(f, fread(f, 1, 'uint8'), [type,'=>char'], 'l')';
+fmessage = @(a,b) fprintf(['Loading file (', a, '/', b, ')\n']);
+
+fprintf('\nInitializing file import...\n');
+fprintf(['\nFiles: ', num2str(length(filepath)), '\n\n']);
+
+for i = 1:length(filepath)
     
-    % Display progress
-    fprintf(['\nLoading file (', num2str(i), '/', num2str(length(data)), ') ']);
+    fmessage(num2str(i), num2str(length(filepath)));
+    data(i).filepath = filepath(i).filepath;
     
-    % Get format code
-    file = fopen(data(i).file, 'r');
+    % Get file code
+    file = fopen(data(i).filepath, 'r');
     ftype = fread(file, fread(file, 1, 'uint8'), 'uint8=>char')';
     
     % Load file structure
-    fref = agilent([agilent.id]==str2double(ftype));
+    finfo = reference([reference.id]==str2double(ftype));
     
     % Import file info
-    for j = 1:length(fref)
+    for j = 1:length(finfo)
         
-        fseek(file, fref(j).offset, 'bof');
+        fseek(file, finfo(j).offset, 'bof');
         
         % integer/float
-        if ~strcmpi(fref(j).type, 'pascal') 
-            data(i).(fref(j).name) = fread(file, 1, fref(j).type, fref(j).endian);
+        if ~strcmpi(finfo(j).type, 'pascal') 
+            data(i).(finfo(j).name) = fread(file, 1, finfo(j).type, finfo(j).endian);
         
         % pascal string (UTF-8)
         elseif str2double(ftype) < 100
-            data(i).(fref(j).name) = fpascal(file, 'uint8');
+            data(i).(finfo(j).name) = fpascal(file, 'uint8');
         
         % pascal string (UTF-16)
         elseif str2double(ftype) > 100
-            data(i).(fref(j).name) = fpascal(file, 'uint16');
+            data(i).(finfo(j).name) = fpascal(file, 'uint16');
         end
         
     end
@@ -282,6 +288,7 @@ function varargout = parsedate(input, format)
     format{2} = 'mm/dd/yy HH:MM:SS PM';
     format{3} = 'dd-mmm-yy, HH:MM:SS';
 
+    
 end
 
 %
@@ -373,6 +380,8 @@ end
 % Read data
 fseek(file, data.DataOffset, 'bof');
 
+signal = zeros(fsize/2, 1);
+count = 1;
 buffer = zeros(1,3);
 
 while ftell(file) < fsize
@@ -388,8 +397,11 @@ while ftell(file) < fsize
         buffer(2) = 0;
     end
     
-    signal(end+1, 1) = buffer(1);
+    signal(count, 1) = buffer(1);
+    count = count + 1;
 end
+
+signal(count+1:end,:) = [];
 
 % Adjust signal
 if isfield(data, 'Slope') && isfield(data, 'Intercept')
@@ -708,6 +720,19 @@ F181 = {...
     181,  4732,  'float64',  'b',  'Slope';
     181,  5524,  'int16',    'b',  'SignalDataType';
     };
+
+units = {
+    'mAU';
+    'LU';
+    'nRIU';
+    'kV';
+    'uV';
+    '°C';
+    'mbar';
+    'mW';
+    'pA'
+    'uA'
+};
 
 varargout{1} = cell2struct([F8; F30; F81; F130; F179; F181], fields, 2);
 end
