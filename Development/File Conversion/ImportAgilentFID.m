@@ -279,7 +279,9 @@ for i = 1:length(filepath)
     fclose(file);
 end
 
-data(cellfun(@isempty, {data.Signal})) = [];
+if isfield(data, 'Signal')
+    data(cellfun(@isempty, {data.Signal})) = [];
+end
 end
 
 function varargout = parsedate(input, format)
@@ -370,17 +372,15 @@ else
     return
 end
         
-% Set signal zero
-if isfield(data, 'Zero')
-    signal = data.Zero;
-else
-    signal = [];
-end
-
 % Read data
 fseek(file, data.DataOffset, 'bof');
 
 signal = zeros(fsize/2, 1);
+
+if isfield(data, 'Zero')
+    signal(1) = data.Zero;
+end
+
 count = 1;
 buffer = zeros(1,3);
 
