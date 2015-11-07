@@ -6,7 +6,7 @@
 %   data = ImportAgilent(files)
 %
 % Examples
-%   Options: GUI, Files, Folders, Files/Folders
+%   Options: UI, Files, Folders, Files/Folders
 %
 %   1) UI
 %       data = ImportAgilent()
@@ -30,9 +30,9 @@
 function data = ImportAgilentFID(varargin)
 
 filename = parseInput(varargin);
-filepath = getFilePath(filename);
+filelist = getFilePath(filename);
 
-data = getFileInfo(filepath);
+data = getFileInfo(filelist);
 
 end
 
@@ -96,12 +96,12 @@ end
 end
    
 
-function filepath = getFilePath(filename)
+function filelist = getFilePath(filename)
 
-filepath = [];
+filelist = [];
 
-% Search function
-fsearch = @(x) regexp(x, '(?i)[.](D|MS|CH)', 'match');
+% Search filter
+filter = @(x) regexp(x, '(?i)[.](D|MS|CH|UV)', 'match');
 
 % Validate selection
 for i = 1:length(filename)
@@ -111,7 +111,7 @@ for i = 1:length(filename)
         fdir = dir(filename(i).Name);
         
         % Get file extensions
-        fext = cellfun(@(x) fsearch(x), {fdir.name}, 'uniformoutput', 0);
+        fext = cellfun(@(x) filter(x), {fdir.name}, 'uniformoutput', 0);
         fdir(cellfun(@isempty, fext)) = [];
         
         for j = 1:length(fdir)
@@ -119,123 +119,273 @@ for i = 1:length(filename)
             % Get absolute path
             fpath = fullfile(filename(i).Name, filesep, fdir(j).name);
             
-            % Case: '.D'
             if fdir(j).isdir
                 
-                % Search sub-directory
+                % Case: '.D'
                 fsub = dir(fpath);
                 fsub([fsub.isdir]) = [];
                 
-                % Get file extensions
-                fext = cellfun(@(x) fsearch(x), {fsub.name}, 'uniformoutput', 0);
+                % Get '.D' contents
+                fext = cellfun(@(x) filter(x), {fsub.name}, 'uniformoutput', 0);
                 fsub(cellfun(@isempty, fext)) = [];
                 
                 for k = 1:length(fsub)
                     
                     % Get absolute path
-                    fpath = fullfile(fpath, filesep, fsub(k).name);
-                    [~, fa] = fileattrib(fpath);
+                    fpath = fullfile(...
+                        filename(i).Name, filesep,...
+                        fdir(j).name, filesep,...
+                        fsub(k).name);
+                    
+                    [~, fattrib] = fileattrib(fpath);
+                    fname = fattrib.Name;
                     
                     % Append file list
-                    if isstruct(fa)
-                        filepath(end+1).filepath = fa.Name;
+                    if isstruct(fattrib)
+                        filelist(end+1).filepath = fname;
+                        filelist(end).filename = regexp(fname, '(?i)\w+[.]D', 'match');
+                        
+                        if isempty(filelist(end).filename)
+                            filelist(end).filename = regexp(fname, '(?i)\w+[.](MS|CH|UV)', 'match');
+                            filelist(end).filename = filelist(end).filename{1};
+                        else
+                            filelist(end).filename = filelist(end).filename{1};
+                        end
+                        
+                        filelist(end).date = fsub(k).datenum;
+                        filelist(end).size = fsub(k).bytes;
                     end
                 end
                 
-                % Case: '.CH', '.MS'
             elseif ~fdir(j).isdir
-                [~, fa] = fileattrib(fpath);
+                
+                % Case: '.CH', '.MS', '.UV'
+                [~, fattrib] = fileattrib(fpath);
+                
+                fname = fattrib.Name;
+                finfo = dir(fname);
                 
                 % Append file list
-                if isstruct(fa)
-                    filepath(end+1).filepath = fa.Name;
+                if isstruct(fattrib)
+                    
+                    filelist(end+1).filepath = fname;
+                    filelist(end).filename = regexp(fname, '(?i)\w+[.]D', 'match');
+                    
+                    if isempty(filelist(end).filename)
+                        filelist(end).filename = regexp(fname, '(?i)\w+[.](MS|CH|UV)', 'match');
+                        
+                        if ~isempty(filelist(end).filename)
+                            filelist(end).filename = filelist(end).filename{1};
+                        end
+                    else
+                        filelist(end).filename = filelist(end).filename{1};
+                    end
+                    
+                    filelist(end).date = finfo.datenum;
+                    filelist(end).size = finfo.bytes; 
                 end
             end
         end
-        
-        % Search file
+   
     else
+        
         fname = filename(i).Name;
+        finfo = dir(filename(i).Name);
         
         % Append file list
-        if ~isempty(fsearch(fname))
-            filepath(end+1).filepath = fname;
+        if ~isempty(filter(fname))
+            filelist(end+1).filepath = fname;
+            filelist(end).filename = regexp(fname, '(?i)\w+[.]D', 'match');
+        
+            if isempty(filelist(end).filename)
+                filelist(end).filename = regexp(fname, '(?i)\w+[.](MS|CH|UV)', 'match');
+                filelist(end).filename = filelist(end).filename{1};
+            else
+                filelist(end).filename = filelist(end).filename{1};
+            end
+            
+            filelist(end).date = finfo.datenum;
+            filelist(end).size = finfo.bytes;
         end
     end
 end
 end
 
 
-function data = getFileInfo(filepath)
+function data = getFileInfo(filelist)
 
+% Functions
+fpascal = @(f,type) fread(f, fread(f, 1, 'uint8'), [type,'=>char'], 'l')';
+
+% Variables
 data = [];
 reference = AgilentFileStructure();
 
-fpascal = @(f,type) fread(f, fread(f, 1, 'uint8'), [type,'=>char'], 'l')';
-fmessage = @(a,b) fprintf(['Loading file (', a, '/', b, ')\n']);
+% Messages
+message = [];
+message.timer = 0;
+message.counter = 0;
 
-fprintf('\nInitializing file import...\n');
-fprintf(['\nFiles: ', num2str(length(filepath)), '\n\n']);
+message.error.header = @(filepath,type) fprintf([...
+    'error...\n',...
+    '        Unsupported file type... \n',...
+    '        File      : ', filepath, '\n',...
+    '        Header    : ', type, '\n',...
+    '        Supported : 8, 30, 81, 130, 179, 181 \n']);
+        
+message.load.summary = @(count,bytes,time,rate) fprintf([...
+    '\nImport complete... \n',...
+    '    Files   : ', num2str(count), '\n',...
+    '    Size    : ', bytes, '\n',...
+    '    Elapsed : ', time, '\n',...
+    '    Rate    : ', rate, '\n\n']);
+    
+message.load.start = @(a,b) fprintf([...
+    '[', num2str(a), '/', num2str(b), '] ',...
+    'Loading ']);
 
-for i = 1:length(filepath)
+message.load.finish = @(a,b,time,speed,progress) fprintf([...
+    ' (', time, ', ', speed, ', ', progress, ')\n']);
+
+message.info.data = @(instrument) fprintf([...
+    '', instrument, ' file...']);
     
-    fmessage(num2str(i), num2str(length(filepath)));
-    data(i).filepath = filepath(i).filepath;
+for i = 1:length(filelist)
+
+    if i == 1
+        fprintf('\nImporting Agilent data files...\n\n');
+    end
     
-    % Get file code
+    % Start timer
+    tic;
+    
+    % MESSAGE / Load file
+    message.load.start(i, length(filelist));
+    
+    % Get file info
+    data(i).filepath = filelist(i).filepath;
+    data(i).filename = filelist(i).filename;
+    data(i).filedate = filelist(i).date;
+    data(i).filesize = filelist(i).size;
+    
+    % Open file
     file = fopen(data(i).filepath, 'r');
-    ftype = fread(file, fread(file, 1, 'uint8'), 'uint8=>char')';
     
-    % Load file structure
+    ftype = fread(file, fread(file, 1, 'uint8'), 'uint8=>char')';
     finfo = reference([reference.id]==str2double(ftype));
     
-    % Import file info
-    for j = 1:length(finfo)
+    % MESSAGE / Read file header
+    if isempty(finfo)
+        message.error.header(data(i).filepath, ftype);
+        message.timer = message.timer + toc;
+        continue
+    end
         
+    % Read file header
+    for j = 1:length(finfo)
         fseek(file, finfo(j).offset, 'bof');
         
-        % integer/float
+        % Integer/float
         if ~strcmpi(finfo(j).type, 'pascal') 
             data(i).(finfo(j).name) = fread(file, 1, finfo(j).type, finfo(j).endian);
         
-        % pascal string (UTF-8)
+        % Pascal string (UTF-8)
         elseif str2double(ftype) < 100
             data(i).(finfo(j).name) = fpascal(file, 'uint8');
         
-        % pascal string (UTF-16)
+        % Pascal string (UTF-16)
         elseif str2double(ftype) > 100
             data(i).(finfo(j).name) = fpascal(file, 'uint16');
-        end
-        
+        end 
     end
+   
+    % Instrument type
+    if isfield(data, 'Inlet') && ~isempty(data(i).Inlet)
+        instrument = regexp(data(i).Inlet, '(?i)\w+', 'match');
+    
+    elseif isfield(data, 'File') && ~isempty(data(i).File)
+        instrument = regexp(data(i).File, '(?i)(LC|GC|CE)', 'match');
+    
+    else
+        instrument = '';
+    end
+    
+    detector = regexp(data(i).filepath,...
+        '(?i)([A-Z]+)(?=\d?\w?[.](MS|CH|UV))', 'match');
+    
+    if isempty(detector)
+        detector = regexp(data(i).filepath,...
+            '(?i)(MS|FID|ADC|DAD|FLD|ELS|VWD|MWD|RID)(?=\w*[.])', 'match');
+        
+        if ~isempty(detector) && strcmpi(detector{1}, 'ELS')
+            detector{1} = 'ELSD';
+        end
+    end
+    
+    if isempty(detector)
+        detector = regexp(data(i).filepath,...
+            '(?i)((?=CE.?)(MS|P|T|V|C|E))', 'match');
+        
+        if ~isempty(detector)
+            detector{1} = ['CE-', detector{1}];
+        end
+    end
+    
+    if ~isempty(detector) && ~isempty(instrument)
+        instrument = [instrument{1}, '/', detector{1}];
+        
+    elseif isempty(detector) && ~isempty(instrument)
+        instrument = instrument{1};
+        
+    elseif ~isempty(detector) && isempty(instrument)
+        instrument = detector{1};
+        
+    else
+        instrument = 'UNKNOWN';
+    end
+    
+    if ischar(instrument)
+        instrument = upper(instrument);
+    end
+    
+    data(i).instrument = instrument;
     
     % Validate file info
     if ~isfield(data, 'Version') || isempty(data(i).Version)
         data(i).Version = 0;
     end
     
-    if isfield(data, 'StartTime')
+    if isfield(data, 'StartTime') && ~isempty(data(i).StartTime);
         data(i).StartTime = data(i).StartTime / 60000;
     end
     
-    if isfield(data, 'EndTime')
+    if isfield(data, 'EndTime') && ~isempty(data(i).EndTime);
         data(i).EndTime = data(i).EndTime / 60000;
     end
     
-    if isfield(data, 'DataOffset')
+    if isfield(data, 'DataOffset') && ~isempty(data(i).DataOffset);
         data(i).DataOffset = (data(i).DataOffset - 1) * 512;
     else
+        data(i).DataOffset = 0;
+    end
+    
+    % MESSAGE / Read file data
+    if data(i).DataOffset <= data(i).filesize
+        message.info.data(instrument);
+    else
+        message.timer = message.timer + toc;
         continue
     end
     
     data(i).Time = [];
     data(i).Signal = [];
        
-    % Import signal
+    % Load signal
     switch ftype
         
         % GC (UTF-8)
         case '8'
+            
             switch data(i).Version
                 case {1,2,3}
                     data(i).Intercept = 0;
@@ -246,6 +396,7 @@ for i = 1:length(filepath)
             
         % LC (UTF-8)
         case '30'
+            
             switch data(i).Version
                 case 1
                     data(i).Intercept = 0;
@@ -272,26 +423,127 @@ for i = 1:length(filepath)
         % GC (UTF-16)
         case '181'
             data(i) = DoubleDeltaCompression(file, data(i));
-            
     end
     
     % Close file
     fclose(file);
+    
+    % Parse timestamp
+    if isfield(data, 'DateTime') && ~isempty(data(i).DateTime)
+        datevalue = parsedate(data(i).DateTime);
+        
+        if ~isempty(datevalue)
+            data(i).UnixTime = datevalue;
+            data(i).DateTime = datestr(datevalue, 'yyyy-mm-dd HH:MM:SS');
+        else
+            data(i).UnixTime = [];
+        end
+    end
+
+    % MESSAGE / Load complete
+    message.timer = message.timer + toc;
+    message.counter = message.counter + data(i).filesize;
+    
+    if (message.counter / 1E6) / message.timer > 1
+        rate = [num2str((message.counter / 1E6) / message.timer, '%.2f'), ' MB/s'];
+    else
+        rate = [num2str((message.counter / 1E3) / message.timer, '%.1f'), ' KB/s'];
+    end
+    
+    if message.timer >= 60
+        elapsed = [num2str(message.timer / 60, '%.2f'), ' min'];
+    else
+        elapsed = [num2str(message.timer, '%.1f'), ' sec'];
+    end
+    
+    totalsize = sum([filelist.size]);
+
+    if totalsize > 1E6
+        a = num2str(message.counter / 1E6, '%.1f');
+        b = num2str(totalsize / 1E6, '%.1f');
+    else
+        a = num2str(message.counter / 1E3, '%.1f');
+        b = num2str(totalsize / 1E3, '%.1f');
+    end
+    
+    progress = [a, '/', b, ' MB'];
+            
+    message.load.finish(i, length(filelist), elapsed, rate, progress);
 end
 
+if message.timer >= 60
+    elapsed = [num2str(message.timer / 60, '%.2f'), ' min'];
+else
+    elapsed = [num2str(message.timer, '%.1f'), ' sec'];
+end
+
+if (message.counter / 1E6) / message.timer > 1
+    rate = [num2str((message.counter / 1E6) / message.timer, '%.2f'), ' MB/s'];
+else
+    rate = [num2str((message.counter / 1E3) / message.timer, '%.1f'), ' KB/s'];
+end
+
+% MESSAGE / Summary
+if ~isempty(filelist)
+    message.load.summary(length(data), units(message.counter, 'bytes'), elapsed, rate);
+end
+
+% Clear empty signal
 if isfield(data, 'Signal')
     data(cellfun(@isempty, {data.Signal})) = [];
 end
+
+% Sort by date and time
+[~, index] = sort([data.UnixTime]);
+data = data(index); 
 end
 
-function varargout = parsedate(input, format)
+function varargout = units(varargin)
 
-    format{1} = 'dd mmm yy HH:MM PM';
-    format{2} = 'mm/dd/yy HH:MM:SS PM';
-    format{3} = 'dd-mmm-yy, HH:MM:SS';
-
-    
+    switch varargin{2}
+        
+        case 'bytes'
+            
+            if varargin{1} > 1E9
+                varargout{1} = [num2str(varargin{1}/1E9, '%.2f'), ' GB'];
+            elseif varargin{1} > 1E6
+                varargout{1} = [num2str(varargin{1}/1E6, '%.2f'), ' MB'];
+            elseif varargin{1} > 1E3
+                varargout{1} = [num2str(varargin{1}/1E3, '%.2f'), ' KB'];
+            else
+                varargout{1} = [num2str(varargin{1}/1E0, '%.2f'), ' B'];
+            end
+    end
 end
+
+%
+% Method      : parsedate
+% Description : Convert timestamp to UNIX time
+%
+% Input       : Timestamp (string)
+% Output      : UNIX time (number)
+%
+function varargout = parsedate(varargin)
+
+    if ischar(varargin{1})
+        try
+            varargout{1} = datenum(varargin{1}, 'dd mmm yy HH:MM PM');
+        catch
+            try
+                varargout{1} = datenum(varargin{1}, 'mm/dd/yy HH:MM:SS PM');
+            catch    
+                try
+                    varargout{1} = datenum(varargin{1}, 'dd-mmm-yy, HH:MM:SS');
+                catch
+                    varargout{1} = [];
+                end 
+            end
+        end
+    else
+        varargout{1} = [];
+    end
+end
+
 
 %
 % Method      : DeltaCompression
@@ -299,47 +551,47 @@ end
 %
 function data = DeltaCompression(file, data)
 
-% File validation
-if isnumeric(file)
+if ftell(file) == -1
+    data.Time = [];
+    data.Signal = [];
+    return;
+else
     fseek(file, 0, 'eof');
-    fsize = ftell(file);
-else
-    return
+    stop = ftell(file);
+    
+    fseek(file, data.DataOffset, 'bof');
+    start = ftell(file);
 end
 
-% Set signal zero
-if isfield(data, 'Zero')
-    signal = data.Zero;
-else
-    signal = [];
-end
+signal = zeros(round((stop-start)/2), 1);
+buffer = zeros(4, 1);
+index = 1;
 
-% Read data
-fseek(file, data.DataOffset, 'bof');
-buffer = zeros(1,8);
-
-while ftell(file) < fsize
+while ftell(file) < stop
     
     buffer(1) = fread(file, 1, 'int16', 'b');
-    buffer(2) = bitshift(buffer(1), 12, 'int16');
-    buffer(3) = buffer(8);
-    buffer(4) = bitand(buffer(1), 4095, 'int16');
+    buffer(2) = buffer(4);
     
-    for i = 1:buffer(4)
+    if bitshift(buffer(1), 12, 'int16') == 0
+        signal(index:end) = [];
+        break
+    end
+    
+    for i = 1:bitand(buffer(1), 4095, 'int16');
         
-        buffer(5) = fread(file, 1, 'int16', 'b');
+        buffer(3) = fread(file, 1, 'int16', 'b');
         
-        if buffer(5) ~= -32768
-            buffer(3) = buffer(3) + buffer(5);
+        if buffer(3) ~= -32768
+            buffer(2) = buffer(2) + buffer(3);
         else
-            buffer(3) = fread(file, 1, 'int32', 'b');
+            buffer(2) = fread(file, 1, 'int32', 'b');
         end
         
-        buffer(6) = buffer(3);
-        buffer(7) = buffer(6);
-        buffer(8) = buffer(6);
-        signal(end+1, 1) = buffer(7);
+        signal(index) = buffer(2);
+        index = index + 1;
     end
+    
+    buffer(4) = buffer(2);
 end
 
 % Adjust signal
@@ -349,14 +601,13 @@ else
     data.Signal = signal;
 end
 
-% Calculate time values
+% Caclelculate time values
 if isfield(data, 'StartTime') && isfield(data, 'EndTime')
     data.Time = linspace(data.StartTime, data.EndTime, length(signal))';
 else
     data.Time = 1:length(signal);
 end
 end
-
 
 %
 % Method      : DoubleDeltaCompression
@@ -393,7 +644,7 @@ while ftell(file) < fsize
         buffer(1) = buffer(1) + buffer(2);
     else
         buffer(1) = fread(file, 1, 'int16', 'b') * 4294967296;
-        buffer(1) = fread(file, 1, 'int32', 'b') + buffer(1);
+        buffer(1) = fread(file, 1, 'uint32', 'b') + buffer(1);
         buffer(2) = 0;
     end
     
@@ -401,7 +652,7 @@ while ftell(file) < fsize
     count = count + 1;
 end
 
-signal(count+1:end,:) = [];
+signal(count:end,:) = [];
 
 % Adjust signal
 if isfield(data, 'Slope') && isfield(data, 'Intercept')
@@ -449,7 +700,6 @@ else
     data.Time = 1:length(data.Signal);
 end
 end
-
 
 %
 % Method      : AgilentFileStructure
@@ -721,18 +971,18 @@ F181 = {...
     181,  5524,  'int16',    'b',  'SignalDataType';
     };
 
-units = {
-    'mAU';
-    'LU';
-    'nRIU';
-    'kV';
-    'uV';
-    '°C';
-    'mbar';
-    'mW';
-    'pA'
-    'uA'
-};
+%units = {
+%    'mAU';
+%    'LU';
+%    'nRIU';
+%    'kV';
+%  'uV';
+%   '°C';
+%   'mbar';
+%    'mW';
+%    'pA'
+%    'uA'
+%};
 
 varargout{1} = cell2struct([F8; F30; F81; F130; F179; F181], fields, 2);
 end
