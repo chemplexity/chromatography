@@ -81,7 +81,7 @@ function varargout = AgilentMS(varargin)
         
         % Sample trial number
         fseek(file, 256, 'bof');
-        data.sample.trial = fread(file, 1, 'short', 0, 'b');
+        data.sample.replicate = fread(file, 1, 'short', 0, 'b');
         
         % Method name
         fseek(file, 228, 'bof');
@@ -93,10 +93,17 @@ function varargout = AgilentMS(varargin)
         
         % Method date/time
         fseek(file, 178, 'bof');
-        date = datevec(deblank(fread(file, 20, 'uint8=>char')'));
+        date = deblank(fread(file, 20, 'uint8=>char')');
         
-        data.method.date = strtrim(datestr(date, 'mm/dd/yy'));
-        data.method.time = strtrim(datestr(date, 'HH:MM PM'));
+        data.method.date = '';
+        data.method.time = '';
+        
+        try
+            date = datevec(date);
+            data.method.date = strtrim(datestr(date, 'mm/dd/yy'));
+            data.method.time = strtrim(datestr(date, 'HH:MM PM'));
+        catch
+        end
         
         % Instrument name
         fseek(file, 208, 'bof');
@@ -173,11 +180,11 @@ function varargout = AgilentMS(varargin)
     
             % Intensity values
             fseek(file, offset(i,1)+20, 'bof');
-            xic(end+1:end+n(i)) = fread(file, n(i), 'int16', 2, 'b');
+            xic(end+1:end+n(i)) = fread(file, n(i), 'uint16', 2, 'b');
         end
         
         % Correct intensity values (mantissa/exponent)
-        xic = bitand(xic, 16383, 'int16') .* (8 .^ abs(bitshift(xic, -14, 'int16')));
+        xic = bitand(xic, 16383, 'uint16') .* (8 .^ abs(bitshift(xic, -14, 'uint16')));
         
         % Correct mass values (20-bit ADC)
         mz = mz ./ 20;
@@ -214,6 +221,13 @@ function varargout = AgilentMS(varargin)
 file = varargin{1};
 data = [];
 options = varargin{2};
+
+% File info
+[~, filepath] = fileattrib(file);
+fileinfo = dir(filepath.Name);
+
+data.file.path = fileinfo.name ;
+data.file.bytes = fileinfo.bytes;
 
 % Open file
 file = fopen(file, 'r', 'b');

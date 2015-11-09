@@ -36,12 +36,26 @@ function varargout = baseline(obj, varargin)
 % Variables
 samples = options.samples;
 ions = options.ions;
+
 asymmetry = options.asymmetry;
 smoothness =  options.smoothness;
 
+count = 0;
+timer = 0;
+
+fprintf([...
+    '\n[BASELINE]\n',...
+    '\nCalculating baselines for ', num2str(length(samples)), ' samples...\n',...
+    '\nSmoothness : ', num2str(smoothness),...
+    '\nAsymmetry  : ', num2str(asymmetry), '\n\n']);
+
 % Calculate baseline
 for i = 1:length(samples)
-
+    tic;
+    
+    % Display progess
+    fprintf(['[', num2str(i), '/', num2str(length(samples)), ']']);
+    
     % Variables
     n = length(data(samples(i)).xic.values(:,1));
     m = length(data(samples(i)).xic.values(1,:));
@@ -81,10 +95,54 @@ for i = 1:length(samples)
         otherwise
             data(samples(i)).xic.baseline(:, options.ions) = baseline;
     end
+    
+    % Elapsed time
+    timer = timer + toc;
+    fprintf([' in ', num2str(timer,'%.1f'), ' sec']);
+    
+    % Data processed (type|vectors)
+    count = count + length(y(1,:));
+    
+    if strcmpi(ions, 'tic')
+        fprintf([' (TIC|', num2str(length(y(1,:))), ')\n']);
+    else
+        fprintf([' (XIC|', num2str(length(y(1,:))), ')\n']);
+    end
+    
+    % Update status
+    if strcmpi(ions, 'tic')
+        switch data(samples(i)).status.baseline
+            case 'N'
+                data(samples(i)).status.baseline = 'TIC';
+            case 'XIC'
+                data(samples(i)).status.baseline = 'Y';
+        end
+    else
+        switch data(samples(i)).status.baseline
+            case 'N'
+                data(samples(i)).status.baseline = 'XIC';
+            case 'TIC'
+                data(samples(i)).status.baseline = 'Y';
+        end
+    end
 end
 
 % Return data
 varargout{1} = data;
+
+% Display summary
+if timer > 60
+    elapsed = [num2str(timer/60, '%.1f'), ' min'];
+else
+    elapsed = [num2str(timer, '%.1f'), ' sec'];
+end
+
+fprintf(['\n',...
+    'Samples   : ', num2str(length(samples)), '\n',...
+    'Elapsed   : ', elapsed, '\n',...
+    'Baselines : ', num2str(count), '\n']);
+
+fprintf('\n[COMPLETE]\n\n');
 end
 
 
@@ -96,11 +154,11 @@ nargin = length(varargin);
 
 % Check input
 if nargin < 1
-    error('Not enough input arguments.');
+    error('Not enough input arguments...');
 elseif isstruct(varargin{1})
     data = obj.format('validate', varargin{1});
 else
-    error('Undefined input arguments of type ''data''.');
+    error('Undefined input arguments of type ''data''...');
 end
 
 % Check user input

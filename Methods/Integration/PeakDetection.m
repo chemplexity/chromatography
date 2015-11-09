@@ -240,7 +240,7 @@ for i = 1:length(y(1,:))
     % Update peak values
     peak.center(:,i) = center;
     peak.height(:,i) = height;
-    peak.width(:,i) = widsth;
+    peak.width(:,i) = width;
     peak.a(:,i) = a;
     peak.b(:,i) = b;
     peak.alpha(:,i) = alpha;

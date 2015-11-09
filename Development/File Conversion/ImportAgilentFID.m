@@ -93,8 +93,7 @@ elseif nargin-1 > 0
         end
     end
 end
-end
-   
+end 
 
 function filelist = getFilePath(filename)
 
@@ -494,8 +493,10 @@ if isfield(data, 'Signal')
 end
 
 % Sort by date and time
-[~, index] = sort([data.UnixTime]);
-data = data(index); 
+if isfield(data, 'UnixTime')
+    [~, index] = sort([data.UnixTime]);
+    data = data(index); 
+end
 end
 
 function varargout = units(varargin)

@@ -226,7 +226,7 @@ for i = 1:length(samples)
     % Initialize plots
     switch version('-release')
 
-        case {'2014b', '2015a'}
+        case {'2014b', '2015a', '2015b'}
             plot(x, y,...
                 'parent', options.axes, ...
                 'linewidth', options.linewidth, ...
@@ -696,7 +696,7 @@ linkaxes([options.axes, options.empty]);
 % Version specific options
 switch version('-release')
     
-    case {'2014b', '2015a'}
+    case {'2014b', '2015a', '2015b'}
         
         % Resize callback
         set(options.figure, 'sizechangedfcn', @(varargin) set(options.empty, 'position', get(options.axes, 'position')));
@@ -1188,7 +1188,7 @@ elseif ~isempty(options.color)
 else
     % Check MATLAB version
     switch version('-release')
-        case {'2014b', '2015a'}
+        case {'2014b', '2015a', '2015b'}
             options.colormap = 'parula';
         otherwise
             options.colormap = 'jet';
