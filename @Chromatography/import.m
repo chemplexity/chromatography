@@ -100,6 +100,13 @@ switch options.filetype
             
             if ~isempty(fdata)
                 
+                % Check last value
+                if sum(fdata.xic.values(end,:)) == 0
+                    fdata.time(end) = [];
+                    fdata.tic.values(end) = [];
+                    fdata.xic.values(end,:) = [];
+                end
+                
                 import_data{end+1} = fdata;
                 
                 % File info

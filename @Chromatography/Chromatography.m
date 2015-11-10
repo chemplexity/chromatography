@@ -24,34 +24,37 @@
 classdef Chromatography
     
     properties
+        
         Defaults
+
     end
     
     properties (SetAccess = private)
+        
         Options
         Diagnostics
+        
     end
     
     methods
         
-        % Initialize class
         function obj = Chromatography()
-
-            % Initialize properties
+            
             obj = defaults(obj);
             obj = options(obj);
-            obj = diagnostics(obj);            
+            obj = diagnostics(obj);
+            
         end
         
-        % Initialize default options
+        % Default properties
         function obj = defaults(obj, varargin)
-           
+            
             % Baseline
             obj.Defaults.baseline.smoothness = 1E6;
             obj.Defaults.baseline.asymmetry = 1E-4;
             
             % Smoothing
-            obj.Defaults.smoothing.smoothness = 0.8;
+            obj.Defaults.smoothing.smoothness = 0.5;
             obj.Defaults.smoothing.asymmetry = 0.5;
             
             % Integration
@@ -63,9 +66,9 @@ classdef Chromatography
             
         end
         
-        % Initialize fixed options
+        % Available options
         function obj = options(obj, varargin)
-           
+            
             % Import
             obj.Options.import = {...
                 '.CDF', 'netCDF (*.CDF)';
@@ -76,25 +79,28 @@ classdef Chromatography
             % Export
             obj.Options.export = {...
                 '.CSV', '(*.CSV)'};
+            
         end
         
-        % Initialize diagnostic information
+        % Diagnostic information
         function obj = diagnostics(obj, varargin)
             
             % Diagnostics
             obj.Diagnostics.date = date;
             obj.Diagnostics.system_os = computer;
             obj.Diagnostics.matlab_version = version('-release');
-            obj.Diagnostics.toolbox_version = '0.1.4';
+            obj.Diagnostics.toolbox_version = '0.1.5';
+            
         end
         
-        % Restore data from backup values
+        % Restore data to original state
         function data = reset(~, data, varargin)
-           
+            
             fprintf('\n[RESET]\n');
             
             if ~isstruct(data)
                 fprintf('[ERROR] Input data must be of type ''struct''\n');
+                return
             end
             
             % Check user input
@@ -132,12 +138,14 @@ classdef Chromatography
                 if min(samples < 1)
                     samples = samples(samples >= 1);
                 end
+                
             else
                 samples = 1:length(data);
             end
             
             fprintf(['\nRestoring backup data for ' num2str(numel(samples)), ' samples...\n']);
             
+            % Restore backup data
             for i = 1:length(samples)
                 
                 id = samples(i);
@@ -159,21 +167,7 @@ classdef Chromatography
             fprintf('\n[COMPLETE]\n\n');
         end
         
-        % Restore data from backup values
-        function data = remove(~, data, varargin)
-           
-            fprintf('\n[RESET]\n');
-            
-            if ~isstruct(data)
-                fprintf('[ERROR] Input data must be of type ''struct''\n');
-            end
-            
-            fprintf(['\nRemoving sample ''' num2str(numel(samples)), ''' from data...\n']);
-            
-            fprintf('\n[COMPLETE]\n\n');
-        end
-            
-        % Create data structure
+        % Data Structure
         function data = format(varargin)
             
             % Top-level fields
@@ -204,6 +198,7 @@ classdef Chromatography
             
             method = {...
                 'name',...
+                'operator',...
                 'instrument',...
                 'date',...
                 'time'};
@@ -290,7 +285,7 @@ classdef Chromatography
                 end
             end
             
-        
+            
             % Validate structure
             function structure = check(structure, fields)
                 
@@ -308,8 +303,9 @@ classdef Chromatography
                 if isempty(structure)
                     structure = cell2struct(cell(1,length(fields)), fields, 2);
                     
-                % Check for missing fields
                 elseif ~isempty(~isfield(structure, fields))
+                    
+                    % Check for missing fields
                     missing = fields(~isfield(structure, fields));
                     
                     % Add missing peak fields to structure
@@ -320,6 +316,6 @@ classdef Chromatography
                     end
                 end
             end
-        end        
+        end
     end
 end

@@ -1,19 +1,18 @@
-% Method: ImportCDF
-%  -Extract raw data from netCDF (.CDF) files
+% Method      : ImportCDF
+% Description : Import data from netCDF (.CDF) files
 %
 % Syntax
 %   data = ImportCDF(file)
 %   data = ImportCDF(file, 'OptionName', optionvalue)
 %
 % Input
-%   file        : string
+%   Name        : file (string)
+%   Description : name of .CDF file 
 %
 % Options
-%   'precision' : integer
-%
-% Description
-%   file        : file name with valid extension (.CDF)
-%   'precision' : number of decimal places allowed for m/z values (default = 3)
+%   Name        : 'precision' (number)
+%   Default     : 3
+%   Description : allowed decimal places for m/z values
 %
 % Examples
 %   data = ImportCDF('001-0510.CDF')
@@ -31,8 +30,10 @@ function varargout = ImportCDF(varargin)
 
 % Check file name
 if isempty(file)
+    
     varargout{1} = [];
-    disp('Error: Input file invalid.');
+    
+    disp('[ERROR] Input file invalid....');
     return
 end
 
@@ -42,49 +43,56 @@ info = ncinfo(file);
 % Check for attributes
 if isfield(info, 'Attributes')
     
-    % Check for sample name
+    % Sample name
+    data.sample.name = '';
+    
     if any(strcmpi('experiment_title', {info.Attributes.Name}))
-        
-        % Read sample name
         data.sample.name = strtrim(ncreadatt(file, '/', 'experiment_title'));
-    else
-        data.sample.name = '';
+    end
+    
+    % Operator name
+    data.method.operator = '';
+    
+    if any(strcmpi('operator_name', {info.Attributes.Name}))
+        data.method.operator = strtrim(ncreadatt(file, '/', 'operator_name'));
     end
    
-    % Check for method name
+    % Method name
+    data.method.name = '';
+    
     if any(strcmpi('external_file_ref_0', {info.Attributes.Name}))
-        
-        % Read method name
         data.method.name = strtrim(ncreadatt(file, '/', 'external_file_ref_0'));
         
         if strcmpi(data.method.name, 'DB5PWF30')
-            data.method.name = 'N/A';
+            data.method.name = '';
         end
-    else
-        data.method.name = 'N/A';
     end
     
-    % Check for experiment data
+    % Date/Time
+    data.method.date = '';
+    data.method.time = '';
+        
     if any(strcmpi('experiment_date_time_stamp', {info.Attributes.Name}))
-        
-        % Read experiment date
         datetime = ncreadatt(file, '/', 'experiment_date_time_stamp');
-        date = datenum([str2double(datetime(1:4)), str2double(datetime(5:6)), str2double(datetime(7:8)),...
-            str2double(datetime(9:10)), str2double(datetime(10:11)), str2double(datetime(12:13))]);
         
-        data.method.date = strtrim(datestr(date, 'mm/dd/yy'));
-        data.method.time = strtrim(datestr(date, 'HH:MM PM'));
-    else
-        data.method.date = '';
-        data.method.time = '';
+        try
+            date = datenum([str2double(datetime(1:4)), str2double(datetime(5:6)), str2double(datetime(7:8)),...
+                str2double(datetime(9:10)), str2double(datetime(10:11)), str2double(datetime(12:13))]);
+        
+            data.method.date = strtrim(datestr(date, 'mm/dd/yy'));
+            data.method.time = strtrim(datestr(date, 'HH:MM PM'));
+        catch
+        end
     end
     
-    % Check instrument type
-    data.method.instrument = 'N/A';
+    % Instrument type
+    data.method.instrument = '';
+    
 else
     data.sample.name = '';
-    data.method.name = 'N/A';
-    data.method.instrument = 'N/A';
+    data.method.name = '';
+    data.method.operator = '';
+    data.method.instrument = '';
     data.method.date = '';
     data.method.time = '';
 end
@@ -105,66 +113,50 @@ else
     data.sample.name = name;
 end
 
+% Data
+data.time = [];
+data.tic.values = [];
+data.mz = [];
+data.xic.values = [];
+
 % Check for variables
 if isfield(info, 'Variables')
     
     % Check for time values
     if any(strcmpi('scan_acquisition_time', {info.Variables.Name}))
-        
-        % Read time values
         data.time = ncread(file, 'scan_acquisition_time') ./ 60;
-    else
-        data.time = [];
     end
     
     % Check for total intensity values
     if any(strcmpi('total_intensity', {info.Variables.Name}))
-        
-        % Read total intensity values
         data.tic.values = ncread(file, 'total_intensity');
-    else
-        data.tic.values = [];
     end
     
     % Check for total intensity values (legacy)
     if any(strcmpi('global_intensity_max', {info.Variables.Name})) && isempty(data.tic.values)
-        
-        % Read total intensity values (legacy)
         data.tic.values = ncread(file, 'global_intensity_max');
     end
     
-    % Check for mass values
+    % Check for mass values    
     if any(strcmpi('mass_values', {info.Variables.Name}))
-        
-        % Read mass values
         data.mz = ncread(file, 'mass_values');
-    else
-        data.mz = [];
     end
     
     % Check for intensity values
     if any(strcmpi('intensity_values', {info.Variables.Name}))
-        
-        % Read intensity values
         data.xic.values = ncread(file, 'intensity_values');
-    else
-        data.xic.values = [];
     end
-    
-else
-    data.time = [];
-    data.tic.values = [];
-    data.mz = [];
-    data.xic.values = [];
 end
 
 % Check data
 if isempty(data.xic.values) && isempty(data.tic.values)
     varargout{1} = [];
     return
+    
 elseif isempty(data.xic.values)
     varargout{1} = data;
     return
+    
 end
 
 % Variables
