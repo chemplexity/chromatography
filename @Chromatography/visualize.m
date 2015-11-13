@@ -1,54 +1,126 @@
-% Method: visualize
-%  -Plot chromatograms, baselines, and curve fitting results
+% ------------------------------------------------------------------------
+% Method      : Chromatography.visualize
+% Description : Plot chromatograms and customize style
+% ------------------------------------------------------------------------
 %
+% ------------------------------------------------------------------------
 % Syntax
+% ------------------------------------------------------------------------
 %   fig = obj.visualize(data)
-%   fig = obj.visualize(data, 'OptionName', optionvalue...)
+%   fig = obj.visualize(data, Name, Value)
 %
-% Options
-%   'samples'   : 'all', [index]
-%   'ions'      : 'all', 'tic', [index]
-%   'baseline'  : 'on', 'off', 'corrected'
-%   'peaks'     : 'on', 'off', 'residuals'
-%   'layout'    : 'stacked', 'overlaid'
-%   'scale'     : 'relative', 'absolute'
-%   'scale_ref' : 'local', 'global'
-%   'padding'   : value
-%   'offset'    : value
-%   'linewidth' : value
-%   'xlim'      : 'auto', [xmin, xmax]
-%   'ylim'      : 'auto', [ymin, ymax]
-%   'legend'    : 'on', 'off'
-%   'export'    : see MATLAB documentation on print functions (ex. {'myfig', '-dtiff', '-r300'})
-%   'color'     : RGB array
-%   'colormap'  : 'parula', 'jet', 'hsv', 'hot', 'cool', 'spring', 'summer',
-%                 'autumn', 'winter', 'gray', 'bone', 'copper', 'pink'
+% ------------------------------------------------------------------------
+% Parameters
+% ------------------------------------------------------------------------
+%   data (required)
+%       Description : chromatography data
+%       Type        : structure
 %
-% Description
-%   data        : data structure
-%   'samples'   : row index of samples (default = 'all')
-%   'ions'      : column index of ions (default = 'tic')
-%   'baseline'  : display baseline results (default = 'off')
-%   'peaks'     : display curve fitting results (default = 'off')
-%   'layout'    : stacked or overlaid spectra (default = 'stacked')
-%   'scale'     : relative or absolute scale (default = 'relative')
-%   'scale_ref' : reference scale for stacked spectra (default = 'local')
-%   'padding'   : whitespace between axes and spectra (default = 0.05)
-%   'offset'    : y-offset between spectra (default = 0.0);
-%   'linewidth' : line width of spectra (default = 1.5)
-%   'xlim'      : x-axis limits (default = 'auto')
-%   'ylim'      : y-axis limits (default = 'auto')
-%   'legend'    : display legend (default = 'on')
-%   'export'    : options passed to the MATLAB print function (default = 'off')
-%   'color'     : manually set the RGB values used for line colors (default = 'off')
-%   'colormap'  : select colormap to use for plotting (default = 'parula')
+%   ----------------------------------------------------------------------
+%   Plot Data
+%   ----------------------------------------------------------------------
+%   'samples' (optional)
+%       Description : index of samples in data
+%       Type        : number | 'all'
+%       Default     : 'all'
 %
+%   'ions' (optional)
+%       Description : index of ions in data
+%       Type        : number | 'all', 'tic'
+%       Default     : 'tic'
+%
+%   'baseline' (optional)
+%       Description : show baseline or baseline corrected values
+%       Type        : 'on', 'off', 'corrected'
+%       Default     : 'off'
+%
+%   'peaks' (optional)
+%       Description : show peaks
+%       Type        : 'on', 'off'
+%       Default     : 'off'
+%
+%   ----------------------------------------------------------------------
+%   Plot Layout
+%   ----------------------------------------------------------------------
+%   'layout' (optional)
+%       Description : arrange plots in stacked or overlaid format
+%       Type        : 'stacked', 'overlaid'
+%       Default     : 'stacked'
+%
+%   'scale' (optional)
+%       Description : plot relative or absolute values
+%       Type        : 'relative', 'absolute'
+%       Default     : 'relative'
+%
+%   'scope' (optional)
+%       Description : adjust scale to sample maximum or global maximum
+%       Type        : 'local', 'global'
+%       Default     : 'local'
+%
+%   'padding' (optional)
+%       Description : white space between axes and plot lines
+%       Type        : number
+%       Default     : 0.05
+%       Range       : 0.0 to 1.0
+%
+%   'offset' (optional)
+%       Description : sequential y-offset applied to each sample
+%       Type        : number
+%       Default     : 0.0
+%
+%   'xlim' (optional)
+%       Description : x-axis limits
+%       Type        : [number, number] | 'auto'
+%       Default     : 'auto'
+%
+%   'ylim' (optional)
+%       Description : y-axis limits
+%       Type        : [number, number] | 'auto'
+%       Default     : 'auto'
+%
+%   ----------------------------------------------------------------------
+%   Plot Style
+%   ----------------------------------------------------------------------
+%   'linewidth' (optional)
+%       Description : linewidth of plot line
+%       Type        : number
+%       Default     : 1.5
+%       Range       : > 0.0
+%
+%   'legend' (optional)
+%       Description : show legend with plot name
+%       Type        : 'on', 'off'
+%       Default     : 'off'
+%
+%   'color' (optional)
+%       Description : RGB value of plot line
+%       Type        : [number, number, number]
+%       Default     : use colormap
+%
+%   'colormap' (optional)
+%       Description : colormap to apply to plot lines
+%       Type        : 'parula', 'jet', 'hsv', 'hot', 'cool', 'spring',...
+%                     'spring', 'summer', 'autumn', 'winter', 'gray',...
+%                     'bone', 'copper', 'pink'
+%       Default     : 'parula'
+%
+%   ----------------------------------------------------------------------
+%   Plot Export
+%   ----------------------------------------------------------------------
+%   'export' (optional)
+%       Description : export figure to image (see MATLAB 'print' options)
+%       Type        : cell | 'on', 'off'
+%       Default     : 'off'
+%
+% ------------------------------------------------------------------------
 % Examples
+% ------------------------------------------------------------------------
 %   fig = obj.visualize(data, 'samples', [1:4], 'ions', 'tic')
 %   fig = obj.visualize(data, 'layout', 'stacked', 'ions', 'all')
 %   fig = obj.visualize(data, 'scale', 'normalized', 'legend', 'on')
 %   fig = obj.visualize(data, 'samples', 1, 'xlim', [3, 27])
-%   fig = obj.visualize(data, 'ions', 'all', 'colormap', 'winter', 'export', {'myfig', '-dtiff', '-r300'}
+%   fig = obj.visualize(data, 'export', {'SampleTIC', '-dtiff', '-r300'}
+%
 
 function varargout = visualize(obj, varargin)
 
@@ -58,7 +130,11 @@ function varargout = visualize(obj, varargin)
 % Variables
 samples = options.samples;
 ions = options.ions;
-scale =  options.scale;
+
+if isempty(samples)
+    disp('Error: No samples match input criteria...');
+    return
+end
 
 % Initialize axes
 options = plot_axes(obj, options, data);
@@ -88,7 +164,7 @@ for i = 1:length(samples)
             
             % Input values
             y = data(samples(i)).tic.values;
-
+            
             % Check for sparse matrix
             if issparse(y)
                 y = full(y);
@@ -114,12 +190,12 @@ for i = 1:length(samples)
             else
                 names = {''};
             end
-                
+            
         case 'all'
             
             % Input values
             y = data(samples(i)).xic.values;
-
+            
             % Check for sparse matrix
             if issparse(y)
                 y = full(y);
@@ -138,7 +214,7 @@ for i = 1:length(samples)
             else
                 baseline = [];
             end
-               
+            
             % Check peaks
             if any(strcmpi(options.peaks, {'on', 'residuals'}))
                 peaks = data(samples(i)).xic.peaks.fit;
@@ -147,18 +223,24 @@ for i = 1:length(samples)
             end
             
             % Display names
+            names(1:length(data(samples(i)).mz(options.ions))) = {''};
+            
             if strcmpi(options.legend, 'on')
-                keys = ismember(data(samples(i)).mz, options.keys);
-                names = options.name(keys);
-            else
-                names(1:length(data(samples(i)).mz)) = {''};
+                mz = data(samples(i)).mz(options.ions);
+                mz = round(mz * 1E4) ./ 1E4;
+                
+                [keys, index] = ismember(mz, options.keys);
+                
+                if any(keys)
+                    names(index(keys)) = options.name(keys);
+                end
             end
             
         case 'xic'
-                
+            
             % Input values
             y = data(samples(i)).xic.values(:, options.ions);
-        
+            
             % Check for sparse matrix
             if issparse(y)
                 y = full(y);
@@ -179,7 +261,7 @@ for i = 1:length(samples)
             else
                 baseline = [];
             end
-               
+            
             % Check peaks
             if any(strcmpi(options.peaks, {'on', 'residuals'}))
                 peaks = data(samples(i)).xic.peaks.fit;
@@ -192,11 +274,17 @@ for i = 1:length(samples)
             end
             
             % Display names
+            names(1:length(data(samples(i)).mz(options.ions))) = {''};
+            
             if strcmpi(options.legend, 'on')
-                keys = ismember(data(samples(i)).mz(options.ions), options.keys);
-                names = options.name(keys);
-            else
-                names(1:length(data(samples(i)).mz(options.ions))) = {''};
+                mz = data(samples(i)).mz(options.ions);
+                mz = round(mz * 1E4) ./ 1E4;
+                
+                [keys, index] = ismember(mz, options.keys);
+                
+                if any(keys)
+                    names(index(keys)) = options.name(keys);
+                end
             end
     end
     
@@ -224,25 +312,25 @@ for i = 1:length(samples)
     options = plot_ylim(x, y, options);
     
     % Initialize plots
-    switch version('-release')
-
-        case {'2014b', '2015a', '2015b'}
-            plot(x, y,...
-                'parent', options.axes, ...
-                'linewidth', options.linewidth, ...
-                'displayname', [names{:}]);
-
-        otherwise
-            plot(x, y,...
-                'parent', options.axes,...
-                'linewidth', options.linewidth,...
-                'linesmoothing', 'on',...
-                'displayname', [names{:}]);
+    
+    if verLessThan('matlab', 'R2014b')
+        
+        plot(x, y,...
+            'parent', options.axes,...
+            'linewidth', options.linewidth,...
+            'linesmoothing', 'on',...
+            'displayname', [names{:}]);
+    else
+        
+        plot(x, y,...
+            'parent', options.axes, ...
+            'linewidth', options.linewidth, ...
+            'displayname', [names{:}]);
     end
     
     % Check baseline options
     if strcmpi(options.baseline, 'on')
-
+        
         baseline = plot_scale(baseline, options, 1);
         
         if strcmpi(options.scale, 'normalized')
@@ -269,10 +357,12 @@ set(options.empty, 'position', get(options.axes, 'position'));
 
 % Export figure
 if ~isempty(options.export)
+    
     try
         disp('Rendering image, please wait...');
         print(options.figure, options.export{:});
         disp('Rendering complete!');
+        
     catch
         disp('-Error reading print options, rendering image with default options...');
         print(options.figure, 'spectra', '-dpng', '-r300');
@@ -297,7 +387,7 @@ else
 end
 
 switch ions
-        
+    
     case 'tic'
         samples = [data(options.samples).sample];
         
@@ -307,12 +397,13 @@ switch ions
         
     case 'all'
         mz = [data(options.samples).mz];
+        mz = round(mz * 1E4) ./ 1E4;
         mz = unique(mz, 'stable');
         
         % Convert values to strings
         names = arrayfun(@num2str, mz, 'uniformoutput', false);
         names = cellfun(@(x) strcat(x, ' m/z'), names, 'uniformoutput', false);
-    
+        
         % Variables
         options.name = names;
         options.keys = mz;
@@ -325,12 +416,13 @@ switch ions
             mz = [mz, data(options.samples(i)).mz(options.ions)];
         end
         
+        mz = round(mz * 1E4) ./ 1E4;
         mz = unique(mz, 'stable');
         
         % Convert values to strings
         names = arrayfun(@num2str, mz, 'uniformoutput', false);
         names = cellfun(@(x) strcat(x, ' m/z'), names, 'uniformoutput', false);
-    
+        
         % Variables
         options.name = names;
         options.keys = mz;
@@ -350,57 +442,60 @@ if nargin == 3
 else
     extra = 0;
 end
-    
+
+xmin = options.xmin.index(options.i);
+xmax = options.xmax.index(options.i);
+
 % Normalized scale
 if strcmpi(options.scale, 'normalized')
     
     % Normalization factor
-    switch options.scale_ref
+    switch options.scope
         
         case 'local'
-            y = bsxfun(@rdivide, bsxfun(@minus, y, min(y)), (max(y)-min(y)));
-            y = y .* 100;
-    
+            ymin = min(y(xmin:xmax,:));
+            ymax = max(y(xmin:xmax,:));
+
         case 'global'
-            y = bsxfun(@rdivide, bsxfun(@minus, y, min(min(y))), (max(max(y))-min(min(y))));
-            y = y .* 100;
+            ymin = min(min(y(xmin:xmax,:)));
+            ymax = max(max(y(xmin:xmax,:)));
     end
     
-% Full scale + stacked layout
+    y = bsxfun(@rdivide,...
+        bsxfun(@minus, y, ymin), (ymax - ymin));
+    
+    y = y .* 100;
+    
 elseif strcmpi(options.scale, 'full') && strcmpi(options.layout, 'stacked')
     
-    switch options.scale_ref
+    % Full scale + stacked layout
+    switch options.scope
         
         case 'local'
-            
-            index = options.i;
-
-            xmin = options.xmin.index(index);
-            xmax = options.xmax.index(index);
-
             ymin = min(min(y(xmin:xmax,:)));
             ymax = max(max(y(xmin:xmax,:)));
             
-            if index == 1 && extra == 0
+            if options.i == 1 && extra == 0
                 options.scaling_factor(1) = ymin;
                 options.scaling_factor(2) = ymax;
-            
-            elseif ymax > options.scaling_factor(2)
                 
+            elseif ymax > options.scaling_factor(2)
                 options.scaling_factor(2) = ymax;
                 
             else
                 ymin = options.scaling_factor(1);
                 ymax = options.scaling_factor(2);
             end
-
-            y = bsxfun(@rdivide, bsxfun(@minus, y, ymin), (ymax - ymin));
+            
+            y = bsxfun(@rdivide,...
+                bsxfun(@minus, y, ymin), (ymax - ymin));
     end
 end
 
 % Output
 varargout{1} = y;
 varargout{2} = options;
+
 end
 
 
@@ -415,8 +510,8 @@ if strcmpi(options.layout, 'stacked') && length(options.samples) > 1
         
         % Calculate offset
         y = y - (options.i * 100) * (1 + options.padding + options.offset);
-    
-    % Full scale
+        
+        % Full scale
     elseif strcmpi(options.scale, 'full')
         
         % Determine y-limits
@@ -439,10 +534,10 @@ elseif strcmpi(options.layout, 'overlaid') && length(options.samples) > 1
         
         % Calculate offset
         y = y - (options.i * 100) * options.offset;
-
-    % Full scale
+        
+        % Full scale
     elseif options.offset ~= 0 && strcmpi(options.scale, 'full')
-
+        
         % Determine y-limits
         if isempty(options.ylimits)
             options.ylimits(1) = min(min(y));
@@ -452,6 +547,7 @@ elseif strcmpi(options.layout, 'overlaid') && length(options.samples) > 1
         % Calculate offset
         y = y - options.i * (options.ylimits(2) * options.offset);
     end
+    
 end
 end
 
@@ -459,30 +555,39 @@ end
 % Check x-limits options
 function options = plot_xlim(x, options)
 
-% Variables
-index = options.i;
-
-% Determine x-limit values
+% Determine min/max
 xmin = min(min(x));
 xmax = max(max(x));
-
-% Determine x-limit indices
-options.xmin.index(index) = find(x >= xmin, 1);
-options.xmax.index(index) = find(x >= xmax, 1);
 
 % Automatic x-limits
 if isempty(options.xlimits)
     options.xlimits = [xmin, xmax];
     
-% Manual x-limits
+    % Manual x-limits
 elseif strcmpi(options.xpermission, 'write')
+    
     if xmin < options.xlimits(1)
         options.xlimits(1) = xmin;
     end
+    
     if xmax > options.xlimits(2)
         options.xlimits(2) = xmax;
     end
 end
+
+% Determine x-limit indices
+if xmin < options.xlimits(1)
+    options.xmin.index(options.i) = find(x >= options.xlimits(1),1);
+else
+    options.xmin.index(options.i) = 1;
+end
+
+if xmax > options.xlimits(2)
+    options.xmax.index(options.i) = find(x >= options.xlimits(2),1);
+else
+    options.xmax.index(options.i) = length(x);
+end
+
 end
 
 
@@ -514,17 +619,19 @@ ymax = max(max(y(xmin:xmax,:)));
 % Automatic y-limits
 if isempty(options.ylimits)
     options.ylimits = [ymin, ymax];
-
-% Manual y-limits
+    
+    % Manual y-limits
 elseif strcmpi(options.ypermission, 'write')
     
     if ymin < options.ylimits(1)
         options.ylimits(1) = ymin;
     end
+    
     if ymax > options.ylimits(2)
         options.ylimits(2) = ymax;
     end
 end
+
 end
 
 
@@ -548,11 +655,12 @@ if strcmpi(options.legend, 'on')
     else
         legend(options.axes, 'show', 'string', options.name);
     end
-
-% Hide legend
+    
+    % Hide legend
 elseif strcmpi(options.legend, 'off')
     legend(options.axes, 'hide');
 end
+
 end
 
 
@@ -572,27 +680,31 @@ options.figure = figure(...
     'numbertitle', 'off',...
     'name', 'Chromatography Toolbox',...
     'units', 'normalized',....
-    'position', obj.Defaults.visualize.position,...
+    'position', obj.defaults.plot_position,...
     'visible', 'on',...
     'paperpositionmode', 'auto');
 
 % Check color options
 if isempty(options.colormap) && ~isempty(options.color)
+    
     if iscell(options.color)
         options.colormap = options.color{1};
     else
         options.colormap = options.color;
     end
+    
 end
 
 % Determine color order
 if ischar(options.colormap)
+    
     try
         colors = colormap(options.colormap);
     catch
         options.colormap = 'parula';
         colors = colormap('parula');
     end
+    
 else
     colors = options.colormap;
 end
@@ -607,6 +719,7 @@ elseif strcmpi(options.ions, 'all')
     
     % Extracted ion chromatograms (all)
     n = length(data(options.samples(1)).mz);
+    
 else
     
     % Total ion chromatograms
@@ -693,32 +806,33 @@ box(options.axes, 'off');
 % Link axes to allow zooming
 linkaxes([options.axes, options.empty]);
 
-% Version specific options
-switch version('-release')
-    
-    case {'2014b', '2015a', '2015b'}
-        
-        % Resize callback
-        set(options.figure, 'sizechangedfcn', @(varargin) set(options.empty, 'position', get(options.axes, 'position')));
-        
-        % Zoom callback
-        set(zoom(gcf), 'actionpostcallback', @(varargin) set(options.empty, 'position', get(options.axes, 'position')));
-
-        % Axes overlap
-        set(get(get(options.axes, 'yruler'),'axle'), 'visible', 'off');
-        set(get(get(options.axes, 'xruler'),'axle'), 'visible', 'off');
-        set(get(get(options.axes, 'ybaseline'),'axle'), 'visible', 'off');
-        
-    otherwise
-        try
-            % Resize callback
-            set(options.figure, 'resizefcn', @(varargin) set(options.empty, 'position', get(options.axes, 'position')));
-            
-            % Zoom callback
-            set(zoom(gcf), 'actionpostcallback', @(varargin) set(options.empty, 'position', get(options.axes, 'position')));
-        catch
-        end
+try
+    set(zoom(options.figure),...
+        'actionpostcallback', @(varargin) set(options.empty, 'position', get(options.axes, 'position')));
+catch
 end
+
+% Version specific options
+if verLessThan('matlab', 'R2014b')
+    
+    try
+        % Resize callback
+        set(options.figure,...
+            'resizefcn', @(varargin) set(options.empty, 'position', get(options.axes, 'position')));
+    catch
+    end
+else
+    
+    % Resize callback
+    set(options.figure,...
+        'sizechangedfcn', @(varargin) set(options.empty, 'position', get(options.axes, 'position')));
+    
+    % Axes overlap
+    set(get(get(options.axes, 'yruler'),'axle'), 'visible', 'off');
+    set(get(get(options.axes, 'xruler'),'axle'), 'visible', 'off');
+    set(get(get(options.axes, 'ybaseline'),'axle'), 'visible', 'off');
+end
+
 end
 
 
@@ -731,8 +845,10 @@ nargin = length(varargin);
 % Check input
 if nargin < 1
     error('Not enough input arguments.');
+    
 elseif isstruct(varargin{1})
     data = obj.format('validate', varargin{1});
+    
 else
     error('Undefined input arguments of type ''data''.');
 end
@@ -743,15 +859,15 @@ input = @(x) find(strcmpi(varargin, x),1);
 % Sample options
 if ~isempty(input('samples'))
     samples = varargin{input('samples')+1};
-
+    
     % Set keywords
     samples_all = {'default', 'all'};
-        
+    
     % Check for valid input
     if any(strcmpi(samples, samples_all))
         samples = 1:length(data);
-
-    % Check input type
+        
+        % Check input type
     elseif ~isnumeric(samples)
         
         % Check string input
@@ -793,16 +909,23 @@ if ~isempty(input('ions'))
     % Check for valid input
     if any(strcmpi(ions, ions_tic))
         options.ions = 'tic';
-    
+        
     elseif any(strcmpi(ions, ions_all))
         options.ions = 'all';
-
+        
     elseif ~isnumeric(ions) && ~ischar(ions)
         options.ions = 'tic';
+        
     else
         options.ions = ions;
     end
-
+    
+    if ~ischar(options.ions) && ~strcmpi(options.ions, 'tic')
+        
+        % Remove samples without ions
+        options.samples(cellfun(@isempty, {data(options.samples).mz})) = [];
+    end
+    
     % Check input range
     if isnumeric(options.ions)
         
@@ -837,11 +960,11 @@ if ~isempty(input('baseline'))
     % Check for valid input
     if any(strcmpi(baseline, baseline_off))
         options.baseline = 'off';
-    
-    % Check input type
+        
+        % Check input type
     elseif any(strcmpi(baseline, baseline_on))
         options.baseline = 'on';
-    
+        
     elseif any(strcmpi(baseline, baseline_corrected))
         options.baseline = 'corrected';
         
@@ -866,11 +989,11 @@ if ~isempty(input('peaks'))
     % Check for valid input
     if any(strcmpi(peaks, peaks_off))
         options.peaks = 'off';
-    
-    % Check input type
+        
+        % Check input type
     elseif any(strcmpi(peaks, peaks_on))
         options.peaks = 'on';
-    
+        
     elseif any(strcmpi(peaks, peaks_residuals))
         options.peaks = 'corrected';
         
@@ -894,7 +1017,7 @@ if ~isempty(input('layout'))
     % Check for valid input
     if any(strcmpi(layout, layout_stacked))
         options.layout = 'stacked';
-
+        
     elseif any(strcmpi(layout, layout_overlaid))
         options.layout = 'overlaid';
         
@@ -932,26 +1055,26 @@ end
 
 
 % Scaling reference options
-if ~isempty(input('scale_ref'))
-    scale_ref = varargin{input('scale_ref')+1};
+if ~isempty(input('scope'))
+    scope = varargin{input('scope')+1};
     
     % Set keywords
     scale_local = {'default', 'local', 'separated', 'separate', 'relative'};
     scale_global = {'global', 'all', 'full'};
     
     % Check for valid input
-    if any(strcmpi(scale_ref, scale_local))
-        options.scale_ref = 'local';
+    if any(strcmpi(scope, scale_local))
+        options.scope = 'local';
         
-    elseif any(strcmpi(scale_ref, scale_global))
-        options.scale_ref = 'global';
+    elseif any(strcmpi(scope, scale_global))
+        options.scope = 'global';
         
     else
-        options.scale_ref = 'local';
+        options.scope = 'local';
     end
     
 else
-    options.scale_ref = 'local';
+    options.scope = 'local';
 end
 
 
@@ -966,9 +1089,9 @@ if ~isempty(input('xlim'))
         options.xlimits = [];
         options.xpermission = 'write';
         
-    % Check input length
+        % Check input length
     elseif xlimits(2) < xlimits(1) || length(xlimits) ~= 2;
-    
+        
         % Automatic x-limits
         options.xlimits = [];
         options.xpermission = 'write';
@@ -976,9 +1099,9 @@ if ~isempty(input('xlim'))
     else
         % Manual x-limits
         options.xlimits = xlimits;
-        options.xpermission = 'read';    
+        options.xpermission = 'read';
     end
-
+    
 else
     options.xlimits = [];
     options.xpermission = 'write';
@@ -996,14 +1119,14 @@ if ~isempty(input('ylim'))
         options.ylimits = [];
         options.ypermission = 'write';
         
-    % Check input length
+        % Check input length
     elseif ylimits(2) < ylimits(1) || length(ylimits) ~= 2
         
         % Automatic y-limits
         options.ylimits = [];
         options.ypermission = 'write';
-    
-    else 
+        
+    else
         % Manual y-limits
         options.ylimits = ylimits;
         options.ypermission = 'read';
@@ -1025,8 +1148,8 @@ if ~isempty(input('padding'))
         
     elseif any(strcmpi(padding, {'off', 'none'}))
         options.padding = 0;
-
-    % Check input range
+        
+        % Check input range
     elseif padding(1) < 0 || padding(1) > 0.99
         options.padding = 0.05;
     else
@@ -1036,7 +1159,7 @@ if ~isempty(input('padding'))
 else
     options.padding = 0.05;
 end
-       
+
 
 % Axes offset
 if ~isempty(input('offset'))
@@ -1048,7 +1171,7 @@ if ~isempty(input('offset'))
         
     elseif any(strcmpi(offset, {'default', 'off', 'none'}))
         options.offset = 0;
-
+        
     else
         options.offset = offset(1);
     end
@@ -1068,7 +1191,7 @@ if ~isempty(input('linewidth'))
         
     elseif linewidth <= 0
         options.linewidth = 1.5;
-
+        
     else
         options.linewidth = linewidth(1);
     end
@@ -1090,21 +1213,22 @@ if ~isempty(input('legend'))
         options.legend = 'on';
         
     else
-        options.legend = 'on';
+        options.legend = 'off';
     end
     
 else
-    options.legend = 'on';
+    options.legend = 'off';
 end
 
 
 % Color options
 if ~isempty(input('color'))
+    
     options.color = varargin{input('color')+1};
     
     color_name = {'red', 'green', 'blue', 'black', 'gray'};
     color_value = {[0.85,0.25,0.2], [0,0.76,0.23], [0.14,0.35,0.55], [0.15,0.15,0.15], [0.5,0.5,0.5]};
-        
+    
     % Check input
     if iscell(options.color)
         options.color = options.color{1};
@@ -1112,7 +1236,7 @@ if ~isempty(input('color'))
     
     if ischar(options.color)
         color_match = strcmpi(options.color, color_name);
-    
+        
         % Check match
         if any(color_match)
             options.color = color_value(color_match);
@@ -1133,18 +1257,22 @@ if ~isempty(input('color'))
         
         % Check length
         switch length(options.color)
+            
             case 1
                 options.color(2:3) = options.color(1);
             case 2
                 options.color(3) = mean(options.color);
             case 3
                 options.color = options.color;
+                
             otherwise
                 options.color = options.color(1:3);
         end
+        
     else
         options.color = [];
     end
+    
 else
     options.color = [];
 end
@@ -1154,18 +1282,21 @@ end
 if ~isempty(input('colormap')) && isempty(options.color)
     options.colormap = varargin{input('colormap')+1};
     
+    default = obj.defaults.plot_colormap;
+    
     % Check MATLAB version
-    switch version('-release')
-        case {'2014b', '2015a', '2015b'}
-            default = 'parula';
-            colormaps = {'parula', 'jet', 'hsv', 'hot', 'cool', 'spring', 'summer',...
-                'autumn', 'winter', 'gray', 'bone', 'copper', 'pink', 'lines'};
-        otherwise
-            default = 'jet';
-            colormaps = {'jet', 'hsv', 'hot', 'cool', 'spring', 'summer',...
-                'autumn', 'winter', 'gray', 'bone', 'copper', 'pink', 'lines'};
+    if verLessThan('matlab', 'R2014b')
+        
+        colormaps = {...
+            'jet', 'hsv', 'hot', 'cool', 'spring', 'summer',...
+            'autumn', 'winter', 'gray', 'bone', 'copper', 'pink', 'lines'};
+        
+    else
+        colormaps = {...
+            'parula', 'jet', 'hsv', 'hot', 'cool', 'spring', 'summer',...
+            'autumn', 'winter', 'gray', 'bone', 'copper', 'pink', 'lines'};
     end
-
+    
     % Check for valid input
     if isnumeric(options.colormap)
         
@@ -1174,25 +1305,20 @@ if ~isempty(input('colormap')) && isempty(options.color)
             options.colormap = default;
         end
         
-    % Check for default
+        % Check for default
     elseif strcmpi(options.colormap, 'default')
         options.colormap = default;
-    
-    % Check for colormap name
+        
+        % Check for colormap name
     elseif ~any(strcmpi(options.colormap, colormaps));
         options.colormap = default;
     end
     
 elseif ~isempty(options.color)
     options.colormap = [];
+    
 else
-    % Check MATLAB version
-    switch version('-release')
-        case {'2014b', '2015a', '2015b'}
-            options.colormap = 'parula';
-        otherwise
-            options.colormap = 'jet';
-    end
+    options.colormap = obj.defaults.plot_colormap;
 end
 
 
@@ -1205,13 +1331,13 @@ if ~isempty(input('export'))
         
         % Set default options
         options.export = {'chromatography_export', '-dpng', '-r300'};
-    
+        
     elseif iscell(export)
         options.export = export;
         
     elseif any(strcmpi(export, {'default', 'off'}))
         options.export = [];
-
+        
     else
         options.export = [];
     end
@@ -1226,4 +1352,5 @@ options.name = {};
 % Return input
 varargout{1} = data;
 varargout{2} = options;
+
 end

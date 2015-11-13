@@ -37,7 +37,7 @@ for i = 1:options.degree
     y = bsxfun(@rdivide, bsxfun(@minus, y(2:end,:), y(1:end-1,:)), bsxfun(@minus, x(2:end,:), x(1:end-1,:)));
     
     if mod(i,2) == 0
-        y = circshift(y, [1,0]);    
+        y = circshift(y, [1,0]);
         y(1,:) = 0;
     end
     
@@ -169,4 +169,5 @@ end
 varargout{1} = x;
 varargout{2} = y;
 varargout{3} = options;
+
 end

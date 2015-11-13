@@ -1,30 +1,41 @@
-% Method: Smooth
-%  -Asymmetric least squares smoothing filter
+% ------------------------------------------------------------------------
+% Method      : Smooth
+% Description : Asymmetric least squares smoothing function
+% ------------------------------------------------------------------------
 %
+% ------------------------------------------------------------------------
 % Syntax
-%   smoothed = Smooth(y)
-%   smoothed = Smooth(y, 'OptionName', optionvalue...)
+% ------------------------------------------------------------------------
+%   y = Smooth(y)
+%   y = Smooth(y, Name, Value)
 %
-% Input
-%   y            : array or matrix
+% ------------------------------------------------------------------------
+% Parameters
+% ------------------------------------------------------------------------
+%   y (required)
+%       Description : intensity values
+%       Type        : array or matrix
 %
-% Options
-%   'asymmetry'  : value (~0.01 to 0.99)
-%   'smoothness' : value (~0.01 to 10000)
+%   'smoothness' (optional)
+%       Description : smoothness parameter used for smoothing calculation
+%       Type        : number
+%       Default     : 0.5
+%       Range       : 0 to 10000
 %
-% Description
-%   y            : intensity values
-%   'asymmetry'  : asymmetry factor (default = 0.5)
-%   'smoothness' : smoothing factor (default = 0.1)
+%   'asymmetry' (optional)
+%       Description : asymmetry parameter used for smoothing calculation
+%       Type        : number
+%       Default     : 0.5
+%       Range       : 0.0 to 1.0
 %
+% ------------------------------------------------------------------------
 % Examples
+% ------------------------------------------------------------------------
 %   y = Smooth(y)
 %   y = Smooth(y, 'asymmetry', 0.4)
 %   y = Smooth(y, 'smoothness', 500)
 %   y = Smooth(y, 'smoothness', 10, 'asymmetry', 0.25)
 %
-% References
-%   P.H.C. Eilers, Analytical Chemistry, 75 (2003) 3631
 
 function varargout = Smooth(y, varargin)
 
@@ -37,37 +48,37 @@ end
 
 % Default options
 asymmetry = 0.5;
-smoothness = 0.1;
-    
+smoothness = 0.5;
+
 % Check options
 if nargin > 1
     
     % Check user input
     input = @(x) find(strcmpi(varargin, x),1);
-
+    
     % Check asymmetry options
     if ~isempty(input('asymmetry'));
         asymmetry = varargin{input('asymmetry')+1};
-
+        
         % Check user input
         if ~isnumeric(asymmetry)
             asymmetry = 0.5;
         elseif asymmetry <= 0
-            asymmetry = 10^-9;
+            asymmetry = 1E-9;
         elseif asymmetry >= 1
-            asymmetry = 1 - 10^-6;
+            asymmetry = 1 - 1E-6;
         end
     end
     
     % Check smoothness options
     if ~isempty(input('smoothness'));
         smoothness = varargin{input('smoothness')+1};
-
+        
         % Check user input
         if ~isnumeric(smoothness)
-            smoothness = asymmetry / 50;
+            smoothness = 0.5;
         elseif smoothness <= 0
-            smoothness = 10^-9;
+            smoothness = 1E-9;
         end
     end
 end
@@ -138,16 +149,14 @@ for i = 1:length(y(1,:))
         w = sparse(index, index, weights);
     end
     
+    % Remove negative values
+    s(s<0) = 0;
+    
     % Check offset
     if offset(i) ~= 0
-        
-        % Preserve negative values from input
         smoothed(:,i) = s - offset(i);
         
     elseif offset(i) == 0
-        
-        % Correct negative values from smoothing
-        s(s < 0) = 0;
         smoothed(:,i) = s;
     end
     

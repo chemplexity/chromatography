@@ -1,30 +1,34 @@
-% Method      : ImportAgilentFID (EXPERIMENTAL)
-% Description : Read Agilent data files (.D, .CH)
+% ------------------------------------------------------------------------
+% Method      : ImportAgilentFID [EXPERIMENTAL]
+% Description : Import data stored in Agilent(.D, .CH) files
+% ------------------------------------------------------------------------
 %
+% ------------------------------------------------------------------------
 % Syntax
-%   data = ImportAgilent()
-%   data = ImportAgilent(files)
+% ------------------------------------------------------------------------
+%   data = ImportAgilentFID()
+%   data = ImportAgilentFID(path)
 %
+% ------------------------------------------------------------------------
+% Parameters
+% ------------------------------------------------------------------------
+%   path (optional)
+%       Description : relative or absolute path of file/folder
+%       Type        : string
+%
+% ------------------------------------------------------------------------
 % Examples
-%   Options: UI, Files, Folders, Files/Folders
-%
-%   1) UI
-%       data = ImportAgilent()
-%
-%   2) Files
-%       data = ImportAgilent('002B0201.D')
-%       data = ImportAgilent('/Users/Admin/Data/084B051.D')
-%       data = ImportAgilent('C:\Users\Admin\Data\FID2B.CH')
-%       data = ImportAgilent('005-0101.D', 'DAD1A.CH', 'FID1A.CH')
-%
-%   3) Folders
-%       data = ImportAgilent('/Users/Admin/Data/20150101_SEQUENCE/')
-%       data = ImportAgilent('C:\Users\Admin\Data\2015_OCT_SAMPLES\')
-%       data = ImportAgilent('TRIAL1_SEQ', 'TRIAL2_SEQ')
-%
-%   4) Files/Folders
-%       data = ImportAgilent('DAD1A.CH', '/Users/Admin/Data/TRIAL1043/')
-%       data = ImportAgilent('SAMPLES_100_300', '001STANDARD.D')
+% ------------------------------------------------------------------------
+%   data = ImportAgilentFID()
+%   data = ImportAgilentFID('002B0201.D')
+%   data = ImportAgilentFID('/Users/Admin/Data/084B051.D')
+%   data = ImportAgilentFID('C:\Users\Admin\Data\FID2B.CH')
+%   data = ImportAgilentFID('005-0101.D', 'DAD1A.CH', 'FID1A.CH')
+%   data = ImportAgilentFID('/Users/Admin/Data/20150101_SEQUENCE/')
+%   data = ImportAgilentFID('C:\Users\Admin\Data\2015_OCT_SAMPLES\')
+%   data = ImportAgilentFID('TRIAL1_SEQ', 'TRIAL2_SEQ')
+%   data = ImportAgilentFID('DAD1A.CH', '/Users/Admin/Data/TRIAL1043/')
+%   data = ImportAgilentFID('SAMPLES_100_300', '001STANDARD.D')
 %
 
 function data = ImportAgilentFID(varargin)
@@ -77,7 +81,7 @@ if nargin-1 == 0
         end
     end
     
-% Input: files or folders
+    % Input: files or folders
 elseif nargin-1 > 0
     
     for i = 1:length(varargin)
@@ -93,7 +97,7 @@ elseif nargin-1 > 0
         end
     end
 end
-end 
+end
 
 function filelist = getFilePath(filename)
 
@@ -181,11 +185,11 @@ for i = 1:length(filename)
                     end
                     
                     filelist(end).date = finfo.datenum;
-                    filelist(end).size = finfo.bytes; 
+                    filelist(end).size = finfo.bytes;
                 end
             end
         end
-   
+        
     else
         
         fname = filename(i).Name;
@@ -195,7 +199,7 @@ for i = 1:length(filename)
         if ~isempty(filter(fname))
             filelist(end+1).filepath = fname;
             filelist(end).filename = regexp(fname, '(?i)\w+[.]D', 'match');
-        
+            
             if isempty(filelist(end).filename)
                 filelist(end).filename = regexp(fname, '(?i)\w+[.](MS|CH|UV)', 'match');
                 filelist(end).filename = filelist(end).filename{1};
@@ -231,14 +235,14 @@ message.error.header = @(filepath,type) fprintf([...
     '        File      : ', filepath, '\n',...
     '        Header    : ', type, '\n',...
     '        Supported : 8, 30, 81, 130, 179, 181 \n']);
-        
+
 message.load.summary = @(count,bytes,time,rate) fprintf([...
     '\nImport complete... \n',...
     '    Files   : ', num2str(count), '\n',...
     '    Size    : ', bytes, '\n',...
     '    Elapsed : ', time, '\n',...
     '    Rate    : ', rate, '\n\n']);
-    
+
 message.load.start = @(a,b) fprintf([...
     '[', num2str(a), '/', num2str(b), '] ',...
     'Loading ']);
@@ -248,9 +252,9 @@ message.load.finish = @(a,b,time,speed,progress) fprintf([...
 
 message.info.data = @(instrument) fprintf([...
     '', instrument, ' file...']);
-    
-for i = 1:length(filelist)
 
+for i = 1:length(filelist)
+    
     if i == 1
         fprintf('\nImporting Agilent data files...\n\n');
     end
@@ -279,32 +283,32 @@ for i = 1:length(filelist)
         message.timer = message.timer + toc;
         continue
     end
-        
+    
     % Read file header
     for j = 1:length(finfo)
         fseek(file, finfo(j).offset, 'bof');
         
         % Integer/float
-        if ~strcmpi(finfo(j).type, 'pascal') 
+        if ~strcmpi(finfo(j).type, 'pascal')
             data(i).(finfo(j).name) = fread(file, 1, finfo(j).type, finfo(j).endian);
-        
-        % Pascal string (UTF-8)
+            
+            % Pascal string (UTF-8)
         elseif str2double(ftype) < 100
             data(i).(finfo(j).name) = fpascal(file, 'uint8');
-        
-        % Pascal string (UTF-16)
+            
+            % Pascal string (UTF-16)
         elseif str2double(ftype) > 100
             data(i).(finfo(j).name) = fpascal(file, 'uint16');
-        end 
+        end
     end
-   
+    
     % Instrument type
     if isfield(data, 'Inlet') && ~isempty(data(i).Inlet)
         instrument = regexp(data(i).Inlet, '(?i)\w+', 'match');
-    
+        
     elseif isfield(data, 'File') && ~isempty(data(i).File)
         instrument = regexp(data(i).File, '(?i)(LC|GC|CE)', 'match');
-    
+        
     else
         instrument = '';
     end
@@ -378,7 +382,7 @@ for i = 1:length(filelist)
     
     data(i).Time = [];
     data(i).Signal = [];
-       
+    
     % Load signal
     switch ftype
         
@@ -393,7 +397,7 @@ for i = 1:length(filelist)
             
             data(i) = DeltaCompression(file, data(i));
             
-        % LC (UTF-8)
+            % LC (UTF-8)
         case '30'
             
             switch data(i).Version
@@ -407,19 +411,19 @@ for i = 1:length(filelist)
             
             data(i) = DeltaCompression(file, data(i));
             
-        % GC (UTF-8)
+            % GC (UTF-8)
         case '81'
             data(i) = DoubleDeltaCompression(file, data(i));
             
-        % LC (UTF-16)
+            % LC (UTF-16)
         case '130'
             data(i) = DeltaCompression(file, data(i));
             
-        % GC (UTF-16)
+            % GC (UTF-16)
         case '179'
             data(i) = DoubleArray(file, data(i));
             
-        % GC (UTF-16)
+            % GC (UTF-16)
         case '181'
             data(i) = DoubleDeltaCompression(file, data(i));
     end
@@ -438,7 +442,7 @@ for i = 1:length(filelist)
             data(i).UnixTime = [];
         end
     end
-
+    
     % MESSAGE / Load complete
     message.timer = message.timer + toc;
     message.counter = message.counter + data(i).filesize;
@@ -456,7 +460,7 @@ for i = 1:length(filelist)
     end
     
     totalsize = sum([filelist.size]);
-
+    
     if totalsize > 1E6
         a = num2str(message.counter / 1E6, '%.1f');
         b = num2str(totalsize / 1E6, '%.1f');
@@ -466,7 +470,7 @@ for i = 1:length(filelist)
     end
     
     progress = [a, '/', b, ' MB'];
-            
+    
     message.load.finish(i, length(filelist), elapsed, rate, progress);
 end
 
@@ -495,26 +499,26 @@ end
 % Sort by date and time
 if isfield(data, 'UnixTime')
     [~, index] = sort([data.UnixTime]);
-    data = data(index); 
+    data = data(index);
 end
 end
 
 function varargout = units(varargin)
 
-    switch varargin{2}
+switch varargin{2}
+    
+    case 'bytes'
         
-        case 'bytes'
-            
-            if varargin{1} > 1E9
-                varargout{1} = [num2str(varargin{1}/1E9, '%.2f'), ' GB'];
-            elseif varargin{1} > 1E6
-                varargout{1} = [num2str(varargin{1}/1E6, '%.2f'), ' MB'];
-            elseif varargin{1} > 1E3
-                varargout{1} = [num2str(varargin{1}/1E3, '%.2f'), ' KB'];
-            else
-                varargout{1} = [num2str(varargin{1}/1E0, '%.2f'), ' B'];
-            end
-    end
+        if varargin{1} > 1E9
+            varargout{1} = [num2str(varargin{1}/1E9, '%.2f'), ' GB'];
+        elseif varargin{1} > 1E6
+            varargout{1} = [num2str(varargin{1}/1E6, '%.2f'), ' MB'];
+        elseif varargin{1} > 1E3
+            varargout{1} = [num2str(varargin{1}/1E3, '%.2f'), ' KB'];
+        else
+            varargout{1} = [num2str(varargin{1}/1E0, '%.2f'), ' B'];
+        end
+end
 end
 
 %
@@ -526,23 +530,23 @@ end
 %
 function varargout = parsedate(varargin)
 
-    if ischar(varargin{1})
+if ischar(varargin{1})
+    try
+        varargout{1} = datenum(varargin{1}, 'dd mmm yy HH:MM PM');
+    catch
         try
-            varargout{1} = datenum(varargin{1}, 'dd mmm yy HH:MM PM');
+            varargout{1} = datenum(varargin{1}, 'mm/dd/yy HH:MM:SS PM');
         catch
             try
-                varargout{1} = datenum(varargin{1}, 'mm/dd/yy HH:MM:SS PM');
-            catch    
-                try
-                    varargout{1} = datenum(varargin{1}, 'dd-mmm-yy, HH:MM:SS');
-                catch
-                    varargout{1} = [];
-                end 
+                varargout{1} = datenum(varargin{1}, 'dd-mmm-yy, HH:MM:SS');
+            catch
+                varargout{1} = [];
             end
         end
-    else
-        varargout{1} = [];
     end
+else
+    varargout{1} = [];
+end
 end
 
 
@@ -623,7 +627,7 @@ if isnumeric(file)
 else
     return
 end
-        
+
 % Read data
 fseek(file, data.DataOffset, 'bof');
 
@@ -866,7 +870,7 @@ F130 = {...
     130,  2391,  'pascal',   'l',  'DateTime';
     130,  2492,  'pascal',   'l',  'InstModel';
     130,  2533,  'pascal',   'l',  'Inlet';
-    130,  2574,  'pascal',   'l',  'MethodName';    
+    130,  2574,  'pascal',   'l',  'MethodName';
     130,  3089,  'pascal',   'l',  'SoftwareName';
     130,  3601,  'pascal',   'l',  'FirmwareRev';
     130,  3802,  'pascal',   'l',  'SoftwareRev';
@@ -911,7 +915,7 @@ F179 = {...
     179,  2391,  'pascal',   'l',  'DateTime';
     179,  2492,  'pascal',   'l',  'InstModel';
     179,  2533,  'pascal',   'l',  'Inlet';
-    179,  2574,  'pascal',   'l',  'MethodName';    
+    179,  2574,  'pascal',   'l',  'MethodName';
     179,  3089,  'pascal',   'l',  'SoftwareName';
     179,  3601,  'pascal',   'l',  'FirmwareRev';
     179,  3802,  'pascal',   'l',  'SoftwareRev';

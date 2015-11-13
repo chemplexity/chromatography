@@ -1,96 +1,93 @@
-% Class: Chromatography
-%  -Methods for processing chromatography and mass spectrometry data
+% ------------------------------------------------------------------------
+% Class       : Chromatography
+% Description : Functions for chromatography and mass spectrometry data
+% ------------------------------------------------------------------------
 %
-% Initialize
-%   obj = Chromatography
+% ------------------------------------------------------------------------
+% Syntax
+% ------------------------------------------------------------------------
+%   obj = Chromatography;
 %
+% ------------------------------------------------------------------------
 % Methods
+% ------------------------------------------------------------------------
+%   obj.import
+%       Description : import instrument data files
+%       Syntax      : data = obj.import(filetype, Name, Value)
 %
-%   Import
-%       data = obj.import(filetype, 'OptionName', optionvalue...)
+%   obj.centroid
+%       Description : centroid mass values
+%       Syntax      : data = obj.centroid(data, Name, Value)
 %
-%   Preprocessing
-%       data = obj.centroid(data, 'OptionName', optionvalue...)
-%       data = obj.baseline(data, 'OptionName', optionvalue...)
-%       data = obj.smooth(data, 'OptionName', optionvalue...)
+%   obj.baseline
+%       Description : calculate baseline for chromatogram
+%       Syntax      : data = obj.baseline(data, Name, Value)
 %
-%   Integration
-%       data = obj.integrate(data, 'OptionName', optionvalue...)
+%   obj.smooth
+%       Description : smooth chromatogram
+%       Syntax      : data = obj.smooth(data, Name, Value)
 %
-%   Visualization
-%       fig = obj.visualize(data, 'OptionName', optionvalue...)
+%   obj.integrate
+%       Description : find and integrate peaks in chromatogram
+%       Syntax      : data = obj.integrate(data, Name, Value)
+%
+%   obj.visualize
+%       Description : plot chromatogram or mass spectra
+%       Syntax      : fig = obj.visualize(data, Name, Value)
 %
 
 classdef Chromatography
     
-    properties
-        
-        Defaults
-
-    end
-    
     properties (SetAccess = private)
         
-        Options
-        Diagnostics
+        version = '0.1.5';
+        options
+    end
+    
+    properties
         
+        defaults
     end
     
     methods
         
         function obj = Chromatography()
             
-            obj = defaults(obj);
-            obj = options(obj);
-            obj = diagnostics(obj);
+            % Add dependencies to user path
+            source = fileparts(which('Chromatography'));
+            source = regexp(source, '.+(?=[@])', 'match');
             
-        end
-        
-        % Default properties
-        function obj = defaults(obj, varargin)
+            addpath(source{1});
+            addpath(genpath([source{1}, 'Methods']));
+            addpath(genpath([source{1}, 'Development']));
+            addpath(genpath([source{1}, 'Examples']));
             
-            % Baseline
-            obj.Defaults.baseline.smoothness = 1E6;
-            obj.Defaults.baseline.asymmetry = 1E-4;
+            % Default parameters
+            obj.defaults.baseline_smoothness = 1E6;
+            obj.defaults.baseline_asymmetry = 1E-4;
             
-            % Smoothing
-            obj.Defaults.smoothing.smoothness = 0.5;
-            obj.Defaults.smoothing.asymmetry = 0.5;
+            obj.defaults.smoothing_smoothness = 0.5;
+            obj.defaults.smoothing_asymmetry = 0.5;
             
-            % Integration
-            obj.Defaults.integrate.model = 'exponential gaussian hybrid';
+            obj.defaults.integrate_model = 'exponential gaussian hybrid';
             
-            % Visualization
-            obj.Defaults.visualize.position = [0.25, 0.25, 0.5, 0.5];
-            obj.Defaults.visualize.colormap = 'parula';
+            obj.defaults.plot_position = [0.25, 0.25, 0.5, 0.5];
             
-        end
-        
-        % Available options
-        function obj = options(obj, varargin)
+            if verLessThan('matlab', 'R2014b')
+                obj.defaults.plot_colormap = 'jet';
+            else
+                obj.defaults.plot_colormap = 'parula';
+            end
             
-            % Import
-            obj.Options.import = {...
+            % Options
+            obj.options.import = {...
                 '.CDF', 'netCDF (*.CDF)';
                 '.D',   'Agilent (*.D)';
                 '.MS',  'Agilent (*.MS)';
                 '.RAW', 'Thermo (*.RAW)'};
             
-            % Export
-            obj.Options.export = {...
+            obj.options.export = {...
                 '.CSV', '(*.CSV)'};
-            
-        end
-        
-        % Diagnostic information
-        function obj = diagnostics(obj, varargin)
-            
-            % Diagnostics
-            obj.Diagnostics.date = date;
-            obj.Diagnostics.system_os = computer;
-            obj.Diagnostics.matlab_version = version('-release');
-            obj.Diagnostics.toolbox_version = '0.1.5';
-            
         end
         
         % Restore data to original state

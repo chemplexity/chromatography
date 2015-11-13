@@ -9,7 +9,7 @@
 %
 % Options
 %   'type'   : 'local', 'global'
-%   
+%
 % Description
 %   'local'  : normalize vectors individually (default)
 %   'global' : normalize vectors to global maximum
@@ -25,7 +25,7 @@ function varargout = Normalize(y, varargin)
 if ~isempty(find(strcmpi(varargin, 'type'),1))
     type = varargin{find(strcmpi(varargin, 'type'),1)+1};
     
-    % Check for valid input 
+    % Check for valid input
     if ~ischar(type)
         type = 'local';
     else
@@ -47,10 +47,10 @@ elseif strcmpi(type, 'local')
     ymax = max(y);
     ymin = min(y);
 end
-    
+
 % Normalize signal
 y = bsxfun(@rdivide, bsxfun(@minus, y, ymin), (ymax-ymin));
-    
+
 % Set output
 varargout{1} = y;
 end

@@ -22,7 +22,7 @@ varargout{2} = [];
 
 % Check input
 [mz, y] = parse(varargin);
-   
+
 % Process large input in segments
 blocksize = 5000;
 
@@ -43,7 +43,7 @@ if length(mz) > blocksize
         
         % Centroid data block
         [mz_segment, y_segment] = centroid(mz(index), full(y(:,index)));
-    
+        
         % Reassemble data
         varargout{1} = [varargout{1}, mz_segment];
         
@@ -59,6 +59,7 @@ else
     % Centroid data
     [varargout{1}, varargout{2}] = centroid(mz, y);
 end
+
 end
 
 function [mz,y] = centroid(mz,y)
@@ -72,8 +73,15 @@ while counter ~= 0 && iterations <= 10
     % Centroid data
     for i = 2:length(y(1,:))-1
         
-        % Find zeros in adjacent columns
+        % Check data
+        if all(~y(:,i))
+            continue
+        end
+        
+        % Find zeros in column
         middle = ~y(:,i);
+        
+        % Find zeros in adjacent columns
         upper = ~y(:,i+1);
         lower = ~y(:,i-1);
         
@@ -104,7 +112,7 @@ while counter ~= 0 && iterations <= 10
     counter = length(y(1,:));
     
     % Remove columns with all zeros
-    remove = all(y==0,1);
+    remove = all(~y);
     
     mz(:,remove) = [];
     y(:,remove) = [];
@@ -115,6 +123,7 @@ while counter ~= 0 && iterations <= 10
     % Update number of iterations
     iterations = iterations + 1;
 end
+
 end
 
 % Parse user input
@@ -136,18 +145,10 @@ else
 end
 
 if isnumeric(varargin{2})
-    y = varargin{2};    
+    y = varargin{2};
 else
     error('Undefined input arguments of type ''y''.');
 end
-
-% Check data precision
-%if ~isa(mz, 'double')
-%    mz = double(mz);
-%end
-%if ~isa(y, 'double')
-%    y = double(y);
-%end
 
 % Incorrect 'mz' orientation
 if length(mz(:,1)) == length(y(1,:))
@@ -164,12 +165,13 @@ end
 if length(mz(1,:)) == length(y(:,1)) && length(y(:,1)) ~= length(y(1,:))
     y = y';
 end
-    
+
 if length(mz(1,:)) ~= length(y(1,:))
     error('Input dimensions must aggree.');
 end
-    
+
 % Return input
 varargout{1} = mz;
 varargout{2} = y;
+
 end

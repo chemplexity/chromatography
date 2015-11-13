@@ -1,31 +1,38 @@
-% Method: ImportMZXML
-%  -Extract raw data from mzXML (.mzXML) files
+% ------------------------------------------------------------------------
+% Method      : ImportMZXML [EXPERIMENTAL]
+% Description : Import data stored in mzXML (.MZXML) files
+% ------------------------------------------------------------------------
 %
+% ------------------------------------------------------------------------
 % Syntax
+% ------------------------------------------------------------------------
 %   data = ImportMZXML(file)
-%   data = ImportMZXML(file, 'OptionName', optionvalue)
+%   data = ImportMZXML(file, Name, Value)
 %
-% Input
-%   file        : string
+% ------------------------------------------------------------------------
+% Parameters
+% ------------------------------------------------------------------------
+%   file (required)
+%       Description : name of mzXML file
+%       Type        : string
 %
-% Options
-%   'precision' : integer
+%   'precision' (optional)
+%       Description : maximum decimal places for m/z values
+%       Type        : number
+%       Default     : 3
 %
-% Description
-%   file        : file name with valid extension (.mzXML)
-%   'precision' : number of decimal places allowed for m/z values (default = 3)
-%
+% ------------------------------------------------------------------------
 % Examples
+% ------------------------------------------------------------------------
 %   data = ImportMZXML('31a-051c.mzXML')
 %   data = ImportMZXML('43f-trial1.mzxml', 'precision', 4)
 %
-% Compatibility
-%   mzXML, v2.0-3.2
-%
+% ------------------------------------------------------------------------
 % Issues
-%   -Large files >200 MB
-%   -Files with 'zlib' compression
-
+% ------------------------------------------------------------------------
+%   1) Large files > 200 MB
+%   2) Files with 'zlib' compression
+%
 
 function varargout = ImportMZXML(varargin)
 
@@ -521,7 +528,7 @@ peaks = cellfun(@(x) uint8(x), peaks, 'uniformoutput', false);
 if ~isfield(data.index, 'compressionType') || ~strcmpi(data.index(1).compressionType, 'zlib')
     
     for i = 1:length(peaks)
-    
+        
         % Decode Base64
         peaks{i} = base64.decode(peaks{i});
         
@@ -635,7 +642,7 @@ if ~isfield(data.index, 'compressionType') || ~strcmpi(data.index(1).compression
         data.xic(:,data.mz == 0) = [];
         data.mz(:,data.mz == 0) = [];
     end
-        
+    
     % Assign outputs
     switch level
         

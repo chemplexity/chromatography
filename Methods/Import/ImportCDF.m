@@ -1,27 +1,32 @@
+% ------------------------------------------------------------------------
 % Method      : ImportCDF
-% Description : Import data from netCDF (.CDF) files
+% Description : Import data stored in netCDF (.CDF) files
+% ------------------------------------------------------------------------
 %
+% ------------------------------------------------------------------------
 % Syntax
+% ------------------------------------------------------------------------
 %   data = ImportCDF(file)
-%   data = ImportCDF(file, 'OptionName', optionvalue)
+%   data = ImportCDF(file, Name, Value)
 %
-% Input
-%   Name        : file (string)
-%   Description : name of .CDF file 
+% ------------------------------------------------------------------------
+% Parameters
+% ------------------------------------------------------------------------
+%   file (required)
+%       Description : name of netCDF file
+%       Type        : string
 %
-% Options
-%   Name        : 'precision' (number)
-%   Default     : 3
-%   Description : allowed decimal places for m/z values
+%   'precision' (optional)
+%       Description : maximum decimal places for m/z values
+%       Type        : number
+%       Default     : 3
 %
+% ------------------------------------------------------------------------
 % Examples
+% ------------------------------------------------------------------------
 %   data = ImportCDF('001-0510.CDF')
 %   data = ImportCDF('002-23.CDF', 'precision', 2)
 %
-% Compatibility
-%   Agilent, LC/MS (6100 Series)
-%   Agilent, GC/MS (5970 Series)
-%   Thermo, LC/MS (V.57, V.62, V.63)
 
 function varargout = ImportCDF(varargin)
 
@@ -56,7 +61,7 @@ if isfield(info, 'Attributes')
     if any(strcmpi('operator_name', {info.Attributes.Name}))
         data.method.operator = strtrim(ncreadatt(file, '/', 'operator_name'));
     end
-   
+    
     % Method name
     data.method.name = '';
     
@@ -71,14 +76,14 @@ if isfield(info, 'Attributes')
     % Date/Time
     data.method.date = '';
     data.method.time = '';
-        
+    
     if any(strcmpi('experiment_date_time_stamp', {info.Attributes.Name}))
         datetime = ncreadatt(file, '/', 'experiment_date_time_stamp');
         
         try
             date = datenum([str2double(datetime(1:4)), str2double(datetime(5:6)), str2double(datetime(7:8)),...
                 str2double(datetime(9:10)), str2double(datetime(10:11)), str2double(datetime(12:13))]);
-        
+            
             data.method.date = strtrim(datestr(date, 'mm/dd/yy'));
             data.method.time = strtrim(datestr(date, 'HH:MM PM'));
         catch
@@ -107,8 +112,10 @@ end
 % Remove path from sample name
 if any('\' == name)
     data.sample.name = name(find(name == '\', 1, 'last')+1:end);
+    
 elseif any('/' == name)
     data.sample.name = name(find(name == '/', 1, 'last')+1:end);
+    
 else
     data.sample.name = name;
 end
@@ -137,7 +144,7 @@ if isfield(info, 'Variables')
         data.tic.values = ncread(file, 'global_intensity_max');
     end
     
-    % Check for mass values    
+    % Check for mass values
     if any(strcmpi('mass_values', {info.Variables.Name}))
         data.mz = ncread(file, 'mass_values');
     end
@@ -156,7 +163,6 @@ if isempty(data.xic.values) && isempty(data.tic.values)
 elseif isempty(data.xic.values)
     varargout{1} = data;
     return
-    
 end
 
 % Variables
@@ -203,6 +209,7 @@ else
 end
 
 varargout{1} = data;
+
 end
 
 % Parse user input
@@ -214,8 +221,10 @@ nargin = length(varargin);
 % Check number of inputs
 if nargin < 1 || ~ischar(varargin{1})
     error('Undefined input arguments of type ''file''.');
+    
 elseif ischar(varargin{1})
     file = varargin{1};
+    
 else
     varargout{2} = [];
     return
@@ -269,13 +278,16 @@ if ~isempty(input('precision'))
             options.precision = 3;
             disp('Input arguments of type ''precision'' invalid. Value set to: ''3''.');
         end
+        
     else
         options.precision = precision;
     end
+    
 else
     options.precision = 3;
 end
 
 varargout{1} = file;
 varargout{2} = options;
+
 end

@@ -32,6 +32,7 @@ function ExportCSV(varargin)
 
 % Export data
 dlmwrite(options.file, data);
+
 end
 
 % Parse user input
@@ -43,8 +44,10 @@ nargin = length(varargin);
 % Check input
 if nargin < 1
     error('Not enough input arguments.');
+    
 elseif nargin <= 3
     values = sum(cellfun(@isnumeric, varargin));
+    
 elseif nargin > 3
     values = sum(cellfun(@isnumeric, varargin(1:3)));
 end
@@ -83,14 +86,14 @@ end
 
 % Check x data
 if ~isempty(x)
-
+    
     % Check x for rows
     if length(x(1,:)) == length(y(:,1))
         x = x';
     elseif length(x(:,1)) ~= length(y(:,1))
         x = [];
     end
-        
+    
     % Check x for matric
     if length(x(:,1)) == length(y(:,1)) && length(x(1,:)) > 1
         x = x(:,1);
@@ -127,7 +130,7 @@ if ~isempty(input('filename'))
     file = varargin{input('filename')+1};
     
     % Check for string input
-    if ischar(file) 
+    if ischar(file)
         
         % Check input length
         if length(file) <= 20
@@ -136,7 +139,7 @@ if ~isempty(input('filename'))
             options.file = deblank(file(1:20));
         end
         
-    % Check for cell input
+        % Check for cell input
     elseif iscell(file) && ischar(file{1})
         
         % Check input length
@@ -172,4 +175,5 @@ end
 % Return input
 varargout{1} = data;
 varargout{2} = options;
+
 end

@@ -1,32 +1,44 @@
-% Method: ImportThermo
-%  -Extract raw data from Thermo (.RAW) files
+% ------------------------------------------------------------------------
+% Method      : ImportThermo
+% Description : Import data stored in Thermo (.RAW) files
+% ------------------------------------------------------------------------
 %
+% ------------------------------------------------------------------------
 % Syntax
+% ------------------------------------------------------------------------
 %   data = ImportThermo(file)
-%   data = ImportThermo(file, 'OptionName', optionvalue...)
+%   data = ImportThermo(file, Name, Value)
 %
-% Input
-%   file        : string
+% ------------------------------------------------------------------------
+% Parameters
+% ------------------------------------------------------------------------
+%   file (required)
+%       Description : name of Thermo data file
+%       Type        : string
 %
-% Options
-%   'precision' : integer
+%   'precision' (optional)
+%       Description : maximum decimal places for m/z values
+%       Type        : number
+%       Default     : 3
 %
-% Description
-%   file        : file name with valid extension (.RAW)
-%   'precision' : number of decimal places allowed for m/z values (default = 3)
-%
+% ------------------------------------------------------------------------
 % Examples
+% ------------------------------------------------------------------------
 %   data = ImportThermo('001-32-2.RAW')
 %   data = ImportThermo('06b.RAW', 'precision', 4)
 %
+% ------------------------------------------------------------------------
 % Compatibility
-%   Thermo Scientific, LC/MS
-%       LTQ XL : V.57, V.62, V.63
-%       LCQ XP : V.57, V.62, V.63
+% ------------------------------------------------------------------------
+%   LTQ XL : V.57, V.62, V.63
+%   LCQ XP : V.57, V.62, V.63
 %
+% ------------------------------------------------------------------------
 % Issues
-%   -Large files >200 MB
-%   -Unable to import 'profile' MS/MS data
+% ------------------------------------------------------------------------
+%   1) Large files > 200 MB
+%   2) Unable to import 'profile' MS/MS data
+%
 
 function varargout = ImportThermo(varargin)
 
@@ -36,6 +48,7 @@ function varargout = ImportThermo(varargin)
 % Check file name
 if isempty(file)
     varargout{1} = [];
+    
     disp('Error: Input file invalid.');
     return
 end
@@ -48,7 +61,9 @@ file.name = fopen(file.name, 'r', 'l', 'UTF-8');
 
 % Check version
 if isempty(file.key)
-    disp(['Error: Input data of type ''V.', num2str(file.version), ''' is currently unsupported.']);
+    varargout{1} = [];
+    
+    disp(['Input data of type ''V.', num2str(file.version), ''' is currently unsupported.']);
     return
 end
 
@@ -144,23 +159,23 @@ for i = 1:file.key
         case 3
             file.id = deblank(fread(file.name, n, 'uint16=>char')');
             
-        % Method name
+            % Method name
         case 10
             data.method.name = deblank(fread(file.name, n, 'uint16=>char')');
             
-        % File name
+            % File name
         case 12
             file.filename = deblank(fread(file.name, n, 'uint16=>char')');
             
-        % Path name
+            % Path name
         case 13
             file.path = deblank(fread(file.name, n, 'uint16=>char')');
             
-        % Vial
+            % Vial
         case 14
             file.vial = deblank(fread(file.name, n, 'uint16=>char')');
             
-        % Skip field
+            % Skip field
         otherwise
             fread(file.name, n, 'uint16=>char');
     end
@@ -440,7 +455,7 @@ for i = 1:length(levels)
             % Clear memory
             clear mz xic
             
-        % MS1 / Header
+            % MS1 / Header
         case 21
             
             % Variables
@@ -496,7 +511,7 @@ for i = 1:length(levels)
             % Clear memory
             clear mz xic
             
-        % MS2 / Centroid
+            % MS2 / Centroid
         case 18
             
             % Variables
@@ -535,7 +550,7 @@ for i = 1:length(levels)
                         cols(end+1) = 0;
                         continue
                     end
-
+                    
                     % Read mass values
                     fseek(file.name, offset+4, 'bof');
                     mz(end+1:end+n) = fread(file.name, n, 'float32', 4);
@@ -571,6 +586,7 @@ for i = 1:length(levels)
             clear mz xic
     end
 end
+
 end
 
 
@@ -618,6 +634,7 @@ clear xic
 % Output data
 varargout{1} = z';
 varargout{2} = y;
+
 end
 
 
@@ -630,8 +647,10 @@ nargin = length(varargin);
 % Check number of inputs
 if nargin < 1 || ~ischar(varargin{1})
     error('Undefined input arguments of type ''file''.');
+    
 elseif ischar(varargin{1})
     file.name = varargin{1};
+    
 else
     varargout{2} = [];
     return

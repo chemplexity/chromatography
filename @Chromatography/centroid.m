@@ -1,20 +1,35 @@
-% Method: centroid
-%  -Centroid raw mass spectrometer data
+% ------------------------------------------------------------------------
+% Method      : Chromatography.centroid
+% Description : Centroid mass values
+% ------------------------------------------------------------------------
 %
+% ------------------------------------------------------------------------
 % Syntax
+% ------------------------------------------------------------------------
 %   data = obj.centroid(data)
-%   data = obj.centroid(data, 'OptionName', optionvalue...)
+%   data = obj.centroid(data, Name, Value)
 %
-% Options
-%   'samples'    : 'all', [index]
+% ------------------------------------------------------------------------
+% Parameters
+% ------------------------------------------------------------------------
+%   data (required)
+%       Description : chromatography data
+%       Type        : structure
 %
-% Description
-%   data         : data structure
-%   'samples'    : row index of samples (default = 'all')
+%   ----------------------------------------------------------------------
+%   Data Selection
+%   ----------------------------------------------------------------------
+%   'samples' (optional)
+%       Description : index of samples in data
+%       Type        : number | 'all'
+%       Default     : 'all'
 %
+% ------------------------------------------------------------------------
 % Examples
+% ------------------------------------------------------------------------
 %   data = obj.centroid(data)
 %   data = obj.centroid(data, 'samples', [2:5, 8, 10])
+%
 
 function varargout = centroid(obj, varargin)
 
@@ -81,13 +96,20 @@ else
     elapsed = [num2str(timer, '%.1f'), ' sec'];
 end
 
+if count.before > 0
+    compression = num2str(100-(count.after/count.before)*100, '%.1f');
+else
+    compression = '0.0';
+end
+
 fprintf(['\n',...
     'Samples     : ', num2str(length(samples)), '\n',...
     'Elapsed     : ', elapsed, '\n',...
     'In/Out      : ', num2str(count.before), '/', num2str(count.after), '\n'...
-    'Compression : ', num2str(100-(count.after/count.before)*100, '%.1f'), ' %%\n']);
+    'Compression : ', compression, ' %%\n']);
 
 fprintf('\n[COMPLETE]\n\n');
+
 end
 
 % Parse input
@@ -99,8 +121,10 @@ nargin = length(varargin);
 % Check input
 if nargin < 1
     error('Not enough input arguments.');
+    
 elseif isstruct(varargin{1})
     data = obj.format('validate', varargin{1});
+    
 else
     error('Undefined input arguments of type ''data''.');
 end
@@ -111,15 +135,15 @@ input = @(x) find(strcmpi(varargin, x),1);
 % Sample options
 if ~isempty(input('samples'))
     samples = varargin{input('samples')+1};
-
+    
     % Set keywords
     samples_all = {'default', 'all'};
-        
+    
     % Check for valid input
     if any(strcmpi(samples, samples_all))
         samples = 1:length(data);
-
-    % Check input type
+        
+        
     elseif ~isnumeric(samples)
         
         % Check string input
@@ -152,4 +176,5 @@ end
 % Return input
 varargout{1} = data;
 varargout{2} = options;
+
 end
