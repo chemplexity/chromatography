@@ -1,19 +1,29 @@
-% Method: Centroid
-%  -Centroid raw mass spectrometer data
+% ------------------------------------------------------------------------
+% Method      : Centroid
+% Description : Centroid mass values
+% ------------------------------------------------------------------------
 %
+% ------------------------------------------------------------------------
 % Syntax
-%   [mz,y] = Centroid(mz,y)
+% ------------------------------------------------------------------------
+%   [mz, y] = Centroid(mz, y)
 %
-% Input
-%   mz : array
-%   y  : matrix
+% ------------------------------------------------------------------------
+% Parameters
+% ------------------------------------------------------------------------
+%   mz (required)
+%       Description : mass values
+%       Type        : array
 %
-% Description
-%   mz : mass values
-%   y  : intensity values
+%   y (required)
+%       Description : intensity values
+%       Type        : matrix
 %
+% ------------------------------------------------------------------------
 % Examples
-%   [mz,y] = Centroid(mz,y)
+% ------------------------------------------------------------------------
+%   [mz, y] = Centroid(mz, y)
+%
 
 function varargout = Centroid(varargin)
 

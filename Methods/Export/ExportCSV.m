@@ -1,29 +1,41 @@
-% Method: ExportCSV
-%  -Export data as comma separated value (.CSV) file
+% ------------------------------------------------------------------------
+% Method      : ExportCSV
+% Description : Export data as comma separated values (.CSV) file
+% ------------------------------------------------------------------------
 %
-% Syntax:
-%   ExportCSV(y, 'OptionName', optionvalue,...)
-%   ExportCSV(x, y, 'OptionName', optionvalue,...)
-%   ExportCSV(x, y, z, 'OptionName', optionvalue,...)
+% ------------------------------------------------------------------------
+% Syntax
+% ------------------------------------------------------------------------
+%   data = ExportCSV(y)
+%   data = ExportCSV(x, y, Name, Value)
+%   data = ExportCSV(x, y, z, Name, Value)
 %
-% Input
-%   x          : array
-%   y          : array or matrix
-%   z          : array
+% ------------------------------------------------------------------------
+% Parameters
+% ------------------------------------------------------------------------
+%   x (optional)
+%       Description : time values (row vector)
+%       Type        : array
 %
-% Options
-%   'filename' : string
+%   y (required)
+%       Description : intensity values
+%       Type        : array or matrix
 %
-% Description
-%   x          : time values (#rows = n)
-%   y          : intensity values (#rows = n, #cols = m)
-%   z          : mass values (#cols =  m)
-%   'filename' : desired file name (default = 'data.csv')
+%   z (optional)
+%       Description : mass values (column vector) 
+%       Type        : array
 %
-% Examples:
+%   'file' (optional)
+%       Description : name of file
+%       Type        : string
+%
+% ------------------------------------------------------------------------
+% Examples
+% ------------------------------------------------------------------------
 %   ExportCSV(y)
 %   ExportCSV(x, y, 'file', '001-03.csv')
 %   ExportCSV(x, y, z, 'file', '004-01.csv')
+%
 
 function ExportCSV(varargin)
 

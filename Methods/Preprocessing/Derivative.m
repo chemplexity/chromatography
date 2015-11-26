@@ -1,31 +1,42 @@
-% Method: Derivative
-%  -Calculate derivative of a signal
+% ------------------------------------------------------------------------
+% Method      : Derivative
+% Description : Calculate the nth derivative of a signal
+% ------------------------------------------------------------------------
 %
+% ------------------------------------------------------------------------
 % Syntax
-%   dy = Derivative(y, 'OptionName', optionvalue...)
-%   dy = Derivative(x, y, 'OptionName', optionvalue...)
+% ------------------------------------------------------------------------
+%   dy = Derivative(y)
+%   dy = Derivative(x, y, Name, Value)
 %
-% Input
-%   x          : array
-%   y          : array or matrix
+% ------------------------------------------------------------------------
+% Parameters
+% ------------------------------------------------------------------------
+%   x (optional)
+%       Description : time values
+%       Type        : array
 %
-% Options
-%  'degree'    : integer
+%   y (required)
+%       Description : intensity values
+%       Type        : array or matrix
 %
-% Description
-%   x          : time values
-%   y          : intensity values
-%  'degree'    : degree of derivative (default = 1)
+%   order (optional)
+%       Description : return derivative of specifed order
+%       Type        : number
+%       Default     : 1
+%       Range       : 1 to 9
 %
+% ------------------------------------------------------------------------
 % Examples
+% ------------------------------------------------------------------------
 %   dy = Derivative(y)
 %   dy = Derivative(x, y)
-%   dy = Derivative(x, y, 'degree', 1)
-%   dy = Derivative(y, 'degree', 4)
+%   dy = Derivative(x, y, 'order', 1)
+%   dy = Derivative(y, 'order', 4)
+%
 
 function varargout = Derivative(varargin)
 
-% Check input
 [x, y, options] = parse(varargin);
 
 % Determine array length
@@ -34,7 +45,9 @@ rows = length(y(:,1));
 % Calculate derivative
 for i = 1:options.degree
     
-    y = bsxfun(@rdivide, bsxfun(@minus, y(2:end,:), y(1:end-1,:)), bsxfun(@minus, x(2:end,:), x(1:end-1,:)));
+    y = bsxfun(@rdivide,...
+        bsxfun(@minus, y(2:end,:), y(1:end-1,:)),...
+        bsxfun(@minus, x(2:end,:), x(1:end-1,:)));
     
     if mod(i,2) == 0
         y = circshift(y, [1,0]);
@@ -46,6 +59,7 @@ end
 
 % Set output
 varargout{1} = y;
+
 end
 
 % Parse user input
@@ -140,7 +154,11 @@ if ~isempty(input('degree'))
     
     % Check for valid input
     if ~isnumeric(degree)
-        fprintf('Unrecognized input arguments of type ''degree''. Setting to first derivative...');
+        
+        fprintf(['\n',...
+            'Unrecognized input arguments of type ''degree''.',...
+            'Setting to first derivative... \n']);
+        
         options.degree = 1;
         
     elseif isnumeric(degree)
@@ -151,8 +169,10 @@ if ~isempty(input('degree'))
         % Check for invalid input
         if degree < 1
             options.degree = 1;
-        elseif degree > 100000
-            options.degree = 100000;
+            
+        elseif degree > 1000
+            options.degree = 1000;
+            
         else
             options.degree = degree;
         end

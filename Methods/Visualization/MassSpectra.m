@@ -1,45 +1,99 @@
-% Method: MassSpectra
-%  -Plot a mass spectra histogram
+% ------------------------------------------------------------------------
+% Method      : MassSpectra
+% Description : Plot a mass spectra histogram
+% ------------------------------------------------------------------------
 %
+% ------------------------------------------------------------------------
 % Syntax
-%   MassSpectra(mz, y, 'OptionName', optionvalue...)
+% ------------------------------------------------------------------------
+%   fig = MassSpectra(mz, y)
+%   fig = MassSpectra(mz, y, Name, Value)
 %
-% Input
-%   mz          : array
-%   y           : array or matrix
+% ------------------------------------------------------------------------
+% Parameters
+% ------------------------------------------------------------------------
+%   mz (required)
+%       Description : mass values
+%       Type        : array
 %
-% Options
-%   'labels'    : 'on', 'off'
-%   'fontsize'  : value
-%   'fontname'  : string
-%   'scale'     : 'relative', 'full'
-%   'xlim'      : 'auto', [xmin, xmax]
-%   'ylim'      : 'auto', [ymin, ymax]
-%   'barwidth'  : value
-%   'height'    : percent
-%   'width'     : percent
-%   'filename'  : string
-%   'export'    : 'on', 'off'
+%   y (required)
+%       Description : intensity values
+%       Type        : matrix
 %
-% Description
-%   mz          : m/z values
-%   y           : intensity values
-%   'labels'    : show labels over m/z values (default = 'on')
-%   'fontsize'  : font size of text labels (default = 7.5)
-%   'fontname'  : font name used to axes and ion labels (default = 'Avenir')
-%   'scale'     : display relative or absolute intensity (default = 'relative')
-%   'xlim'      : x-axis limits (default = 'auto')
-%   'ylim'      : y-axis limits (default = 'auto')
-%   'barwidth'  : width of individual bars (default = 7)
-%   'height'    : figure height relative to screen size (default = 44%)
-%   'width'     : figure width relative to screen size (default = 42%)
-%   'filename'  : name used for file export (default = 'mass_spectra')
-%   'export'    : export image file (default = 'off')
+%   ----------------------------------------------------------------------
+%   Plot Layout
+%   ----------------------------------------------------------------------
+%   'scale' (optional)
+%       Description : plot relative or absolute values
+%       Type        : 'relative', 'absolute'
+%       Default     : 'relative'
 %
+%   'height' (optional)
+%       Description : figure height relative to screen
+%       Type        : number
+%       Default     : 0.44
+%       Range       : 0.0 to 1.0
+%
+%   'width' (optional)
+%       Description : figure width relative to screen
+%       Type        : number
+%       Default     : 0.42
+%       Range       : 0.0 to 1.0
+%
+%   'xlim' (optional)
+%       Description : x-axis limits
+%       Type        : [number, number] | 'auto'
+%       Default     : 'auto'
+%
+%   'ylim' (optional)
+%       Description : y-axis limits
+%       Type        : [number, number] | 'auto'
+%       Default     : 'auto'
+%
+%   ----------------------------------------------------------------------
+%   Plot Style
+%   ----------------------------------------------------------------------
+%   'labels' (optional)
+%       Description : show labels above abundant ions
+%       Type        : 'on', 'off'
+%       Default     : 'off'
+%
+%   'fontname' (optional)
+%       Description : font name used to axes and ion labels
+%       Type        : string
+%       Default     : 'Avenir'
+%
+%   'fontsize' (optional)
+%       Description : font size of text labels
+%       Type        : number
+%       Default     : 7.5
+%
+%   'barwidth' (optional)
+%       Description : width of individual bars
+%       Type        : number
+%       Default     : 7
+%       Range       : > 0.0
+%
+%   ----------------------------------------------------------------------
+%   Plot Export
+%   ----------------------------------------------------------------------
+%   'filename' (optional)
+%       Description : name used for file export
+%       Type        : string
+%       Default     : 'mass_spectra'
+%
+%   'export' (optional)
+%       Description : export figure to image (see MATLAB 'print' options)
+%       Type        : cell | 'on', 'off'
+%       Default     : 'off'
+%
+% ------------------------------------------------------------------------
 % Examples
+% ------------------------------------------------------------------------
 %   MassSpectra(mz, y)
 %   MassSpectra(mz, y, 'labels', 'off', 'scale', 'full')
-%   MassSpectra(mz, y 'export', {'myfig', '-dtiff', '-r300'})
+%   MassSpectra(mz, y 'export', {'MyFigure01', '-dtiff', '-r300'})
+%
 
 function varargout = MassSpectra(varargin)
 

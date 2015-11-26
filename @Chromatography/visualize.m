@@ -291,7 +291,6 @@ for i = 1:length(samples)
     % Check baseline
     if ~isempty(baseline) && strcmpi(options.baseline, 'corrected');
         y = y - baseline;
-        
     elseif isempty(baseline)
         options.baseline = 'off';
     end
@@ -1050,7 +1049,12 @@ if ~isempty(input('scale'))
     end
     
 else
-    options.scale = 'normalized';
+    
+    if strcmpi(options.ions, 'tic')
+        options.scale = 'normalized';
+    else
+        options.scale = 'full';
+    end
 end
 
 

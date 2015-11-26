@@ -88,12 +88,9 @@ function varargout = AgilentMS(varargin)
         fseek(file, 86, 'bof');
         data.sample.description = strtrim(fread(file, fread(file, 1, 'uint8'), 'uint8=>char')');
         
-        % Sample vial number
-        fseek(file, 254, 'bof');
+        fseek(file, 252, 'bof');
+        data.sample.sequence = fread(file, 1, 'short', 0, 'b');
         data.sample.vial = fread(file, 1, 'short', 0, 'b');
-        
-        % Sample trial number
-        fseek(file, 256, 'bof');
         data.sample.replicate = fread(file, 1, 'short', 0, 'b');
         
         % Method name
@@ -263,7 +260,7 @@ data = struct(...
 fileinfo = dir(filepath.Name);
 
 % Check for hidden file
-if flag && filepath.hidden
+if flag && filepath.hidden == 1
     varargout{1} = [];
     varargout{2} = options;
     return
@@ -373,7 +370,7 @@ data = struct(...
 fileinfo = dir(filepath.Name);
 
 % Check for hidden file
-if flag && filepath.hidden
+if flag && filepath.hidden == 1
     varargout{1} = [];
     varargout{2} = options;
     return

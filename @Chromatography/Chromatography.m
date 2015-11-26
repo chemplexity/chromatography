@@ -42,11 +42,13 @@ classdef Chromatography
         
         version = '0.1.5';
         options
+        
     end
     
     properties
         
         defaults
+        
     end
     
     methods
