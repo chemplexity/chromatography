@@ -56,14 +56,24 @@ warning off all
 % Open file selection dialog
 files = dialog(obj, varargin{1});
 
+% Remove entries with incorrect filetype
+if ~isempty(files)
+    files(~strcmpi(files(:,3), varargin{1}), :) = [];
+end
+
+fprintf(['\n',...
+    '[IMPORT]\n\n',...
+    'Importing ', num2str(length(files(:,1))), ' files...\n\n',...
+    'Format : ', options.filetype, '\n\n']);
+
 % Check for any file selections
 if isempty(files)
+    fprintf([...
+        '[WARNING] No files selected...\n\n',...
+        '[COMPLETE]\n\n']);
     varargout{1} = data;
     return
 end
-
-% Remove entries with incorrect filetype
-files(~strcmpi(files(:,3), varargin{1}), :) = [];
 
 % Set path to selected folder
 path(files{1,1}, path);
@@ -71,11 +81,6 @@ path(files{1,1}, path);
 % Variables
 import_data = {};
 options.file_count = length(files(:,1));
-
-fprintf(['\n',...
-    '[IMPORT]\n\n',...
-    'Importing ', num2str(length(files(:,1))), ' files...\n\n',...
-    'Format : ', options.filetype, '\n\n']);
 
 % Import files
 switch options.filetype

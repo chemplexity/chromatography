@@ -17,6 +17,15 @@
 %       Type        : structure
 %
 %   ----------------------------------------------------------------------
+%   Options
+%   ----------------------------------------------------------------------
+%   Data     : 'samples', 'ions', 'baseline', 'peaks'
+%   Position : 'layout', 'scale', 'scope', 'offset'
+%   Axes     : 'padding', 'xlim', 'ylim'
+%   Style    : 'legend', 'linewidth', 'color', 'colormap'
+%   Export   : 'export'
+%
+%   ----------------------------------------------------------------------
 %   Plot Data
 %   ----------------------------------------------------------------------
 %   'samples' (optional)
@@ -40,7 +49,7 @@
 %       Default     : 'off'
 %
 %   ----------------------------------------------------------------------
-%   Plot Layout
+%   Plot Position
 %   ----------------------------------------------------------------------
 %   'layout' (optional)
 %       Description : arrange plots in stacked or overlaid format
@@ -57,16 +66,19 @@
 %       Type        : 'local', 'global'
 %       Default     : 'local'
 %
+%   'offset' (optional)
+%       Description : sequential y-offset applied to each sample
+%       Type        : number
+%       Default     : 0.0
+%
+%   ----------------------------------------------------------------------
+%   Plot Axes
+%   ----------------------------------------------------------------------
 %   'padding' (optional)
 %       Description : white space between axes and plot lines
 %       Type        : number
 %       Default     : 0.05
 %       Range       : 0.0 to 1.0
-%
-%   'offset' (optional)
-%       Description : sequential y-offset applied to each sample
-%       Type        : number
-%       Default     : 0.0
 %
 %   'xlim' (optional)
 %       Description : x-axis limits
@@ -84,7 +96,7 @@
 %   'linewidth' (optional)
 %       Description : linewidth of plot line
 %       Type        : number
-%       Default     : 1.5
+%       Default     : 1.0
 %       Range       : > 0.0
 %
 %   'legend' (optional)
@@ -291,8 +303,10 @@ for i = 1:length(samples)
     % Check baseline
     if ~isempty(baseline) && strcmpi(options.baseline, 'corrected');
         y = y - baseline;
+        
     elseif isempty(baseline)
         options.baseline = 'off';
+        
     end
     
     % Check peaks
@@ -311,7 +325,6 @@ for i = 1:length(samples)
     options = plot_ylim(x, y, options);
     
     % Initialize plots
-    
     if verLessThan('matlab', 'R2014b')
         
         plot(x, y,...
@@ -501,53 +514,59 @@ end
 % Check layout options
 function y = plot_layout(y, options)
 
-% Determine stacked layout
-if strcmpi(options.layout, 'stacked') && length(options.samples) > 1
-    
-    % Normalized scale
-    if strcmpi(options.scale, 'normalized')
-        
-        % Calculate offset
-        y = y - (options.i * 100) * (1 + options.padding + options.offset);
-        
-        % Full scale
-    elseif strcmpi(options.scale, 'full')
-        
-        % Determine y-limits
-        if isempty(options.ylimits)
-            options.ylimits(1) = min(min(y));
-            options.ylimits(2) = max(max(y));
-        end
-        
-        % Calculate offset
-        padding = options.ylimits(2) * options.padding;
-        offset = options.ylimits(2) * options.offset;
-        
-        y = y - (options.i-1) * (options.ylimits(2) + padding + offset);
-    end
-    
-elseif strcmpi(options.layout, 'overlaid') && length(options.samples) > 1
-    
-    % Normalized scale
-    if options.offset ~= 0 && strcmpi(options.scale, 'normalized')
-        
-        % Calculate offset
-        y = y - (options.i * 100) * options.offset;
-        
-        % Full scale
-    elseif options.offset ~= 0 && strcmpi(options.scale, 'full')
-        
-        % Determine y-limits
-        if isempty(options.ylimits)
-            options.ylimits(1) = min(min(y));
-            options.ylimits(2) = max(max(y));
-        end
-        
-        % Calculate offset
-        y = y - options.i * (options.ylimits(2) * options.offset);
-    end
-    
+% Axes: Y-Limits
+if isempty(options.ylimits)
+    options.ylimits(1) = min(min(y));
+    options.ylimits(2) = max(max(y));
 end
+
+% Layout: N/A
+if length(options.samples) == 1
+    offset = 0;
+
+% Layout: Stacked
+elseif strcmpi(options.layout, 'stacked')
+    
+    switch options.scale
+    
+        % Scale: Normalized
+        case 'normalized'
+            offset = ...
+                (options.i - 1) * 100 * ...
+                (1 + options.offset); 
+        
+        % Scale: Full
+        case 'full'
+            offset = ...
+                (options.i - 1) * ...
+                (options.ylimits(2) + ...
+                (options.ylimits(2) * options.offset));
+    end
+    
+% Layout: Overlaid
+elseif strcmpi(options.layout, 'overlaid')
+    
+    switch options.scale
+    
+        % Scale: Normalized
+        case 'normalized'
+            offset = ...
+                (options.ylimits(2) * options.offset);
+            
+        % Scale: Full
+        case 'full'
+            offset = ... 
+                (options.i - 1) * ...
+                (options.ylimits(2) * options.offset);
+    end
+    
+else
+    offset = 0;
+end
+
+% Plot: Y-Values
+y = y - offset;
+            
 end
 
 
@@ -593,7 +612,7 @@ end
 % Check y-limits options
 function options = plot_ylim(x, y, options)
 
-% Find x-limits
+% Axes: X-Limits
 if options.xlimits(1) >= min(x)
     xmin = find(x >= options.xlimits(1), 1);
 else
@@ -606,27 +625,20 @@ else
     xmax = length(x);
 end
 
-% Determine y-limits
 ymin = min(min(y(xmin:xmax,:)));
-
-if strcmpi(options.layout, 'stacked') && strcmpi(options.scale, 'normalized')
-    y = y + (options.i * 100) - 100;
-end
-
 ymax = max(max(y(xmin:xmax,:)));
 
-% Automatic y-limits
+% Axes: Y-Limits (auto)
 if isempty(options.ylimits)
     options.ylimits = [ymin, ymax];
     
-    % Manual y-limits
 elseif strcmpi(options.ypermission, 'write')
     
     if ymin < options.ylimits(1)
         options.ylimits(1) = ymin;
     end
     
-    if ymax > options.ylimits(2)
+    if ymax > options.ylimits(2) && ~strcmpi(options.layout, 'stacked')
         options.ylimits(2) = ymax;
     end
 end
@@ -1045,13 +1057,13 @@ if ~isempty(input('scale'))
         options.scale = 'full';
         
     else
-        options.scale = 'normalized';
+        options.scale = 'full';
     end
     
 else
     
     if strcmpi(options.ions, 'tic')
-        options.scale = 'normalized';
+        options.scale = 'full';
     else
         options.scale = 'full';
     end
@@ -1191,17 +1203,17 @@ if ~isempty(input('linewidth'))
     
     % Check for valid input
     if strcmpi(linewidth, 'default') || ischar(linewidth)
-        options.linewidth = 1.5;
+        options.linewidth = 1.0;
         
     elseif linewidth <= 0
-        options.linewidth = 1.5;
+        options.linewidth = 1.0;
         
     else
         options.linewidth = linewidth(1);
     end
     
 else
-    options.linewidth = 1.5;
+    options.linewidth = 1.0;
 end
 
 
@@ -1274,11 +1286,11 @@ if ~isempty(input('color'))
         end
         
     else
-        options.color = [];
+        options.color = [0.15,0.15,0.15];
     end
     
 else
-    options.color = [];
+    options.color = [0.15,0.15,0.15];
 end
 
 
@@ -1322,7 +1334,7 @@ elseif ~isempty(options.color)
     options.colormap = [];
     
 else
-    options.colormap = obj.defaults.plot_colormap;
+    options.colormap = [];
 end
 
 

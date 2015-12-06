@@ -309,9 +309,10 @@ classdef Chromatography
                     
                     % Add missing peak fields to structure
                     if ~isempty(missing)
+                    
                         for j = 1:length(missing)
                             structure = setfield(structure, {1}, missing{j}, []);
-                        end
+                        end 
                     end
                 end
             end
