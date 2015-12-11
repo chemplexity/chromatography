@@ -166,10 +166,6 @@ for i = 1:length(y(1,:))
     % Remove negative values
     b(b<0) = 0;
     
-    % Apply correction factor
-    c = (y-b)<0;
-    b(c) = b(c) + y(c) - b(c);
-    
     % Remove offset
     if offset(i) ~= 0
         baseline(:,i) = b - offset(i);

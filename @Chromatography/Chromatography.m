@@ -38,16 +38,16 @@
 
 classdef Chromatography
     
-    properties (SetAccess = private)
+    properties (Constant = true)
         
         version = '0.1.5';
-        options
         
     end
     
     properties
         
         defaults
+        options
         
     end
     
@@ -316,6 +316,128 @@ classdef Chromatography
                     end
                 end
             end
+        end
+
+        % Update Chromatography Toolbox
+        function update(varargin)
+            
+            url = 'https://github.com/chemplexity/chromatography';
+            
+            fprintf('\n\n');
+            fprintf('[UPDATE] \n\n');
+            
+            % Root toolbox path
+            source = fileparts(which('Chromatography'));
+            source = regexp(source, '.+(?=[@])', 'match');
+            
+            % Error: toolbox not on path
+            if isempty(source)
+                fprintf('Unable to find Chromatography Toolbox on path... \n\n');
+                fprintf('[EXIT] \n');
+                return
+            else
+                fprintf('Updating Chromatography Toolbox.... \n');
+                cd(source{1});
+            end
+            
+            % Windows
+            if ispc
+                
+                % Check system for git
+                [status, output] = system('where git');
+                
+                if ~status
+                    git = regexp(output,'(?i)C:\\(\\|\w)*', 'match');
+                    git = [git{1}, '.exe'];
+                
+                % Error: git command not on path
+                elseif status
+                    fprintf('Unable to find ''git.exe'' on path... \n');
+                    fprintf('Searching system for ''git.exe''... \n');
+                    
+                    % Attempt to find git.exe
+                    [status, output] = system('dir C:\Users\*git.exe /s');
+                    
+                    % Error: git.exe not found
+                    if status
+                        fprintf('Unable to find ''git.exe''... \n');
+                        fprintf('[ABORT] \n');
+                        return
+                    end
+                    
+                    git = regexp(output,'(?i)(?!of)C:\\(\\|\w)*', 'match');
+                    git = [git{1}, '\git.exe'];
+                end
+                
+                % Grant folder access
+                [~, ~] = system(['icacls "', source{1}, '\" /grant Users:(OI)(CI)F']);
+                
+            % Unix
+            elseif isunix
+                
+                % Check system for git
+                [status, output] = system('which git');
+                
+                if ~status
+                    git = regexp(output,'(?i)([/]|\w)+git', 'match');
+                    git = git{1};
+                
+                % Error: git command not on path
+                elseif status
+                    fprintf('Unable to find ''git''... \n');
+                    fprintf('[ABORT] \n');
+                    return
+                end
+                
+            end
+                    
+            % Check git --version
+            fprintf(['Using ''', '%s', '''... \n'], git);
+            [status, ~] = system([git, ' --version']);
+                    
+            % Error: git.exe does not work
+            if status
+                fprintf('Error executing ''git --version''... \n');
+                fprintf('[ABORT] \n');
+                return
+            end
+            
+            % Check git --status
+            [status, ~] = system([git, ' status']);
+            
+            % Download latest updates
+            if ~status
+                fprintf('Fetching updates from ''%s''... \n\n', url);
+                system([git, ' fetch -v']);
+               
+            % Error: not a git repository
+            elseif status
+                fprintf('Initializing git repository... \n');
+                
+                % Initialize git repository
+                [~,~] = system([git, ' init']);
+                [~,~] = system([git, ' remote add origin ', url, '.git']);
+                
+                fprintf('Fetching updates from ''%s''... \n\n', url);
+                system([git, ' fetch -v']);
+                [~,~] = system([git, ' checkout -f master']);
+            end
+            
+            % Check input
+            if nargin > 0 && ischar(varargin{1})
+                switch varargin{1}
+                    case {'master'}
+                        system([git, ' checkout -f master']);                        
+                    case {'release'}
+                        system([git, ' checkout -f release/v0.1.5']);
+                    case {'dev', 'development'}
+                        system([git, ' checkout -f dev']);
+                end
+            end
+            
+            fprintf('\n Update complete... \n\n');
+            fprintf(['Version: ', Chromatography.version, '\n\n']);
+            fprintf('[EXIT] \n');
         end
     end
 end
