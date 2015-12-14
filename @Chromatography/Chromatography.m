@@ -38,10 +38,15 @@
 
 classdef Chromatography
     
+    
+    % ---------------------------------------
+    % Properties
+    % ---------------------------------------
     properties (Constant = true)
         
+        url = 'https://github.com/chemplexity/chromatography';
         version = '0.1.5';
-        
+
     end
     
     properties
@@ -51,28 +56,37 @@ classdef Chromatography
         
     end
     
+    
+    % ---------------------------------------
+    % Methods
+    % ---------------------------------------
     methods
         
+        
+        % ---------------------------------------
+        % Initialization
+        % ---------------------------------------
         function obj = Chromatography()
             
-            % Add dependencies to user path
             source = fileparts(which('Chromatography'));
-            source = regexp(source, '.+(?=[@])', 'match');
+            source = regexp(source, '.+(?=[@])', 'match');            
             
+            % ---------------------------------------
+            % Path
+            % ---------------------------------------
             addpath(source{1});
             addpath(genpath([source{1}, 'Methods']));
             addpath(genpath([source{1}, 'Development']));
             addpath(genpath([source{1}, 'Examples']));
             
-            % Default parameters
+            % ---------------------------------------
+            % Defaults
+            % ---------------------------------------
             obj.defaults.baseline_smoothness = 1E6;
             obj.defaults.baseline_asymmetry = 1E-4;
-            
             obj.defaults.smoothing_smoothness = 0.5;
             obj.defaults.smoothing_asymmetry = 0.5;
-            
             obj.defaults.integrate_model = 'exponential gaussian hybrid';
-            
             obj.defaults.plot_position = [0.25, 0.25, 0.5, 0.5];
             
             if verLessThan('matlab', 'R2014b')
@@ -81,7 +95,9 @@ classdef Chromatography
                 obj.defaults.plot_colormap = 'parula';
             end
             
+            % ---------------------------------------
             % Options
+            % ---------------------------------------
             obj.options.import = {...
                 '.CDF', 'netCDF (*.CDF)';
                 '.D',   'Agilent (*.D)';
@@ -92,32 +108,34 @@ classdef Chromatography
                 '.CSV', '(*.CSV)'};
         end
         
-        % Restore data to original state
+        
+        % ---------------------------------------
+        % Reset
+        % ---------------------------------------
         function data = reset(~, data, varargin)
             
-            fprintf('\n[RESET]\n');
+            fprintf('\n\n[RESET]\n\n');
             
             if ~isstruct(data)
                 fprintf('[ERROR] Input data must be of type ''struct''\n');
                 return
             end
             
-            % Check user input
+            % ---------------------------------------
+            % Parse input
+            % ---------------------------------------
             input = @(x) find(strcmpi(varargin, x),1);
-            
+
+            % Option: 'samples'
             if ~isempty(input('samples'))
                 samples = varargin{input('samples')+1};
                 
-                % Set keywords
-                samples_all = {'default', 'all'};
-                
-                % Check for valid input
-                if any(strcmpi(samples, samples_all))
+                % Input: 'default', 'all'
+                if any(strcmpi(samples, {'default', 'all'}))
                     samples = 1:length(data);
                     
+                % Input: numeric
                 elseif ~isnumeric(samples)
-                    
-                    % Check string input
                     samples = str2double(samples);
                     
                     % Check for numeric input
@@ -126,25 +144,23 @@ classdef Chromatography
                     else
                         samples = 1:length(data);
                     end
-                end
-                
-                % Check maximum input value
-                if max(samples) > length(data)
+                    
+                    % Check input limits
                     samples = samples(samples <= length(data));
-                end
-                
-                % Check minimum input value
-                if min(samples < 1)
                     samples = samples(samples >= 1);
                 end
                 
-            else
+            else    
+
+                % Default: 'all'
                 samples = 1:length(data);
             end
             
-            fprintf(['\nRestoring backup data for ' num2str(numel(samples)), ' samples...\n']);
+            % ---------------------------------------
+            % Restore data to original values
+            % ---------------------------------------
+            fprintf(['Resetting ' num2str(numel(samples)), ' files...\n']);
             
-            % Restore backup data
             for i = 1:length(samples)
                 
                 id = samples(i);
@@ -166,10 +182,12 @@ classdef Chromatography
             fprintf('\n[COMPLETE]\n\n');
         end
         
-        % Data Structure
+        
+        % ---------------------------------------
+        % Format
+        % ---------------------------------------
         function data = format(varargin)
             
-            % Top-level fields
             basic = {...
                 'id',...
                 'name',...
@@ -183,7 +201,6 @@ classdef Chromatography
                 'backup',...
                 'status'};
             
-            % Sub-level fields
             file = {...
                 'path',...
                 'name',...
@@ -192,6 +209,7 @@ classdef Chromatography
             sample = {...
                 'name',...
                 'description',...
+                'sequence',...
                 'vial',...
                 'replicate'};
             
@@ -233,7 +251,9 @@ classdef Chromatography
                 'smoothed',...
                 'integrate'};
             
-            % Check number of inputs
+            % ---------------------------------------
+            % Parse input
+            % ---------------------------------------
             if nargin < 2
                 
                 % Create an empty data structure
@@ -249,35 +269,32 @@ classdef Chromatography
                     return
                 end
                 
-                % Check basic fields
                 data = check(data, basic);
                 
-                % Check nested fields
                 for i = 1:length(data)
                     
-                    % General information
+                    % Metadata
                     data(i).file = check(data(i).file, file);
                     data(i).sample = check(data(i).sample, sample);
                     data(i).method = check(data(i).method, method);
                     
-                    % Total ion chromatograms
+                    % Instrument data
                     data(i).tic = check(data(i).tic, tic);
                     data(i).tic.peaks = check(data(i).tic.peaks, peaks);
                     
-                    % Extracted ion chromatograms
                     data(i).xic = check(data(i).xic, xic);
                     data(i).xic.peaks = check(data(i).xic.peaks, peaks);
                     
-                    % Supporting infomation
+                    % Supplemental data
                     data(i).backup = check(data(i).backup, backup);
                     data(i).status = check(data(i).status, status);
                 end
                 
-                % Check for extra fields
+                % Extended data
                 if ~isempty(find(strcmpi(varargin, 'extra'),1))
                     extra = varargin{find(strcmpi(varargin, 'extra'),1)+1};
                     
-                    % Add MS2 field
+                    % Add MS^2 field
                     if strcmpi(extra, 'ms2')
                         data = check(data, {'ms2'});
                     end
@@ -285,20 +302,21 @@ classdef Chromatography
             end
             
             
-            % Validate structure
+            % ---------------------------------------
+            % Check data structure
+            % ---------------------------------------
             function structure = check(structure, fields)
                 
-                % Check structure input
+                % Check input types
                 if ~isstruct(structure)
                     structure = [];
                 end
                 
-                % Check fields input
                 if ~iscell(fields)
                     return
                 end
                 
-                % Check for empty structure
+                % Check input values
                 if isempty(structure)
                     structure = cell2struct(cell(1,length(fields)), fields, 2);
                     
@@ -307,40 +325,44 @@ classdef Chromatography
                     % Check for missing fields
                     missing = fields(~isfield(structure, fields));
                     
-                    % Add missing peak fields to structure
+                    % Add missing field to structure
                     if ~isempty(missing)
                     
                         for j = 1:length(missing)
                             structure = setfield(structure, {1}, missing{j}, []);
-                        end 
+                        end
+                        
                     end
                 end
             end
         end
 
-        % Update Chromatography Toolbox
+        
+        % ---------------------------------------
+        % Update
+        % ---------------------------------------
         function update(varargin)
             
-            url = 'https://github.com/chemplexity/chromatography';
+            fprintf('\n\n[UPDATE]\n\n');
             
-            fprintf('\n\n');
-            fprintf('[UPDATE] \n\n');
-            
-            % Root toolbox path
             source = fileparts(which('Chromatography'));
             source = regexp(source, '.+(?=[@])', 'match');
             
-            % Error: toolbox not on path
-            if isempty(source)
-                fprintf('Unable to find Chromatography Toolbox on path... \n\n');
-                fprintf('[EXIT] \n');
-                return
-            else
+            % ---------------------------------------
+            % Path
+            % ---------------------------------------
+            if ~isempty(source)
                 fprintf('Updating Chromatography Toolbox.... \n');
                 cd(source{1});
+            else
+                fprintf('Chromatography Toolbox not on search path...\n\n');
+                fprintf('[EXIT]\n');
+                return
             end
             
+            % ---------------------------------------
             % Windows
+            % ---------------------------------------
             if ispc
                 
                 % Check system for git
@@ -369,10 +391,12 @@ classdef Chromatography
                     git = [git{1}, '\git.exe'];
                 end
                 
-                % Grant folder access
+                % Update folder access
                 [~, ~] = system(['icacls "', source{1}, '\" /grant Users:(OI)(CI)F']);
                 
+            % ---------------------------------------
             % Unix
+            % ---------------------------------------
             elseif isunix
                 
                 % Check system for git
@@ -391,7 +415,9 @@ classdef Chromatography
                 
             end
                     
-            % Check git --version
+            % ---------------------------------------
+            % Check system git
+            % ---------------------------------------
             fprintf(['Using ''', '%s', '''... \n'], git);
             [status, ~] = system([git, ' --version']);
                     
@@ -402,42 +428,50 @@ classdef Chromatography
                 return
             end
             
-            % Check git --status
+            % ---------------------------------------
+            % Check git repository
+            % ---------------------------------------
             [status, ~] = system([git, ' status']);
             
-            % Download latest updates
-            if ~status
-                fprintf('Fetching updates from ''%s''... \n\n', url);
-                system([git, ' fetch -v']);
-               
-            % Error: not a git repository
-            elseif status
+            if status
                 fprintf('Initializing git repository... \n');
                 
                 % Initialize git repository
                 [~,~] = system([git, ' init']);
-                [~,~] = system([git, ' remote add origin ', url, '.git']);
-                
-                fprintf('Fetching updates from ''%s''... \n\n', url);
-                system([git, ' fetch -v']);
+                [~,~] = system([git, ' remote add origin ', Chromatography.url, '.git']);
+            end
+            
+            % ---------------------------------------
+            % Fetch latest updates
+            % ---------------------------------------
+            fprintf('Fetching updates from ''%s''... \n\n', Chromatography.url);
+            system([git, ' fetch -v']);
+               
+            if status
                 [~,~] = system([git, ' checkout -f master']);
             end
             
-            % Check input
+            % ---------------------------------------
+            % Checkout branch
+            % ---------------------------------------
             if nargin > 0 && ischar(varargin{1})
+                
                 switch varargin{1}
+                    
                     case {'master'}
                         system([git, ' checkout -f master']);                        
+                        
                     case {'release'}
                         system([git, ' checkout -f release/v0.1.5']);
+                        
                     case {'dev', 'development'}
                         system([git, ' checkout -f dev']);
                 end
             end
             
-            fprintf('\n Update complete... \n\n');
+            fprintf('\nUpdate complete... \n\n');
             fprintf(['Version: ', Chromatography.version, '\n\n']);
-            fprintf('[EXIT] \n');
+            fprintf('[COMPLETE] \n');
         end
     end
 end

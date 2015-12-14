@@ -41,7 +41,6 @@
 
 function varargout = import(obj, varargin)
 
-% Check input
 [data, options] = parse(obj, varargin);
 
 % Check for errors
