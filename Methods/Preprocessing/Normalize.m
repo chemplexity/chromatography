@@ -7,7 +7,7 @@
 % Syntax
 % ------------------------------------------------------------------------
 %   y = Normalize(y)
-%   y = Normalize(x, y, Name, Value)
+%   y = Normalize(y, Name, Value)
 %
 % ------------------------------------------------------------------------
 % Parameters
@@ -16,56 +16,60 @@
 %       Description : intensity values
 %       Type        : array or matrix
 %
-%   type (optional)
+%   scope (optional)
 %       Description : scale to array ('local') or matrix ('global') min/max
-%       Type        : 'local', 'global'
+%       Type        : string
+%       Options     : 'local', 'global'
 %       Default     : 'local'
 %
 % ------------------------------------------------------------------------
 % Examples
 % ------------------------------------------------------------------------
 %   y = Normalize(y)
-%   y = Normalize(y, 'type', 'local')
-%   y = Normalize(y, 'type', 'global')
+%   y = Normalize(y, 'scope', 'local')
+%   y = Normalize(y, 'scope', 'global')
 %
 
-function varargout = Normalize(y, varargin)
+function varargout = Normalize(varargin)
 
-% Check for input options
-if ~isempty(find(strcmpi(varargin, 'type'),1))
-    
-    type = varargin{find(strcmpi(varargin, 'type'),1)+1};
-    
-    % Check for valid input
-    if ~ischar(type)
-        type = 'local';
-    else
-        type = lower(type);
-    end
-    
-    if ~strcmpi(type, 'global') && ~strcmpi(type, 'local')
-        type = 'local';
-    end
-    
-else
-    type = 'local';
-end
+% ---------------------------------------
+% Input
+% ---------------------------------------
+p = inputParser;
 
-% Set normalization boundaries
-if strcmpi(type, 'global')
-    ymax = max(max(y));
+addRequired(p, 'y',...
+    @(x) validateattributes(x, {'numeric'}, {'nonnan', 'nonempty'}));
+
+addParameter(p, 'scope',...
+    'local',...
+    @(x) validatestring(x, {'local', 'global'}));
+
+parse(p, varargin{:});
+
+% ---------------------------------------
+% Variables
+% ---------------------------------------
+y = p.Results.y;
+scope = p.Results.scope;
+
+% ---------------------------------------
+% Normalize
+% ---------------------------------------
+if strcmpi(scope, 'global')
     ymin = min(min(y));
-    
-elseif strcmpi(type, 'local')
-    ymax = max(y);
+    ymax = max(max(y));
+else
     ymin = min(y);
+    ymax = max(y);
 end
 
-% Normalize signal
 y = bsxfun(@rdivide,...
-    bsxfun(@minus, y, ymin), (ymax-ymin));
+    bsxfun(@minus, y, ymin),...
+    bsxfun(@minus, ymax, ymin));
 
-% Set output
+% ---------------------------------------
+% Output
+% ---------------------------------------
 varargout{1} = y;
 
 end

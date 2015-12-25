@@ -182,9 +182,8 @@ classdef Chromatography
             fprintf('\n[COMPLETE]\n\n');
         end
         
-        
         % ---------------------------------------
-        % Format
+        % Schema
         % ---------------------------------------
         function data = format(varargin)
             
@@ -301,7 +300,6 @@ classdef Chromatography
                 end
             end
             
-            
             % ---------------------------------------
             % Check data structure
             % ---------------------------------------
@@ -337,7 +335,6 @@ classdef Chromatography
             end
         end
 
-        
         % ---------------------------------------
         % Update
         % ---------------------------------------
@@ -380,9 +377,9 @@ classdef Chromatography
                     % Attempt to find git.exe
                     [status, output] = system('dir C:\Users\*git.exe /s');
                     
-                    % Error: git.exe not found
+                    % Error: git.exe not foun
                     if status
-                        fprintf('Unable to find ''git.exe''... \n');
+                        fprintf('Unable to update without ''git.exe'' \n');
                         fprintf('[ABORT] \n');
                         return
                     end
@@ -408,7 +405,7 @@ classdef Chromatography
                 
                 % Error: git command not on path
                 elseif status
-                    fprintf('Unable to find ''git''... \n');
+                    fprintf('Unable to update without ''git''... \n');
                     fprintf('[ABORT] \n');
                     return
                 end

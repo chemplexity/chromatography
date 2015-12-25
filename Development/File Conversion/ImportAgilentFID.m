@@ -15,6 +15,7 @@
 %   path (optional)
 %       Description : relative or absolute path of file/folder
 %       Type        : string
+%       Default     : opens file selection UI
 %
 % ------------------------------------------------------------------------
 % Examples
@@ -215,9 +216,14 @@ end
 end
 
 
+% ---------------------------------------
+% File Information
+% ---------------------------------------
 function data = getFileInfo(filelist)
 
-% Functions
+% ---------------------------------------
+% Anonymous functions
+% ---------------------------------------
 fpascal = @(f,type) fread(f, fread(f, 1, 'uint8'), [type,'=>char'], 'l')';
 
 % Variables
@@ -232,9 +238,9 @@ message.counter = 0;
 message.error.header = @(filepath,type) fprintf([...
     'error...\n',...
     '        Unsupported file type... \n',...
-    '        File      : ', filepath, '\n',...
+    '        File      : ', '%s', '\n',...
     '        Header    : ', type, '\n',...
-    '        Supported : 8, 30, 81, 130, 179, 181 \n']);
+    '        Supported : 8, 30, 81, 130, 179, 181 \n'], filepath);
 
 message.load.summary = @(count,bytes,time,rate) fprintf([...
     '\nImport complete... \n',...

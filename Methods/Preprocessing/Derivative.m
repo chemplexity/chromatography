@@ -21,10 +21,10 @@
 %       Type        : array or matrix
 %
 %   order (optional)
-%       Description : return derivative of specifed order
-%       Type        : number
+%       Description : calculate derivative of specifed order
+%       Type        : integer
+%       Options     : 1 to 10
 %       Default     : 1
-%       Range       : 1 to 10
 %
 % ------------------------------------------------------------------------
 % Examples
@@ -45,7 +45,7 @@ p = inputParser;
 addRequired(p, 'y',...
     @(x) validateattributes(x, {'numeric'}, {'nonnan', 'nonempty'}));
 
-addOptional(p, 'x',... 
+addOptional(p, 'x',...
     [],...
     @(x) validateattributes(x, {'numeric'}, {'nonnan'}));
 
@@ -75,7 +75,7 @@ end
 if size(y,1) == 1 && size(y,2) ~= 1
     y = y';
 end
-    
+
 if size(x,1) == 1 && size(x,2) == size(y,1)
     x = x';
 elseif size(x,1) ~= size(y,1)
@@ -85,8 +85,8 @@ end
 % ---------------------------------------
 % Derivative
 % ---------------------------------------
-dx = double(x);
-dy = double(y);
+dx = x;
+dy = y;
 n = round(order(1));
 
 for i = 1:n
@@ -100,6 +100,7 @@ for i = 1:n
     end
     
     dy([1,end],:) = 0;
+    
 end
 
 % ---------------------------------------
