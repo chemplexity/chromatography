@@ -15,15 +15,16 @@
 %   x (optional)
 %       Description : time values
 %       Type        : array
+%       Default     : 1:length(y)
 %
 %   y (required)
 %       Description : intensity values
 %       Type        : array or matrix
 %
 %   order (optional)
-%       Description : calculate derivative of specifed order
+%       Description : calculate nth order derivative
 %       Type        : integer
-%       Options     : 1 to 10
+%       Options     : >=1
 %       Default     : 1
 %
 % ------------------------------------------------------------------------
