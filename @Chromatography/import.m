@@ -1,33 +1,46 @@
-% Method: import
-%  -Import chromatography data into the MATLAB workspace
+% ------------------------------------------------------------------------
+% Method      : Chromatography.import
+% Description : Import instrument data files
+% ------------------------------------------------------------------------
 %
+% ------------------------------------------------------------------------
 % Syntax
+% ------------------------------------------------------------------------
 %   data = obj.import(filetype)
-%   data = obj.import(filetype, 'OptionName', optionvalue...)
+%   data = obj.import(filetype, Name, Value)
 %
-% Input
-%   filetype    : '.CDF', '.D', '.MS', '.RAW'
+% ------------------------------------------------------------------------
+% Parameters
+% ------------------------------------------------------------------------
+%   filetype (required)
+%       Description : file extension of data
+%       Type        : '.D', '.CDF', '.RAW', '.MS'
 %
-% Options
-%   'append'    : structure
-%   'precision' : integer
-%   'progress'  : 'on', 'off'
+%   'append' (optional)
+%       Description : appends import data to existing data
+%       Type        : structure
 %
-% Description
-%   filetype    : file extension (e.g. '.D', '.MS', '.CDF', '.RAW')
-%   'append'    : append data structure (default = none)
-%   'precision' : number of decimal places allowed for m/z values (default = 3)
-%   'progress'  : display import progress (default = 'on')
+%   'precision' (optional)
+%       Description : maximum decimal places for m/z values
+%       Type        : number
+%       Default     : 3
 %
+%   'progress' (optional)
+%       Description : display import progress in command window
+%       Type        : 'on', 'off'
+%       Default     : 'on'
+%
+% ------------------------------------------------------------------------
 % Examples
+% ------------------------------------------------------------------------
 %   data = obj.import('.CDF')
 %   data = obj.import('.D', 'append', data)
 %   data = obj.import('.MS', 'progress', 'off', 'precision', 2)
 %   data = obj.import('.RAW', 'append', data, 'progress', 'on')
+%
 
 function varargout = import(obj, varargin)
 
-% Check input
 [data, options] = parse(obj, varargin);
 
 % Check for errors
@@ -42,14 +55,28 @@ warning off all
 % Open file selection dialog
 files = dialog(obj, varargin{1});
 
-% Check for any file selections
-if isempty(files)
-    varargout{1} = data;
-    return
+% Remove entries with incorrect filetype
+if ~isempty(files)
+    files(~strcmpi(files(:,3), varargin{1}), :) = [];
 end
 
-% Remove entries with incorrect filetype
-files(~strcmpi(files(:,3), varargin{1}), :) = [];
+if isempty(files)
+    
+    fprintf(['\n',...
+        '[IMPORT]\n\n',...
+        '[WARNING] No files selected...\n\n',...
+        '[COMPLETE]\n\n']);
+
+    varargout{1} = data;
+    return
+    
+else
+    
+    fprintf(['\n',...
+        '[IMPORT]\n\n',...
+        'Importing ', num2str(length(files(:,1))), ' files...\n\n',...
+        'Format : ', options.filetype, '\n\n']);
+end
 
 % Set path to selected folder
 path(files{1,1}, path);
@@ -57,12 +84,6 @@ path(files{1,1}, path);
 % Variables
 import_data = {};
 options.file_count = length(files(:,1));
-
-fprintf('\n[IMPORT]\n');
-
-fprintf(['\nImporting ', num2str(length(files(:,1))), ' files...\n\n']);
-
-fprintf(['Format : ', options.filetype, '\n\n']);
 
 % Import files
 switch options.filetype
@@ -83,7 +104,7 @@ switch options.filetype
             else
                 fprintf([...
                     '[', num2str(i), '/', num2str(length(files(:,1))), ']'...
-                    ' Invalid file path ''', filepath, '''\n']);
+                    ' Invalid file path ''', '%s', '''\n'], filepath);
                 
                 options.error_count = options.error_count + 1;
                 continue;
@@ -100,6 +121,13 @@ switch options.filetype
             
             if ~isempty(fdata)
                 
+                % Check last value
+                if sum(fdata.xic.values(end,:)) == 0
+                    fdata.time(end) = [];
+                    fdata.tic.values(end) = [];
+                    fdata.xic.values(end,:) = [];
+                end
+                
                 import_data{end+1} = fdata;
                 
                 % File info
@@ -111,7 +139,7 @@ switch options.filetype
             else
                 fprintf([...
                     '[', num2str(i), '/', num2str(length(files(:,1))), ']'...
-                    ' Error loading ''', filepath, '''\n']);
+                    ' Error loading ''', '%s', '''\n'], filepath);
                 
                 options.error_count = options.error_count + 1;
                 continue;
@@ -138,7 +166,7 @@ switch options.filetype
             else
                 fprintf([...
                     '[', num2str(i), '/', num2str(length(files(:,1))), ']'...
-                    ' Invalid file path ''', filepath, '''\n']);
+                    ' Invalid file path ''', '%s', '''\n'], filepath);
                 
                 options.error_count = options.error_count + 1;
                 continue;
@@ -197,7 +225,7 @@ switch options.filetype
             else
                 fprintf([...
                     '[', num2str(i), '/', num2str(length(files(:,1))), ']'...
-                    ' Error loading ''', filepath, '''\n']);
+                    ' Error loading ''', '%s', '''\n'], filepath);
                 
                 options.error_count = options.error_count + 1;
                 rmpath(filepath);
@@ -225,7 +253,7 @@ switch options.filetype
             else
                 fprintf([...
                     '[', num2str(i), '/', num2str(length(files(:,1))), ']'...
-                    ' Invalid file path ''', filepath, '''\n']);
+                    ' Invalid file path ''', '%s', '''\n'], filepath);
                 
                 options.error_count = options.error_count + 1;
                 continue;
@@ -243,6 +271,13 @@ switch options.filetype
             if ~isempty(fdata)
                 
                 for j = 1:length(fdata)
+                    
+                    if nnz(fdata(j).tic) == 0 && nnz(fdata(j).xic) == 0
+                        fprintf([...
+                            '[', num2str(i), '/', num2str(length(files(:,1))), ']',...
+                            ' No data found ''', '%s', '''\n'], filepath);
+                        continue;
+                    end
                     
                     import_data{end+1} = [];
                     
@@ -281,7 +316,7 @@ switch options.filetype
                     if isfield(fdata, 'intensity')
                         import_data{end}.tic.values = fdata(j).intensity;
                     end
-                
+                    
                     % Update progress
                     options.import_bytes = options.import_bytes + import_data{end}.file.bytes;
                     update(i, length(files(:,1)), options.compute_time, options.progress, import_data{end}.file.bytes);
@@ -290,7 +325,7 @@ switch options.filetype
             else
                 fprintf([...
                     '[', num2str(i), '/', num2str(length(files(:,1))), ']',...
-                    ' Error loading ''', filepath, '''\n']);
+                    ' Error loading ''', '%s', '''\n'], filepath);
                 
                 options.error_count = options.error_count + 1;
                 continue
@@ -312,7 +347,7 @@ switch options.filetype
             else
                 fprintf([...
                     '[', num2str(i), '/', num2str(length(files(:,1))), ']',...
-                    ' Invalid file path ''', filepath, '''\n']);
+                    ' Invalid file path ''', '%s', '''\n'], filepath);
                 
                 options.error_count = options.error_count + 1;
                 continue;
@@ -345,17 +380,17 @@ switch options.filetype
                     options.extra = 'ms2';
                 end
                 
-            else
+            else                
                 fprintf([...
                     '[', num2str(i), '/', num2str(length(files(:,1))), ']',...
-                    ' Error loading ''', filepath, '''\n']);
+                    ' Error loading ''', '%s', '''\n'], filepath);
                 
                 options.error_count = options.error_count + 1;
                 continue
             end
             
             % Display import progress
-            options.import_bytes = options.import_bytes + fileinfo.bytes; 
+            options.import_bytes = options.import_bytes + fileinfo.bytes;
             update(i, length(files(:,1)), options.compute_time, options.progress, fileinfo.bytes);
         end
 end
@@ -365,6 +400,7 @@ import_data(cellfun(@isempty, import_data)) = [];
 
 % Check remaining data
 if isempty(import_data)
+    
     fprintf('Unable to import selection\n');
     
     varargout{1} = data;
@@ -414,9 +450,6 @@ for i = 1:length(import_data)
     import_data(i).status.baseline = 'N';
     import_data(i).status.smoothed = 'N';
     import_data(i).status.integrate = 'N';
-    
-    v = obj.Diagnostics.toolbox_version;
-    import_data(i).status.version = [v, ' [',datestr(date, 'yyyy-mm-dd'), ']'];
 end
 
 % Return data
@@ -455,7 +488,7 @@ end
 
 % Determine file description and file extension
 filter = com.mathworks.hg.util.dFilter;
-description = [obj.Options.import{strcmp(obj.Options.import(:,1), extension), 2}];
+description = [obj.options.import{strcmp(obj.options.import(:,1), extension), 2}];
 extension = lower(extension(2:end));
 
 % Set file description and file extension
@@ -484,6 +517,7 @@ end
 
 % Return selected files
 varargout{1} = files;
+
 end
 
 
@@ -512,6 +546,7 @@ end
 
 % Display progress
 fprintf(['[', m, '/', n, '] in ', t, ' (', size, ')\n']);
+
 end
 
 
@@ -533,7 +568,7 @@ elseif ischar(varargin{1})
 end
 
 % Check for supported file extension
-if ~any(find(strcmpi(varargin{1}, obj.Options.import)))
+if ~any(find(strcmpi(varargin{1}, obj.options.import)))
     
     varargout{1} = [];
     varargout{2} = [];
@@ -556,6 +591,7 @@ if ~isempty(input('append'))
     else
         data = obj.format();
     end
+    
 else
     data = obj.format();
 end
@@ -597,9 +633,11 @@ if ~isempty(input('precision'))
             options.precision = 3;
             disp('Input arguments of type ''precision'' invalid. Value set to: ''3''.');
         end
+        
     else
         options.precision = precision;
     end
+    
 else
     options.precision = 3;
 end
@@ -611,11 +649,14 @@ if ~isempty(input('progress'))
     % Check for valid input
     if any(strcmpi(options.progress, {'off', 'hide'}))
         options.progress = 'off';
+        
     elseif any(strcmpi(options.progress, {'default', 'on', 'show', 'display'}))
         options.progress = 'on';
+        
     else
         options.progress = 'on';
     end
+    
 else
     options.progress = 'on';
 end
@@ -631,4 +672,5 @@ options.extra = '';
 % Return input
 varargout{1} = data;
 varargout{2} = options;
+
 end

@@ -1,32 +1,63 @@
-% Method: smooth
-%  -Apply smoothing filter for chromatographic data
+% ------------------------------------------------------------------------
+% Method      : Chromatography.smooth
+% Description : Smooth chromatogram
+% ------------------------------------------------------------------------
 %
+% ------------------------------------------------------------------------
 % Syntax
+% ------------------------------------------------------------------------
 %   data = obj.smooth(data)
-%   data = obj.smooth(data, 'OptionName', optionvalue...)
+%   data = obj.smooth(data, Name, Value)
 %
-% Options
-%   'samples'    : 'all', [index]
-%   'ions'       : 'all', 'tic', [index]
-%   'smoothness' : value (~100 to 10000)
-%   'asymmetry'  : value (~0.01 to 0.99)
+% ------------------------------------------------------------------------
+% Parameters
+% ------------------------------------------------------------------------
+%   data (required)
+%       Description : chromatography data
+%       Type        : structure
 %
-% Description
-%   data         : data structure
-%   'samples'    : row index of samples (default = 'all')
-%   'ions'       : column index of ions (default = 'tic')
-%   'smoothness' : smoothing parameter (default = 500)
-%   'asymmetry'  : asymetry parameter (default = 0.5)
+%   ----------------------------------------------------------------------
+%   Data Selection
+%   ----------------------------------------------------------------------
+%   'samples' (optional)
+%       Description : index of samples in data
+%       Type        : number | 'all'
+%       Default     : 'all'
 %
+%   'ions' (optional)
+%       Description : index of ions in data
+%       Type        : number | 'all', 'tic'
+%       Default     : 'tic'
+%
+%   ----------------------------------------------------------------------
+%   Smoothing Parameters
+%   ----------------------------------------------------------------------
+%   'smoothness' (optional)
+%       Description : smoothness parameter used for smoothing calculation
+%       Type        : number
+%       Default     : 0.5
+%       Range       : 0 to 10000
+%
+%   'asymmetry' (optional)
+%       Description : asymmetry parameter used for smoothing calculation
+%       Type        : number
+%       Default     : 0.5
+%       Range       : 0.0 to 1.0
+%
+% ------------------------------------------------------------------------
 % Examples
+% ------------------------------------------------------------------------
 %   data = obj.smooth(data)
 %   data = obj.smooth(data, 'samples', [2:5, 8, 10])
 %   data = obj.smooth(data, 'ions', [1:34, 43:100])
-%   data = obj.smooth(data, 'ions', 'all', 'smoothness', 5000)
+%   data = obj.smooth(data, 'ions', 'all', 'smoothness', 5)
 %   data = obj.smooth(data, 'smoothness', 2500, 'asymmetry', 0.25)
 %
+% ------------------------------------------------------------------------
 % References
+% ------------------------------------------------------------------------
 %   P.H.C. Eilers, Analytical Chemistry, 75 (2003) 3631
+%
 
 function varargout = smooth(obj, varargin)
 
@@ -65,10 +96,32 @@ for i = 1:length(samples)
     switch ions
         case 'tic'
             y = data(samples(i)).tic.values;
+            
         case 'all'
-            y = data(samples(i)).xic.values;
+            
+            if ~isempty(data(samples(i)).xic.values)
+                y = data(samples(i)).xic.values;
+                
+            else
+                timer = timer + toc;
+                fprintf(' No data matches input criteria...\n');
+                continue
+            end
+            
         otherwise
-            y = data(samples(i)).xic.values(:, options.ions);
+            
+            if ~isempty(data(samples(i)).xic.values)
+                y = data(samples(i)).xic.values(:, options.ions);
+                
+                if isempty(data(samples(i)).xic.baseline)
+                    data(samples(i)).xic.baseline = zeros(size(y));
+                end
+                
+            else
+                timer = timer + toc;
+                fprintf(' No data matches input criteria...\n');
+                continue
+            end
     end
     
     % Calculate smoothed values
@@ -131,6 +184,7 @@ fprintf(['\n',...
     'Smoothed : ', num2str(count), '\n']);
 
 fprintf('\n[COMPLETE]\n\n');
+
 end
 
 
@@ -155,15 +209,15 @@ input = @(x) find(strcmpi(varargin, x),1);
 % Sample options
 if ~isempty(input('samples'))
     samples = varargin{input('samples')+1};
-
+    
     % Set keywords
     samples_all = {'default', 'all'};
-        
+    
     % Check for valid input
     if any(strcmpi(samples, samples_all))
         samples = 1:length(data);
-
-    % Check input type
+        
+        % Check input type
     elseif ~isnumeric(samples)
         
         % Check string input
@@ -205,16 +259,16 @@ if ~isempty(input('ions'))
     % Check for valid input
     if any(strcmpi(ions, ions_tic))
         options.ions = 'tic';
-    
+        
     elseif any(strcmpi(ions, ions_all))
         options.ions = 'all';
-
+        
     elseif ~isnumeric(ions) && ~ischar(ions)
         options.ions = 'tic';
     else
         options.ions = ions;
     end
-
+    
     % Check input range
     if isnumeric(options.ions)
         
@@ -240,12 +294,12 @@ if ~isempty(input('smoothness'))
     
     % Check for valid input
     if ~isnumeric(smoothness)
-        options.smoothness = obj.Defaults.smoothing.smoothness;
+        options.smoothness = obj.defaults.smoothing_smoothness;
     else
         options.smoothness = smoothness;
     end
 else
-    options.smoothness = obj.Defaults.smoothing.smoothness;
+    options.smoothness = obj.defaults.smoothing_smoothness;
 end
 
 
@@ -255,15 +309,16 @@ if ~isempty(input('asymmetry'))
     
     % Check for valid input
     if ~isnumeric(asymmetry)
-        options.asymmetry = obj.Defaults.smoothing.asymmetry;
+        options.asymmetry = obj.defaults.smoothing_asymmetry;
     else
         options.asymmetry = asymmetry;
     end
 else
-    options.asymmetry = obj.Defaults.smoothing.asymmetry;
+    options.asymmetry = obj.defaults.smoothing_asymmetry;
 end
 
 % Return input
 varargout{1} = data;
 varargout{2} = options;
+
 end

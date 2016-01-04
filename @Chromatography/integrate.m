@@ -1,33 +1,69 @@
-% Method: integrate
-%  -Find and integrate chromatographic peaks
+% ------------------------------------------------------------------------
+% Method      : Chromatography.integrate
+% Description : Find and integrate peaks
+% ------------------------------------------------------------------------
 %
+% ------------------------------------------------------------------------
 % Syntax
+% ------------------------------------------------------------------------
 %   data = obj.integrate(data)
-%   data = obj.integrate(data, 'OptionName', optionvalue...)
+%   data = obj.integrate(data, Name, Value)
 %
-% Options
-%   'samples' : 'all', [index]
-%   'ions'    : 'all', 'tic', [index]
-%   'center'  : value
-%   'width'   : value
-%   'results' : 'replace', 'append', 'reset'
+% ------------------------------------------------------------------------
+% Parameters
+% ------------------------------------------------------------------------
+%   data (required)
+%       Description : chromatography data
+%       Type        : structure
 %
-% Description
-%   data      : data structure
-%   'samples' : row index of samples (default = 'all')
-%   'ions'    : column index of ions (default = 'tic')
-%   'center'  : window center (default = x at max(y))
-%   'width'   : window width (default = %5 of length(x))
-%   'results' : replace, append or reset existing peak data (default = 'replace')
+%   ----------------------------------------------------------------------
+%   Data Selection
+%   ----------------------------------------------------------------------
+%   'samples' (optional)
+%       Description : index of samples in data
+%       Type        : number | 'all'
+%       Default     : 'all'
 %
+%   'ions' (optional)
+%       Description : index of ions in data
+%       Type        : number | 'all', 'tic'
+%       Default     : 'tic'
+%
+%   'results' (optional)
+%       Description : replace, append or reset previous peak results
+%       Type        : 'replace', 'append', 'reset'
+%       Default     : 'replace'
+%
+%   ----------------------------------------------------------------------
+%   Integration Parameters
+%   ----------------------------------------------------------------------
+%   'center' (optional)
+%       Description : center of window used for peak detection
+%       Type        : number
+%       Default     : x at max(y)
+%       Range       : 0 - max(x)
+%
+%   'width' (optional)
+%       Description : width of window used for peak detection
+%       Type        : number
+%       Default     : 0.05 * max(x)
+%       Range       : 0 - max(x)
+%
+% ------------------------------------------------------------------------
 % Examples
+% ------------------------------------------------------------------------
 %   data = obj.integrate(data)
 %   data = obj.integrate(data, 'samples', [2:5, 8, 10], ions, 'all')
 %   data = obj.integrate(data, 'ions', [1:34, 43:100], 'center', 14.5)
-%   data = obj.integrate(data, 'center', 18.5, 'width', 5.0, 'results', 'append')
+%   data = obj.integrate(data, 'center', 18.5, 'width', 5.0)
+%   data = obj.integrate(data, 'results', 'append')
 %
+% ------------------------------------------------------------------------
 % References
+% ------------------------------------------------------------------------
 %   K. Lan, et. al. Journal of Chromatography A, 915 (2001) 1-13
+%
+
 
 function varargout = integrate(obj, varargin)
 
@@ -41,8 +77,21 @@ center = options.center;
 width = options.width;
 results = options.results;
 
+timer = 0;
+count.peaks = 0;
+count.time = [];
+count.error = [];
+
+fprintf([...
+    '\n[INTEGRATE]\n',...
+    '\nFind and integrate peaks for ', num2str(length(samples)), ' samples...\n\n']);
+
 % Calculate peak area
 for i = 1:length(samples)
+    tic;
+    
+    % Display progress
+    fprintf(['[', num2str(i), '/', num2str(length(samples)), ']']);
     
     % Input values
     x = data(samples(i)).time;
@@ -53,15 +102,34 @@ for i = 1:length(samples)
     end
     
     switch ions
+        
         case 'tic'
             y = data(samples(i)).tic.values;
             baseline = data(samples(i)).tic.baseline;
+            
         case 'all'
-            y = data(samples(i)).xic.values;
-            baseline = data(samples(i)).xic.baseline;
+            
+            if ~isempty(data(samples(i)).xic.values)
+                y = data(samples(i)).xic.values;
+                baseline = data(samples(i)).xic.baseline;
+                
+            else
+                timer = timer + toc;
+                fprintf(' No data matches input criteria...\n');
+                continue
+            end
+            
         case 'xic'
-            y = data(samples(i)).xic.values(:, options.ions);
-            baseline = data(samples(i)).xic.baseline;
+            
+            if ~isempty(data(samples(i)).xic.values)
+                y = data(samples(i)).xic.values(:, options.ions);
+                baseline = data(samples(i)).xic.baseline;
+                
+            else
+                timer = timer + toc;
+                fprintf(' No data matches input criteria...\n');
+                continue
+            end
             
             if ~isempty(baseline)
                 baseline = baseline(:, options.ions);
@@ -74,7 +142,7 @@ for i = 1:length(samples)
     end
     
     % Calculate curve fitting results
-    switch obj.Defaults.integrate.model
+    switch obj.defaults.integrate_model
         
         case 'exponential gaussian hybrid'
             peaks = ExponentialGaussian(x, y, 'center', center, 'width', width);
@@ -83,11 +151,17 @@ for i = 1:length(samples)
             peaks = ExponentialGaussian(x, y, 'center', center, 'width', width);
     end
     
+    if isempty(peaks)
+        timer = timer + toc;
+        fprintf(' No data matches input criteria...\n');
+        continue;
+    end
+    
     switch ions
         
         case 'tic'
             peak_data = data(samples(i)).tic.peaks;
-            column = 1;           
+            column = 1;
             
             % Check peak data
             if isempty(peak_data.time)
@@ -148,7 +222,7 @@ for i = 1:length(samples)
                 peak_data.width(2:end, :) = [];
                 peak_data.area(2:end, :) = [];
                 peak_data.error(2:end, :) = [];
-            
+                
                 if ~isempty(peak_data.fit)
                     peak_data.fit(2:end, :) = [];
                 end
@@ -192,10 +266,68 @@ for i = 1:length(samples)
     else
         data(samples(i)).xic.peaks = peak_data;
     end
+    
+    % Elapsed time
+    timer = timer + toc;
+    fprintf([' in ', num2str(timer, '%.1f'), ' sec']);
+    
+    % Results
+    count.peaks = count.peaks + length(peaks.time(peaks.time ~= 0));
+    count.time= [count.time, peaks.time(peaks.time~=0)];
+    count.error = [count.error, peaks.error(peaks.time~=0)];
+    
+    n = num2str(length(peaks.time(peaks.time ~= 0)));
+    
+    if length(peaks.time) == 1
+        t = [num2str(peaks.time, '%.1f'), ' min'];
+        e = [num2str(peaks.error, '%.1f'), '%%'];
+        
+    else
+        t = [num2str(min(peaks.time), '%.1f'), '-', num2str(max(peaks.time), '%.1f'), ' min'];
+        e = [num2str(min(peaks.error), '%.1f'), '-' , num2str(max(peaks.error), '%.1f'), '%%'];
+    end
+    
+    fprintf([' (', n, ', ', t, ', ', e, ')\n']);
 end
 
 % Set output
 varargout{1} = data;
+
+% Display summary
+if timer > 60
+    elapsed = [num2str(timer/60, '%.1f'), ' min'];
+else
+    elapsed = [num2str(timer, '%.1f'), ' sec'];
+end
+
+if count.peaks == 1
+    time = [num2str(count.time, '%.1f'), ' min'];
+    error = [num2str(count.error, '%.1f'), ' %%'];
+    
+elseif count.peaks == 0
+    time = 'N/A';
+    error = 'N/A';
+    
+else
+    time = [...
+        num2str(min(count.time), '%.1f'), '-',...
+        num2str(max(count.time), '%.1f'), ' min'];
+    
+    error = [...
+        num2str(mean(count.error), '%.1f'), '%% (',...
+        num2str(min(count.error), '%.1f'), '-',...
+        num2str(max(count.error), '%.1f'), '%%)'];
+end
+
+fprintf(['\n',...
+    'Samples : ', num2str(length(samples)), '\n',...
+    'Elapsed : ', elapsed, '\n',...
+    'Peaks   : ', num2str(count.peaks), '\n'...
+    'Range   : ', time, '\n',...
+    'Error   : ', error, '\n']);
+
+fprintf('\n[COMPLETE]\n\n');
+
 end
 
 
@@ -208,8 +340,10 @@ nargin = length(varargin);
 % Check input
 if nargin < 1
     error('Not enough input arguments.');
+    
 elseif isstruct(varargin{1})
     data = obj.format('validate', varargin{1});
+    
 else
     error('Undefined input arguments of type ''data''.');
 end
@@ -220,15 +354,15 @@ input = @(x) find(strcmpi(varargin, x),1);
 % Sample options
 if ~isempty(input('samples'))
     samples = varargin{input('samples')+1};
-
+    
     % Set keywords
     samples_all = {'default', 'all'};
-        
+    
     % Check for valid input
     if any(strcmpi(samples, samples_all))
         samples = 1:length(data);
-
-    % Check input type
+        
+        % Check input type
     elseif ~isnumeric(samples)
         
         % Check string input
@@ -270,16 +404,16 @@ if ~isempty(input('ions'))
     % Check for valid input
     if any(strcmpi(ions, ions_tic))
         options.ions = 'tic';
-    
+        
     elseif any(strcmpi(ions, ions_all))
         options.ions = 'all';
-
+        
     elseif ~isnumeric(ions) && ~ischar(ions)
         options.ions = 'tic';
     else
         options.ions = ions;
     end
-
+    
     % Check input range
     if isnumeric(options.ions)
         
@@ -362,4 +496,5 @@ end
 % Return input
 varargout{1} = data;
 varargout{2} = options;
+
 end

@@ -1,17 +1,26 @@
+% ------------------------------------------------------------------------
 % Method      : MD5
-% Description : Returns the MD5 checksum of a file
+% Description : Calculate MD5 checksum of file
+% ------------------------------------------------------------------------
 %
+% ------------------------------------------------------------------------
 % Syntax
+% ------------------------------------------------------------------------
 %   checksum = MD5(file)
 %
-% Pararmeters
-%   Name        : file
-%   Type        : string
-%   Description : valid file name
+% ------------------------------------------------------------------------
+% Parameters
+% ------------------------------------------------------------------------
+%   file (required)
+%       Description : absolute or relative path of file
+%       Type        : string
 %
+% ------------------------------------------------------------------------
 % Examples
-%   checksum = MD5('FID1A.ch')
-%   checksum = MD5('.ch')
+% ------------------------------------------------------------------------
+%   checksum = MD5('FID1A.CH')
+%   checksum = MD5('001-32-2.RAW')
+%
 
 function checksum = MD5(file)
 

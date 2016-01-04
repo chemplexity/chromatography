@@ -1,0 +1,423 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<ACAML xmlns="urn:schemas-agilent-com:acaml13" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
+	<Checksum Algorithm="SHA1">
+    <Value>JPNHMVdVyX4Bl7j3xYaNCVNyjOg=</Value>
+  </Checksum>
+  <Doc ContentVersioned="false">
+		<DocID>cd76062b-31a7-4504-9914-5d9c2dfbe82d</DocID>
+		<DocInfo>
+			<Description>Method ACAML</Description>
+			<CreatedByUser>LCMS_user</CreatedByUser>
+			<CreatedByApplication>
+				<AgilentApp>
+					<Name>ChemStation</Name>
+					<Version>C.01.01</Version>
+				</AgilentApp>
+			</CreatedByApplication>
+			<CreationDate>2014-03-13T17:37:47.531</CreationDate>
+			<ClientName>GC128-LCMS-1</ClientName>
+		</DocInfo>
+		<Content>
+			<MethodConfiguration xsi:type="MethodConfigurationType" id="fa703ec1-f84e-4423-9974-374d0f914ae0" ver="0">
+				<MethodDescription>
+					<Name>Method Configuration</Name>
+					<ID>Method_Configuration</ID>
+					<Section>
+						<Name>Acquisition Method</Name>
+						<ID>Acquisition_Method</ID>
+						<Section>
+							<Name>Column Comp.</Name>
+							<ID>G1316A</ID>
+							<Section>
+								<Name>Left Temperature Control</Name>
+								<ID>LeftTemperatureControl</ID>
+								<Section>
+									<Name>Enable Analysis Left Temperature</Name>
+									<ID>LeftTemperatureControl_NotReadyLimit</ID>
+									<Parameter>
+										<Name>Enable Analysis Left Temperature On</Name>
+										<ID>LeftTemperatureControl_NotReadyLimit_NotReadyLimitOn</ID>
+										<Unit />
+										<Value>Yes</Value>
+									</Parameter>
+									<Parameter>
+										<Name>Enable Analysis Left Temperature Value</Name>
+										<ID>LeftTemperatureControl_NotReadyLimit_NotReadyLimitValue</ID>
+										<Unit>°C</Unit>
+										<Value>0.80</Value>
+									</Parameter>
+								</Section>
+								<Parameter>
+									<Name>Temperature Control Mode</Name>
+									<ID>LeftTemperatureControl_TemperatureControlMode</ID>
+									<Unit />
+									<Value>Temperature Set</Value>
+								</Parameter>
+								<Parameter>
+									<Name>Temperature</Name>
+									<ID>LeftTemperatureControl_Temperature</ID>
+									<Unit>°C</Unit>
+									<Value>25.00</Value>
+								</Parameter>
+							</Section>
+							<Section>
+								<Name>Right Temperature Control</Name>
+								<ID>RightTemperatureControl</ID>
+								<Section>
+									<Name>Enable Analysis Right Temperature</Name>
+									<ID>RightTemperatureControl_NotReadyLimit</ID>
+									<Parameter>
+										<Name>Enable Analysis Right Temperature On</Name>
+										<ID>RightTemperatureControl_NotReadyLimit_NotReadyLimitOn</ID>
+										<Unit />
+										<Value>Yes</Value>
+									</Parameter>
+									<Parameter>
+										<Name>Enable Analysis Right Temperature Value</Name>
+										<ID>RightTemperatureControl_NotReadyLimit_NotReadyLimitValue</ID>
+										<Unit>°C</Unit>
+										<Value>0.80</Value>
+									</Parameter>
+								</Section>
+								<Parameter>
+									<Name>Right temperature Control Mode</Name>
+									<ID>RightTemperatureControl_TemperatureControlMode</ID>
+									<Unit />
+									<Value>Temperature Set</Value>
+								</Parameter>
+								<Parameter>
+									<Name>Right temperature</Name>
+									<ID>RightTemperatureControl_Temperature</ID>
+									<Unit>°C</Unit>
+									<Value>25.00</Value>
+								</Parameter>
+							</Section>
+							<Section>
+								<Name>Stop Time</Name>
+								<ID>StopTime</ID>
+								<Parameter>
+									<Name>Stoptime Mode</Name>
+									<ID>StopTime_StopTimeMode</ID>
+									<Unit />
+									<Value>As pump/injector</Value>
+								</Parameter>
+							</Section>
+							<Section>
+								<Name>Post Time</Name>
+								<ID>PostTime</ID>
+								<Parameter>
+									<Name>Posttime Mode</Name>
+									<ID>PostTime_PostTimeMode</ID>
+									<Unit />
+									<Value>Off</Value>
+								</Parameter>
+							</Section>
+							<Section>
+								<Name>Timetable</Name>
+								<ID>Timetable</ID>
+								<Table>
+									<Name>Timetable</Name>
+									<ID>Timetable_TimetableEntry</ID>
+								</Table>
+							</Section>
+							<Parameter>
+								<Name>Valve Position</Name>
+								<ID>ColumnValvePosition</ID>
+								<Unit />
+								<Value>Port 1 -&gt; 6</Value>
+							</Parameter>
+						</Section>
+						<Section>
+							<Name>Sampler</Name>
+							<ID>G1329A</ID>
+							<Section>
+								<Name>Auxiliary</Name>
+								<ID>Auxiliary</ID>
+								<Parameter>
+									<Name>Draw Speed</Name>
+									<ID>Auxiliary_DrawSpeed</ID>
+									<Unit>µl/min</Unit>
+									<Value>200</Value>
+								</Parameter>
+								<Parameter>
+									<Name>Eject Speed</Name>
+									<ID>Auxiliary_EjectSpeed</ID>
+									<Unit>µl/min</Unit>
+									<Value>200</Value>
+								</Parameter>
+								<Parameter>
+									<Name>Draw Position Offset</Name>
+									<ID>Auxiliary_DrawPositionOffset</ID>
+									<Unit>mm</Unit>
+									<Value>0.0</Value>
+								</Parameter>
+							</Section>
+							<Section>
+								<Name>Injection</Name>
+								<ID>Injection</ID>
+								<Section>
+									<Name>Needle Wash</Name>
+									<ID>Injection_NeedleWash</ID>
+									<Parameter>
+										<Name>Needle Wash Location</Name>
+										<ID>Injection_NeedleWash_NeedleWashLocation</ID>
+										<Unit />
+										<Value>Wash Vial</Value>
+									</Parameter>
+									<Parameter>
+										<Name>Wash Location</Name>
+										<ID>Injection_NeedleWash_WashPosition</ID>
+										<Unit />
+										<Value>Vial 91</Value>
+									</Parameter>
+								</Section>
+								<Parameter>
+									<Name>Injection Mode</Name>
+									<ID>Injection_InjectionMode</ID>
+									<Unit />
+									<Value>Injection with needle wash</Value>
+								</Parameter>
+								<Parameter>
+									<Name>Injection Volume</Name>
+									<ID>Injection_InjectionVolume</ID>
+									<Unit>µL</Unit>
+									<Value>5.00</Value>
+								</Parameter>
+							</Section>
+							<Section>
+								<Name>High throughput</Name>
+								<ID>HighThroughput</ID>
+								<Section>
+									<Name>Overlapped Injection</Name>
+									<ID>HighThroughput_OverlappedInjection</ID>
+									<Parameter>
+										<Name>Enable Overlapped Injection</Name>
+										<ID>HighThroughput_OverlappedInjection_OverlapEnabled</ID>
+										<Unit />
+										<Value>No</Value>
+									</Parameter>
+								</Section>
+							</Section>
+							<Section>
+								<Name>Stop Time</Name>
+								<ID>StopTime</ID>
+								<Parameter>
+									<Name>Stoptime Mode</Name>
+									<ID>StopTime_StopTimeMode</ID>
+									<Unit />
+									<Value>As pump/No limit</Value>
+								</Parameter>
+							</Section>
+							<Section>
+								<Name>Post Time</Name>
+								<ID>PostTime</ID>
+								<Parameter>
+									<Name>Posttime Mode</Name>
+									<ID>PostTime_PostTimeMode</ID>
+									<Unit />
+									<Value>Off</Value>
+								</Parameter>
+							</Section>
+							<Section>
+								<Name>Timetable</Name>
+								<ID>Timetable</ID>
+								<Table>
+									<Name>Timetable</Name>
+									<ID>Timetable_TimetableEntry</ID>
+								</Table>
+							</Section>
+						</Section>
+						<Section>
+							<Name>Binary Pump</Name>
+							<ID>G1312A</ID>
+							<Section>
+								<Name>Stop Time</Name>
+								<ID>StopTime</ID>
+								<Parameter>
+									<Name>Stoptime Mode</Name>
+									<ID>StopTime_StopTimeMode</ID>
+									<Unit />
+									<Value>No limit</Value>
+								</Parameter>
+							</Section>
+							<Section>
+								<Name>Post Time</Name>
+								<ID>PostTime</ID>
+								<Parameter>
+									<Name>Posttime Mode</Name>
+									<ID>PostTime_PostTimeMode</ID>
+									<Unit />
+									<Value>Off</Value>
+								</Parameter>
+							</Section>
+							<Section>
+								<Name>Compress A</Name>
+								<ID>CompressA</ID>
+								<Parameter>
+									<Name>Compressibility Mode A</Name>
+									<ID>CompressA_CompressibilityMode</ID>
+									<Unit />
+									<Value>Compressibility Value Set</Value>
+								</Parameter>
+								<Parameter>
+									<Name>Compressibility A</Name>
+									<ID>CompressA_CompressibilityValueSet</ID>
+									<Unit>10e-6/bar</Unit>
+									<Value>126</Value>
+								</Parameter>
+							</Section>
+							<Section>
+								<Name>Compress B</Name>
+								<ID>CompressB</ID>
+								<Parameter>
+									<Name>Compressibility Mode B</Name>
+									<ID>CompressB_CompressibilityMode</ID>
+									<Unit />
+									<Value>Compressibility Value Set</Value>
+								</Parameter>
+								<Parameter>
+									<Name>Compressibility B</Name>
+									<ID>CompressB_CompressibilityValueSet</ID>
+									<Unit>10e-6/bar</Unit>
+									<Value>150</Value>
+								</Parameter>
+							</Section>
+							<Section>
+								<Name>Stroke A</Name>
+								<ID>StrokeA</ID>
+								<Parameter>
+									<Name>Automatic Stroke Calculation A</Name>
+									<ID>StrokeA_AutomaticStrokeCalculation</ID>
+									<Unit />
+									<Value>Yes</Value>
+								</Parameter>
+							</Section>
+							<Section>
+								<Name>Stroke B</Name>
+								<ID>StrokeB</ID>
+								<Parameter>
+									<Name>Automatic Stroke Calculation B</Name>
+									<ID>StrokeB_AutomaticStrokeCalculation</ID>
+									<Unit />
+									<Value>Yes</Value>
+								</Parameter>
+							</Section>
+							<Section>
+								<Name>Timetable</Name>
+								<ID>Timetable</ID>
+								<Table>
+									<Name>Timetable</Name>
+									<ID>Timetable_TimetableEntry</ID>
+								</Table>
+							</Section>
+							<Parameter>
+								<Name>Low Pressure Limit</Name>
+								<ID>LowPressureLimit</ID>
+								<Unit>bar</Unit>
+								<Value>0.00</Value>
+							</Parameter>
+							<Parameter>
+								<Name>High Pressure Limit</Name>
+								<ID>HighPressureLimit</ID>
+								<Unit>bar</Unit>
+								<Value>400.00</Value>
+							</Parameter>
+							<Parameter>
+								<Name>Flow</Name>
+								<ID>Flow</ID>
+								<Unit>ml/min</Unit>
+								<Value>0.500</Value>
+							</Parameter>
+							<Parameter>
+								<Name>Maximum Flow Gradient</Name>
+								<ID>MaximumFlowRamp</ID>
+								<Unit>ml/min²</Unit>
+								<Value>100.000</Value>
+							</Parameter>
+							<Table>
+								<Name>Solvent Composition</Name>
+								<ID>SolventComposition</ID>
+								<Row>
+									<Parameter>
+										<Name>Channel</Name>
+										<ID>SolventComposition_Channel</ID>
+										<Unit />
+										<Value>A</Value>
+									</Parameter>
+									<Parameter>
+										<Name>Name 1</Name>
+										<ID>SolventComposition_Channel1UserName</ID>
+										<Unit />
+										<Value>Acetone</Value>
+									</Parameter>
+									<Parameter>
+										<Name>Name 2</Name>
+										<ID>SolventComposition_Channel2UserName</ID>
+										<Unit />
+										<Value>Acetonitrile</Value>
+									</Parameter>
+									<Parameter>
+										<Name>Selected</Name>
+										<ID>SolventComposition_SelectedSolventChannel</ID>
+										<Unit />
+										<Value>Ch. 1</Value>
+									</Parameter>
+									<Parameter>
+										<Name>Used</Name>
+										<ID>SolventComposition_Used</ID>
+										<Unit />
+										<Value>Yes</Value>
+									</Parameter>
+									<Parameter>
+										<Name>Percent</Name>
+										<ID>SolventComposition_Percentage</ID>
+										<Unit>%</Unit>
+										<Value>15.0</Value>
+									</Parameter>
+								</Row>
+								<Row>
+									<Parameter>
+										<Name>Channel</Name>
+										<ID>SolventComposition_Channel</ID>
+										<Unit />
+										<Value>B</Value>
+									</Parameter>
+									<Parameter>
+										<Name>Name 1</Name>
+										<ID>SolventComposition_Channel1UserName</ID>
+										<Unit />
+										<Value>Hexane</Value>
+									</Parameter>
+									<Parameter>
+										<Name>Name 2</Name>
+										<ID>SolventComposition_Channel2UserName</ID>
+										<Unit />
+										<Value>Hexane</Value>
+									</Parameter>
+									<Parameter>
+										<Name>Selected</Name>
+										<ID>SolventComposition_SelectedSolventChannel</ID>
+										<Unit />
+										<Value>Ch. 1</Value>
+									</Parameter>
+									<Parameter>
+										<Name>Used</Name>
+										<ID>SolventComposition_Used</ID>
+										<Unit />
+										<Value>Yes</Value>
+									</Parameter>
+									<Parameter>
+										<Name>Percent</Name>
+										<ID>SolventComposition_Percentage</ID>
+										<Unit>%</Unit>
+										<Value>85.0</Value>
+									</Parameter>
+								</Row>
+							</Table>
+						</Section>
+					</Section>
+				</MethodDescription>
+			</MethodConfiguration>
+		</Content>
+	</Doc>
+</ACAML>

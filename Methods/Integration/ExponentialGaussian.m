@@ -25,7 +25,7 @@
 %   peaks = ExponentialGaussian(y, 'width', 1.5)
 %   peaks = ExponentialGaussian(x, y, 'center', 22.10)
 %   peaks = ExponentialGaussian(x, y, 'center', 12.44, 'width', 0.24)
-%   
+%
 % References
 %   K. Lan, et. al. Journal of Chromatography A, 915 (2001) 1-13
 
@@ -33,7 +33,12 @@ function varargout = ExponentialGaussian(varargin)
 
 % Check input
 [x, y, options] = parse(varargin);
- 
+
+if isempty(y)
+    varargout{1} = [];
+    return
+end
+
 % Initialize peak data
 peaks = {'time','width','height','area','fit','error'};
 peaks = cell2struct(cell(1,length(peaks)), peaks, 2);
@@ -69,7 +74,7 @@ for i = 1:length(y(1,:))
     
     % Determine peak width
     w = EGH.w(peak.a(:,i), peak.b(:,i), peak.alpha(:,i));
-
+    
     % Determine peak decay
     e = EGH.e(peak.a(:,i), peak.b(:,i), peak.alpha(:,i));
     
@@ -105,7 +110,7 @@ for i = 1:length(y(1,:))
     else
         index = 2;
     end
-        
+    
     % Determine area factors
     t = EGH.t(w(index),e(index));
     e0 = EGH.c(t, EGH.factors);
@@ -113,7 +118,7 @@ for i = 1:length(y(1,:))
     % Determine area
     area = EGH.a(h(index),w(index),e(index),e0);
     
-    % Check area values
+    % Check results
     if isnan(area) || isnan(rmsd(index))
         peaks = zero(peaks, y, i);
         continue
@@ -132,7 +137,7 @@ end
 varargout{1} = peaks;
 end
 
- 
+
 % Output data
 function peaks = zero(peaks, y, i)
 
@@ -155,20 +160,30 @@ nargin = length(varargin);
 % Check input
 if nargin < 1
     error('Not enough input arguments.');
+    
 elseif nargin >= 1 && isnumeric(varargin{1}) && ~isnumeric(varargin{2})
     y = varargin{1};
     x = 1:length(y(:,1));
-elseif nargin >1 && isnumeric(varargin{1}) && isnumeric(varargin{2}) 
+    
+elseif nargin >1 && isnumeric(varargin{1}) && isnumeric(varargin{2})
     x = varargin{1};
     y = varargin{2};
 else
     error('Undefined input arguments of type ''xy''.');
 end
-    
+
+if isempty(y)
+    varargout{1} = [];
+    varargout{2} = [];
+    varargout{3} = [];
+    return
+end
+
 % Check data precision
 if ~isa(x, 'double')
     x = double(x);
 end
+
 if ~isa(y, 'double')
     y = double(y);
 end
@@ -177,26 +192,30 @@ end
 if length(x(1,:)) > length(x(:,1))
     x = x';
 end
+
 if length(y(1,:)) == length(x(:,1))  && length(y(1,:)) ~= length(y(:,1))
     y = y';
 end
+
 if length(x(:,1)) ~= length(y(:,1))
-    error('Input dimensions must aggree.');
+    error('Input dimensions must agree.');
 end
 
 % Check data length
 if length(x) <= 1
     return
 end
-    
+
 % Check user input
 input = @(x) find(strcmpi(varargin, x),1);
-    
+
 % Check center options
 if ~isempty(input('center'))
     options.center = varargin{input('center')+1};
+    
 elseif ~isempty(input('time'))
     options.center = varargin{input('time')+1};
+    
 else
     [~,index] = max(y);
     options.center = x(index);
@@ -206,22 +225,26 @@ end
 if isempty(options.center)
     [~,index] = max(y);
     options.center = x(index);
+    
 elseif ~isnumeric(options.center)
     error('Undefined input arguments of type ''center''.');
 end
- 
+
 % Check width options
 if ~isempty(input('width'))
     options.width = varargin{input('width')+1};
+    
 elseif ~isempty(input('time'))
     options.width = varargin{input('window')+1};
+    
 else
     options.width(1:length(options.center)) = max(x) * 0.05;
 end
-    
+
 % Check for valid input
 if isempty(options.width) || min(options.width) <= 0
     options.width(1:length(options.center),1) = max(x) * 0.05;
+    
 elseif ~isnumeric(options.width)
     error('Undefined input arguments of type ''width''.');
 end
@@ -246,7 +269,7 @@ end
 
 % Find out of range width values (minimum)
 if any(options.center - (options.width/2)) <= min(x)
-    index = options.center - (options.width/2) <= min(x);    
+    index = options.center - (options.width/2) <= min(x);
     options.width(index) =  min(x) + (options.width(index)/2);
 end
 
@@ -254,4 +277,5 @@ end
 varargout{1} = x;
 varargout{2} = y;
 varargout{3} = options;
+
 end

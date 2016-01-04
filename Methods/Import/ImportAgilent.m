@@ -1,32 +1,46 @@
-% ImportAgilent
-%   Extract raw data from Agilent (.D, .MS, .CH) files
+% ------------------------------------------------------------------------
+% Method      : ImportAgilent
+% Description : Import data stored in Agilent (.D, .MS, .CH) files
+% ------------------------------------------------------------------------
 %
+% ------------------------------------------------------------------------
 % Syntax
+% ------------------------------------------------------------------------
 %   data = ImportAgilent(file)
-%   data = ImportAgilent(file, 'OptionName', optionvalue...)
+%   data = ImportAgilent(file, Name, Value)
 %
-% Input
-%   file        : string
+% ------------------------------------------------------------------------
+% Parameters
+% ------------------------------------------------------------------------
+%   file (required)
+%       Description : name of Agilent data file
+%       Type        : string
 %
-% Description
-%   file        : file name with valid extension (.D, .MS)
+%   'precision' (optional)
+%       Description : maximum decimal places for m/z values
+%       Type        : number
+%       Default     : 3
 %
+% ------------------------------------------------------------------------
 % Examples
+% ------------------------------------------------------------------------
 %   data = ImportAgilent('MSD1.MS')
 %   data = ImportAgilent('Trial1.D')
 %
+% ------------------------------------------------------------------------
 % Compatibility
-%   Agilent, LC
-%       6100 Series Single Quadrupole LC/MS
-%       1100 Series Diode Arrary Detector (DAD)
-%   Agilent, GC
-%       5970 Series GC/MSD
-%       6890 Series GC/FID
+% ------------------------------------------------------------------------
+%   LC/MS  : V.2, V.20
+%   GC/MS  : V.2, V.20
+%   GC/FID : V.8, V.81, V.179, V.181
+%
 
 function varargout = ImportAgilent(varargin)
 
 % Parse user input
 [files, options] = parse(varargin);
+
+data{length(files(:,1))} = [];
 
 % Import functions
 for i = 1:length(files(:,1))
@@ -38,10 +52,10 @@ for i = 1:length(files(:,1))
         %
         case {'.MS', '.ms'}
             data{i} = AgilentMS(files{i,1}, options);
-        
-        %
-        % Agilent // Other Detectors (GC/FID, LC/DAD, LC/ELSD,...)
-        %
+            
+            %
+            % Agilent // Other Detectors (GC/FID, LC/DAD, LC/ELSD,...)
+            %
         case {'.CH', '.ch'}
             data{i} = AgilentCH(files{i,1}, options);
             
@@ -54,17 +68,16 @@ data(cellfun(@isempty, data)) = [];
 
 % Output
 varargout(1) = {[data{:}]};
-
 end
 
-% 
+%
 % Agilent // Mass Spectrometer
 %
 function varargout = AgilentMS(varargin)
 
-    %
-    % File Information
-    %
+%
+% File Information
+%
     function [data, options] = FileInfo(file, data, options)
         
         % Sample name
@@ -74,19 +87,16 @@ function varargout = AgilentMS(varargin)
         % Sample description
         fseek(file, 86, 'bof');
         data.sample.description = strtrim(fread(file, fread(file, 1, 'uint8'), 'uint8=>char')');
-
-        % Sample vial number
-        fseek(file, 254, 'bof');
-        data.sample.vial = fread(file, 1, 'short', 0, 'b');
         
-        % Sample trial number
-        fseek(file, 256, 'bof');
+        fseek(file, 252, 'bof');
+        data.sample.sequence = fread(file, 1, 'short', 0, 'b');
+        data.sample.vial = fread(file, 1, 'short', 0, 'b');
         data.sample.replicate = fread(file, 1, 'short', 0, 'b');
         
         % Method name
         fseek(file, 228, 'bof');
         data.method.name = deblank(fread(file, fread(file, 1, 'uint8'), 'uint8=>char')');
-
+        
         % Method operator
         fseek(file, 148, 'bof');
         data.method.operator = deblank(fread(file, fread(file, 1, 'uint8'), 'uint8=>char')');
@@ -99,10 +109,24 @@ function varargout = AgilentMS(varargin)
         data.method.time = '';
         
         try
-            date = datevec(date);
-            data.method.date = strtrim(datestr(date, 'mm/dd/yy'));
-            data.method.time = strtrim(datestr(date, 'HH:MM PM'));
+            date = datenum(date, 'dd mmm yy HH:MM PM');
+            data.method.date = datestr(date, 'mm/dd/yy');
+            data.method.time = datestr(date, 'HH:MM PM');
         catch
+            try
+                date = datenum(date, 'mm/dd/yy HH:MM:SS PM');
+                data.method.date = datestr(date, 'mm/dd/yy');
+                data.method.time = datestr(date, 'HH:MM PM');
+            catch
+                try
+                    date = datenum(date, 'dd-mmm-yy, HH:MM:SS');
+                    data.method.date = datestr(date, 'mm/dd/yy');
+                    data.method.time = datestr(date, 'HH:MM PM');
+                catch
+                    data.method.date = date;
+                    data.method.time = date;
+                end
+            end
         end
         
         % Instrument name
@@ -130,11 +154,11 @@ function varargout = AgilentMS(varargin)
         options.offset.normalization = fread(file, 1, 'int', 'b') .* 2 - 2;
     end
 
-    %
-    % TIC
-    %
+%
+% TIC
+%
     function [data, options] = ImportTIC(file, data, options)
- 
+        
         % Variables
         scans = options.scans;
         offset = options.offset.tic;
@@ -152,11 +176,11 @@ function varargout = AgilentMS(varargin)
         data.tic = fread(file, scans, 'int', 8, 'b');
     end
 
-    %
-    % XIC
-    % 
+%
+% XIC
+%
     function [data, options] = ImportXIC(file, data, options)
-       
+        
         % Variables
         if ~isfield(options, 'scans') && ~isfield(options, 'offset')
             return
@@ -169,15 +193,15 @@ function varargout = AgilentMS(varargin)
         xic = [];
         
         for i = 1:scans
-    
+            
             % Scan size
             fseek(file, offset(i,1), 'bof');
             n(i) = (fread(file, 1, 'int16', 0, 'b') - 18) / 2 + 2;
-    
+            
             % Mass values
             fseek(file, offset(i,1)+18, 'bof');
             mz(end+1:end+n(i)) = fread(file, n(i), 'uint16', 2, 'b');
-    
+            
             % Intensity values
             fseek(file, offset(i,1)+20, 'bof');
             xic(end+1:end+n(i)) = fread(file, n(i), 'uint16', 2, 'b');
@@ -207,7 +231,7 @@ function varargout = AgilentMS(varargin)
             
             % Pre-allocate memory
             data.xic = zeros(length(data.time), length(data.mz));
-           
+            
             % Index columns
             [~, cols] = ismember(mz, data.mz);
             
@@ -218,19 +242,32 @@ function varargout = AgilentMS(varargin)
     end
 
 % Variables
-file = varargin{1};
-data = [];
+filename = varargin{1};
 options = varargin{2};
 
+data = struct(...
+    'file', [],...
+    'sample', [],...
+    'method', [],...
+    'instrument', [],...
+    'time', [],...
+    'tic', [],...
+    'xic', [],...
+    'mz', []);
+
 % File info
-[~, filepath] = fileattrib(file);
+[flag, filepath] = fileattrib(filename);
 fileinfo = dir(filepath.Name);
 
-data.file.path = fileinfo.name ;
-data.file.bytes = fileinfo.bytes;
+% Check for hidden file
+if flag && filepath.hidden == 1
+    varargout{1} = [];
+    varargout{2} = options;
+    return
+end
 
 % Open file
-file = fopen(file, 'r', 'b');
+file = fopen(filename, 'r', 'b');
 
 % Version
 options.version = deblank(fread(file, fread(file, 1, 'uint8'), 'uint8=>char')');
@@ -246,20 +283,26 @@ end
 % Close file
 fclose(file);
 
+if ~isempty(data)
+    data.file.path = fileinfo.name;
+    data.file.bytes = fileinfo.bytes;
+end
+
 % Output
 varargout{1} = data;
 varargout{2} = options;
+
 end
 
 
-% 
+%
 % Agilent // Other Detectors (FID)
 %
 function varargout = AgilentCH(varargin)
 
-    %
-    % Flame Ionization Detector (8, 81, 181)
-    %
+%
+% Flame Ionization Detector (8, 81, 179, 181)
+%
     function [data, options] = FileInfo(file, data, options)
         
         % Sample name
@@ -269,141 +312,69 @@ function varargout = AgilentCH(varargin)
         % Method name
         fseek(file, options.offset.method, 'bof');
         data.method.name = deblank(fread(file, fread(file, 1, 'uint8'), 'uint8=>char', 1, 'b')');
-       
+        
         % Method operator
         fseek(file, options.offset.operator, 'bof');
         data.method.operator = deblank(fread(file, fread(file, 1, 'uint8'), 'uint8=>char', 1, 'b')');
-       
+        
         % Method date/time
         fseek(file, options.offset.date, 'bof');
         date = deblank(fread(file, fread(file, 1, 'uint8'), 'uint8=>char', 1, 'b')');
         
         try
-            data.method.date = strtrim(datestr(date, 'mm/dd/yy'));
-            data.method.time = strtrim(datestr(date, 'HH:MM PM'));
+            date = datenum(date, 'dd mmm yy HH:MM PM');
+            data.method.date = datestr(date, 'mm/dd/yy');
+            data.method.time = datestr(date, 'HH:MM PM');
         catch
+            try
+                date = datenum(date, 'mm/dd/yy HH:MM:SS PM');
+                data.method.date = datestr(date, 'mm/dd/yy');
+                data.method.time = datestr(date, 'HH:MM PM');
+            catch
+                try
+                    date = datenum(date, 'dd-mmm-yy, HH:MM:SS');
+                    data.method.date = datestr(date, 'mm/dd/yy');
+                    data.method.time = datestr(date, 'HH:MM PM');
+                catch
+                    data.method.date = date;
+                    data.method.time = date;
+                end
+            end
         end
         
         % Instrument type
         fseek(file, options.offset.method, 'bof');
         data.instrument.name = deblank(fread(file, fread(file, 1, 'uint8'), 'uint8=>char', 1, 'b')');
-       
+        
         % Instrument units
         fseek(file, options.offset.units, 'bof');
         data.instrument.units = deblank(fread(file, fread(file, 1, 'uint8'), 'uint8=>char', 1, 'b')');
     end
 
-    %
-    % Flame Ionization Detector (8, 81)
-    %
-    function [data, options] = ImportFID1(file, data, options)
-    
-        % Determine file size
-        fseek(file, 0, 'eof');
-        n = ftell(file) - options.offset.data - 2;
-                
-        % Variables
-        data.intensity = 0;
-        y = 0;
-        
-        % Intensity values
-        fseek(file, options.offset.data, 'bof');
-       
-        y0 = fread(file, 1, 'int16', 0, 'b');
-        
-        while n > 0
-        
-            % Read data
-            dy = fread(file, 1, 'int16', 0, 'b');
-            
-            if dy == y0
-                n = n - 2;
-                data.intensity(end+1) = y;
-            
-            elseif dy == -32767
-                n = n - 6;
-                dy = fread(file, 1, 'int', 0, 'b');
-                
-            else
-                n = n - 2;
-                y = y + dy;
-                data.intensity(end+1) = y;
-            end
-        end
-                
-        data.intensity(1) = [];
-        
-        % Time values
-        fseek(file, 282, 'bof');
-        
-        switch options.version
-            case '8'
-                t0 = fread(file, 1, 'int', 0, 'b') / 60000;
-                t1 = fread(file, 1, 'int', 0, 'b') / 60000;
-            case '81'
-                t0 = fread(file, 1, 'float', 0, 'b') / 60000;
-                t1 = fread(file, 1, 'float', 0, 'b') / 60000;
-        end
-        
-        data.time = linspace(t0, t1, length(data.intensity));
-    end
-
-    %
-    % Flame Ionization Detector (181)
-    %
-    function [data, options] = ImportFID2(file, data, options)
-    
-        % Determine file size
-        fseek(file, 0, 'eof');
-        n = ftell(file) - options.offset.data;
-                
-        % Variables
-        data.intensity = 0;
-        yy = 0;
-       
-        % Intensity values
-        fseek(file, options.offset.data, 'bof');
-        
-        while n > 0
-            
-            % Read data
-            y = fread(file, 1, 'int16', 0, 'b');
-            
-            if y == 32767
-                
-                % Update variables
-                yy = 0;
-                n = n - 8;
-                
-                % Add data point
-                a = fread(file, 1, 'int32', 0, 'b');
-                b = fread(file, 1, 'uint16', 0, 'b');
-                data.intensity(end+1) = a * 65534 + b;
-            else
-                
-                % Update variables
-                yy = yy + y;
-                n = n - 2;
-                
-                % Add data point
-                data.intensity(end+1) = data.intensity(end) + yy;
-            end
-        end
-        
-        data.intensity(1) = [];
-        
-        % Time values
-        fseek(file, 282, 'bof');
-        t0 = fread(file, 1, 'float', 0, 'b') / 60000;
-        t1 = fread(file, 1, 'float', 0, 'b') / 60000;
-        
-        data.time = linspace(t0, t1, length(data.intensity));
-    end
- 
 % Variables
 file = varargin{1};
-data = [];
 options = varargin{2};
+
+data = struct(...
+    'file', [],...
+    'sample', [],...
+    'method', [],...
+    'instrument', [],...
+    'time', [],...
+    'tic', [],...
+    'xic', [],...
+    'mz', []);
+
+% File info
+[flag, filepath] = fileattrib(file);
+fileinfo = dir(filepath.Name);
+
+% Check for hidden file
+if flag && filepath.hidden == 1
+    varargout{1} = [];
+    varargout{2} = options;
+    return
+end
 
 % Open file
 file = fopen(file, 'r', 'b');
@@ -413,12 +384,11 @@ options.version = deblank(fread(file, fread(file, 1, 'uint8'), 'uint8=>char')');
 
 switch options.version
     
-    % Flame Ionization Detector (8, 81)
-    case {'8', '81'}
+    case {'8'}
         
         % Sample Info
         options.offset.sample = 24;
-       
+        
         % Method Info
         options.offset.method = 228;
         options.offset.operator = 148;
@@ -429,37 +399,148 @@ switch options.version
         options.offset.inlet = 208;
         options.offset.units = 580;
         
-        % Data
-        options.offset.data = 6144;
+        fseek(file, 264, 'bof');
+        offset = (fread(file, 1, 'int32', 'b') - 1) * 512;
         
         [data, options] = FileInfo(file, data, options);
-        [data, options] = ImportFID1(file, data, options);
+        data.tic = DeltaCompression(file, offset);
         
-    % Flame Ionization Detector (181)
-    case {'181'}
+        fseek(file, 282, 'bof');
+        xmin = fread(file, 1, 'int32', 'b') / 60000;
+        xmax = fread(file, 1, 'int32', 'b') / 60000;
+        
+        data.time = linspace(xmin, xmax, length(data.tic));
+        
+        fseek(file, 542, 'bof');
+        header = fread(file, 1, 'int32', 'b');
+        
+        if any(header == [1,2,3])
+            data.tic = data.tic * 1.33321110047553;
+        else
+            fseek(file, 636, 'bof');
+            intercept =  fread(file, 1, 'float64', 'b');
+            
+            fseek(file, 644, 'bof');
+            slope = fread(file, 1, 'float64', 'b');
+            
+            data.tic = data.tic * slope + intercept;
+        end
+        
+    case '81'
+        
+        % Sample Info
+        options.offset.sample = 24;
+        
+        % Method Info
+        options.offset.method = 228;
+        options.offset.operator = 148;
+        options.offset.date = 178;
+        
+        % Instrument Info
+        options.offset.instrument = 218;
+        options.offset.inlet = 208;
+        options.offset.units = 580;
+        
+        fseek(file, 264, 'bof');
+        offset = (fread(file, 1, 'int32', 'b') - 1) * 512;
+        
+        [data, options] = FileInfo(file, data, options);
+        data.tic = DoubleDeltaCompression(file, offset);
+        
+        fseek(file, 282, 'bof');
+        xmin = fread(file, 1, 'float32', 'b') / 60000;
+        xmax = fread(file, 1, 'float32', 'b') / 60000;
+        
+        data.time = linspace(xmin, xmax, length(data.tic));
+        
+        fseek(file, 636, 'bof');
+        intercept =  fread(file, 1, 'float64', 'b');
+        
+        fseek(file, 644, 'bof');
+        slope = fread(file, 1, 'float64', 'b');
+        
+        data.tic = data.tic * slope + intercept;
+        
+        % Flame Ionization Detector (181)
+    case {'179'}
         
         % Sample Info
         options.offset.sample = 858;
- 
+        
         % Method Info
         options.offset.method = 2574;
         options.offset.operator = 1880;
-        options.offset.date = 2391; 
+        options.offset.date = 2391;
         
         % Instrument Info
         options.offset.instrument = 2533;
         options.offset.inlet = 2492;
         options.offset.units = 4172;
         
-        % Data
-        options.offset.data = 6144;       
-
+        fseek(file, 264, 'bof');
+        offset = (fread(file, 1, 'int32', 'b') - 1) * 512;
+        
         [data, options] = FileInfo(file, data, options);
-        [data, options] = ImportFID2(file, data, options);
+        data.tic = DoubleArray(file, offset);
+        
+        fseek(file, 282, 'bof');
+        xmin = fread(file, 1, 'float32', 'b') / 60000;
+        xmax = fread(file, 1, 'float32', 'b') / 60000;
+        
+        data.time = linspace(xmin, xmax, length(data.tic));
+        
+        fseek(file, 4724, 'bof');
+        intercept =  fread(file, 1, 'float64', 'b');
+        
+        fseek(file, 4732, 'bof');
+        slope = fread(file, 1, 'float64', 'b');
+        
+        data.tic = data.tic * slope + intercept;
+        
+        % Flame Ionization Detector (181)
+    case {'181'}
+        
+        % Sample Info
+        options.offset.sample = 858;
+        
+        % Method Info
+        options.offset.method = 2574;
+        options.offset.operator = 1880;
+        options.offset.date = 2391;
+        
+        % Instrument Info
+        options.offset.instrument = 2533;
+        options.offset.inlet = 2492;
+        options.offset.units = 4172;
+        
+        fseek(file, 264, 'bof');
+        offset = (fread(file, 1, 'int32', 'b') - 1) * 512;
+        
+        [data, options] = FileInfo(file, data, options);
+        data.tic = DoubleDeltaCompression(file, offset);
+        
+        fseek(file, 282, 'bof');
+        xmin = fread(file, 1, 'float32', 'b') / 60000;
+        xmax = fread(file, 1, 'float32', 'b') / 60000;
+        
+        data.time = linspace(xmin, xmax, length(data.tic));
+        
+        fseek(file, 4724, 'bof');
+        intercept =  fread(file, 1, 'float64', 'b');
+        
+        fseek(file, 4732, 'bof');
+        slope = fread(file, 1, 'float64', 'b');
+        
+        data.tic = data.tic * slope + intercept;
 end
 
 % Close file
 fclose(file);
+
+if ~isempty(data)
+    data.file.path = fileinfo.name;
+    data.file.bytes = fileinfo.bytes;
+end
 
 % Output
 varargout{1} = data;
@@ -566,4 +647,118 @@ end
 
 varargout{1} = files;
 varargout{2} = options;
+
+end
+
+% Method      : DeltaCompression
+% Description : Decode delta compressed signal
+%
+function signal = DeltaCompression(file, offset)
+
+if ftell(file) == -1
+    signal = [];
+    return;
+    
+else
+    fseek(file, 0, 'eof');
+    stop = ftell(file);
+    
+    fseek(file, offset, 'bof');
+    start = ftell(file);
+end
+
+signal = zeros(round((stop-start)/2), 1);
+buffer = zeros(4, 1);
+index = 1;
+
+while ftell(file) < stop
+    
+    buffer(1) = fread(file, 1, 'int16', 'b');
+    buffer(2) = buffer(4);
+    
+    if bitshift(buffer(1), 12, 'int16') == 0
+        signal(index:end) = [];
+        break
+    end
+    
+    for i = 1:bitand(buffer(1), 4095, 'int16');
+        
+        buffer(3) = fread(file, 1, 'int16', 'b');
+        
+        if buffer(3) ~= -32768
+            buffer(2) = buffer(2) + buffer(3);
+        else
+            buffer(2) = fread(file, 1, 'int32', 'b');
+        end
+        
+        signal(index) = buffer(2);
+        index = index + 1;
+    end
+    
+    buffer(4) = buffer(2);
+end
+
+end
+
+%
+% Method      : DoubleDeltaCompression
+% Description : Decode double delta compressed signal
+%
+function signal = DoubleDeltaCompression(file, offset)
+
+% File validation
+if isnumeric(file)
+    fseek(file, 0, 'eof');
+    fsize = ftell(file);
+else
+    return
+end
+
+% Read data
+fseek(file, offset, 'bof');
+
+signal = zeros(fsize/2, 1);
+count = 1;
+buffer = zeros(1,3);
+
+while ftell(file) < fsize
+    
+    buffer(3) = fread(file, 1, 'int16', 'b');
+    
+    if buffer(3) ~= 32767
+        buffer(2) = buffer(2) + buffer(3);
+        buffer(1) = buffer(1) + buffer(2);
+    else
+        buffer(1) = fread(file, 1, 'int16', 'b') * 4294967296;
+        buffer(1) = fread(file, 1, 'uint32', 'b') + buffer(1);
+        buffer(2) = 0;
+    end
+    
+    signal(count, 1) = buffer(1);
+    count = count + 1;
+end
+
+signal(count:end,:) = [];
+
+end
+
+%
+% Method      : DoubleArray
+% Description : Load signal from double array
+%
+function signal = DoubleArray(file, offset)
+
+% File validation
+if isnumeric(file)
+    fseek(file, 0, 'eof');
+    fsize = ftell(file);
+else
+    signal = [];
+    return
+end
+
+% Read data
+fseek(file, offset, 'bof');
+signal = fread(file, (fsize - offset) / 8, 'double', 'l');
+
 end
