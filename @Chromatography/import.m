@@ -1,33 +1,46 @@
-% Method: import
-%  -Import chromatography data into the MATLAB workspace
+% ------------------------------------------------------------------------
+% Method      : Chromatography.import
+% Description : Import instrument data files
+% ------------------------------------------------------------------------
 %
+% ------------------------------------------------------------------------
 % Syntax
+% ------------------------------------------------------------------------
 %   data = obj.import(filetype)
-%   data = obj.import(filetype, 'OptionName', optionvalue...)
+%   data = obj.import(filetype, Name, Value)
 %
-% Input
-%   filetype    : '.CDF', '.D', '.MS', '.RAW'
+% ------------------------------------------------------------------------
+% Parameters
+% ------------------------------------------------------------------------
+%   filetype (required)
+%       Description : file extension of data
+%       Type        : '.D', '.CDF', '.RAW', '.MS'
 %
-% Options
-%   'append'    : structure
-%   'precision' : integer
-%   'progress'  : 'on', 'off'
+%   'append' (optional)
+%       Description : appends import data to existing data
+%       Type        : structure
 %
-% Description
-%   filetype    : file extension (e.g. '.D', '.MS', '.CDF', '.RAW')
-%   'append'    : append data structure (default = none)
-%   'precision' : number of decimal places allowed for m/z values (default = 3)
-%   'progress'  : display import progress (default = 'on')
+%   'precision' (optional)
+%       Description : maximum decimal places for m/z values
+%       Type        : number
+%       Default     : 3
 %
+%   'progress' (optional)
+%       Description : display import progress in command window
+%       Type        : 'on', 'off'
+%       Default     : 'on'
+%
+% ------------------------------------------------------------------------
 % Examples
+% ------------------------------------------------------------------------
 %   data = obj.import('.CDF')
 %   data = obj.import('.D', 'append', data)
 %   data = obj.import('.MS', 'progress', 'off', 'precision', 2)
 %   data = obj.import('.RAW', 'append', data, 'progress', 'on')
+%
 
 function varargout = import(obj, varargin)
 
-% Check input
 [data, options] = parse(obj, varargin);
 
 % Check for errors
@@ -42,17 +55,35 @@ warning off all
 % Open file selection dialog
 files = dialog(obj, varargin{1});
 
-% Check for any file selections
-if isempty(files)
-    varargout{1} = data;
-    return
+% Remove entries with incorrect filetype
+if ~isempty(files)
+    files(~strcmpi(files(:,3), varargin{1}), :) = [];
 end
 
-% Remove entries with incorrect filetype
-files(~strcmpi(files(:,3), varargin{1}), :) = [];
+if isempty(files)
+    
+    fprintf(['\n',...
+        '[IMPORT]\n\n',...
+        '[WARNING] No files selected...\n\n',...
+        '[COMPLETE]\n\n']);
+
+    varargout{1} = data;
+    return
+    
+else
+    
+    fprintf(['\n',...
+        '[IMPORT]\n\n',...
+        'Importing ', num2str(length(files(:,1))), ' files...\n\n',...
+        'Format : ', options.filetype, '\n\n']);
+end
 
 % Set path to selected folder
 path(files{1,1}, path);
+
+% Variables
+import_data = {};
+options.file_count = length(files(:,1));
 
 % Import files
 switch options.filetype
@@ -62,116 +93,305 @@ switch options.filetype
         
         for i = 1:length(files(:,1))
             
+            % Absolute file path
+            filepath = fullfile(files{i,1}, strcat(files{i,2}, files{i,3}));
+            [status, fattrib] = fileattrib(filepath);
+            
+            % Check file path
+            if status
+                filepath = fattrib.Name;
+                fileinfo = dir(filepath);
+            else
+                fprintf([...
+                    '[', num2str(i), '/', num2str(length(files(:,1))), ']'...
+                    ' Invalid file path ''', '%s', '''\n'], filepath);
+                
+                options.error_count = options.error_count + 1;
+                continue;
+            end
+            
             % Start timer
             tic;
             
             % Import data
-            import_data{i} = ImportCDF(strcat(files{i,2},files{i,3}), 'precision', options.precision);
+            fdata = ImportCDF(filepath, 'precision', options.precision);
             
             % Stop timer
-            compute_time(i) = toc;
+            options.compute_time = options.compute_time + toc;
             
-            % Check data
-            if isempty(import_data(i))
-                continue
+            if ~isempty(fdata)
+                
+                % Check last value
+                if sum(fdata.xic.values(end,:)) == 0
+                    fdata.time(end) = [];
+                    fdata.tic.values(end) = [];
+                    fdata.xic.values(end,:) = [];
+                end
+                
+                import_data{end+1} = fdata;
+                
+                % File info
+                import_data{end}.file.path = filepath;
+                import_data{end}.file.name = regexp(filepath, '(?i)\w+[.]CDF', 'match');
+                import_data{end}.file.name = import_data{end}.file.name{1};
+                import_data{end}.file.bytes = fileinfo.bytes;
+                
+            else
+                fprintf([...
+                    '[', num2str(i), '/', num2str(length(files(:,1))), ']'...
+                    ' Error loading ''', '%s', '''\n'], filepath);
+                
+                options.error_count = options.error_count + 1;
+                continue;
             end
             
             % Display import progress
-            options.compute_time = options.compute_time + compute_time(i);
-            update(i, length(files(:,1)), options.compute_time, options.progress);
+            options.import_bytes = options.import_bytes + fileinfo.bytes;
+            update(i, length(files(:,1)), options.compute_time, options.progress, fileinfo.bytes);
         end
         
-    % Import Agilent data with the '*.MS' extension
+        % Import Agilent data with the '*.MS' extension
     case {'.MS'}
         
         for i = 1:length(files(:,1))
             
-            % Construct file path
-            file_path = fullfile(files{i,1}, strcat(files{i,2}, files{i,3}));
+            % Absolute file path
+            filepath = fullfile(files{i,1}, strcat(files{i,2}, files{i,3}));
+            [status, fattrib] = fileattrib(filepath);
+            
+            % Check file path
+            if status
+                filepath = fattrib.Name;
+                fileinfo = dir(filepath);
+            else
+                fprintf([...
+                    '[', num2str(i), '/', num2str(length(files(:,1))), ']'...
+                    ' Invalid file path ''', '%s', '''\n'], filepath);
+                
+                options.error_count = options.error_count + 1;
+                continue;
+            end
             
             % Start timer
             tic;
             
             % Import data
-            import_data{i} = ImportAgilent(file_path, 'precision', options.precision);
+            fdata = ImportAgilent(filepath, 'precision', options.precision);
             
             % Stop timer
-            compute_time(i) = toc;
+            options.compute_time = options.compute_time + toc;
             
-            % Check data
-            if isempty(import_data{i})
-                disp(['Unrecognized file format (', num2str(i), '/', num2str(length(files(:,1))), ').']);
+            if ~isempty(fdata)
+                
+                import_data{end+1} = [];
+                
+                % File info
+                import_data{end}.file.path = filepath;
+                import_data{end}.file.name = regexp(filepath, '(?i)\w+[.]MS', 'match');
+                import_data{end}.file.name = import_data{end}.file.name{1};
+                import_data{end}.file.bytes = fileinfo.bytes;
+                
+                % File header
+                import_data{end}.sample = fdata.sample;
+                import_data{end}.method = fdata.method;
+                
+                % File data
+                import_data{end}.time = [];
+                import_data{end}.tic.values = [];
+                import_data{end}.xic.values = [];
+                import_data{end}.mz = [];
+                
+                if isfield(fdata, 'time')
+                    import_data{end}.time = fdata.time;
+                end
+                
+                if isfield(fdata, 'tic')
+                    import_data{end}.tic.values = fdata.tic;
+                end
+                
+                if isfield(fdata, 'xic')
+                    import_data{end}.xic.values = fdata.xic;
+                end
+                
+                if isfield(fdata, 'mz')
+                    import_data{end}.mz = fdata.mz;
+                end
+                
+                if isfield(fdata, 'intensity')
+                    import_data{end}.tic.values = fdata.intensity;
+                end
+                
+                rmpath(filepath);
+            else
+                fprintf([...
+                    '[', num2str(i), '/', num2str(length(files(:,1))), ']'...
+                    ' Error loading ''', '%s', '''\n'], filepath);
+                
+                options.error_count = options.error_count + 1;
+                rmpath(filepath);
                 continue
             end
             
             % Display import progress
-            options.compute_time = options.compute_time + compute_time(i);
-            update(i, length(files(:,1)), options.compute_time, options.progress);
+            options.import_bytes = options.import_bytes + fileinfo.bytes;
+            update(i, length(files(:,1)), options.compute_time, options.progress, fileinfo.bytes);
         end
         
-    % Import Agilent data with the '*.D' extension
+        % Import Agilent data with the '*.D' extension
     case {'.D'}
         
         for i = 1:length(files(:,1))
             
-            % Construct file path
-            file_path = fullfile(files{i,1}, strcat(files{i,2}, files{i,3}));
+            % Absolute file path
+            filepath = fullfile(files{i,1}, strcat(files{i,2}, files{i,3}));
+            
+            [status, fattrib] = fileattrib(filepath);
+            
+            % Check file path
+            if status
+                filepath = fattrib.Name;
+            else
+                fprintf([...
+                    '[', num2str(i), '/', num2str(length(files(:,1))), ']'...
+                    ' Invalid file path ''', '%s', '''\n'], filepath);
+                
+                options.error_count = options.error_count + 1;
+                continue;
+            end
             
             % Start timer
             tic;
             
-            % Import data
-            import_data{i} = ImportAgilent(file_path, 'precision', options.precision);
+            % Import file data
+            fdata = ImportAgilent(filepath, 'precision', options.precision);
             
             % Stop timer
-            compute_time(i) = toc;
+            options.compute_time = options.compute_time + toc;
             
-            % Remove file from path
-            rmpath(file_path);
-            
-            % Check data
-            if isempty(import_data{i})
-                disp(['Unrecognized file format (', num2str(i), '/', num2str(length(files(:,1))), ').']);
+            if ~isempty(fdata)
+                
+                for j = 1:length(fdata)
+                    
+                    if nnz(fdata(j).tic) == 0 && nnz(fdata(j).xic) == 0
+                        fprintf([...
+                            '[', num2str(i), '/', num2str(length(files(:,1))), ']',...
+                            ' No data found ''', '%s', '''\n'], filepath);
+                        continue;
+                    end
+                    
+                    import_data{end+1} = [];
+                    
+                    % File info
+                    import_data{end}.file.path = fdata(j).file.path;
+                    import_data{end}.file.name = regexp(filepath, '(?i)\w+[.]D', 'match');
+                    import_data{end}.file.name = import_data{end}.file.name{1};
+                    import_data{end}.file.bytes = fdata(j).file.bytes;
+                    
+                    % File header
+                    import_data{end}.sample = fdata(j).sample;
+                    import_data{end}.method = fdata(j).method;
+                    
+                    % File data
+                    import_data{end}.time = [];
+                    import_data{end}.tic.values = [];
+                    import_data{end}.xic.values = [];
+                    import_data{end}.mz = [];
+                    
+                    if isfield(fdata, 'time')
+                        import_data{end}.time = fdata(j).time;
+                    end
+                    
+                    if isfield(fdata, 'tic')
+                        import_data{end}.tic.values = fdata(j).tic;
+                    end
+                    
+                    if isfield(fdata, 'xic')
+                        import_data{end}.xic.values = fdata(j).xic;
+                    end
+                    
+                    if isfield(fdata, 'mz')
+                        import_data{end}.mz = fdata(j).mz;
+                    end
+                    
+                    if isfield(fdata, 'intensity')
+                        import_data{end}.tic.values = fdata(j).intensity;
+                    end
+                    
+                    % Update progress
+                    options.import_bytes = options.import_bytes + import_data{end}.file.bytes;
+                    update(i, length(files(:,1)), options.compute_time, options.progress, import_data{end}.file.bytes);
+                end
+                
+            else
+                fprintf([...
+                    '[', num2str(i), '/', num2str(length(files(:,1))), ']',...
+                    ' Error loading ''', '%s', '''\n'], filepath);
+                
+                options.error_count = options.error_count + 1;
                 continue
             end
-            
-            % Display import progress
-            options.compute_time = options.compute_time + compute_time(i);
-            update(i, length(files(:,1)), options.compute_time, options.progress);
         end
         
-    % Import Thermo Finnigan data with the '*.RAW' extension
+        % Import Thermo Finnigan data with the '*.RAW' extension
     case {'.RAW'}
         
         for i = 1:length(files(:,1))
             
+            filepath = fullfile(files{i,1}, strcat(files{i,2}, files{i,3}));
+            [status, fattrib] = fileattrib(filepath);
+            
+            % Check file path
+            if status
+                filepath = fattrib.Name;
+                fileinfo = dir(filepath);
+            else
+                fprintf([...
+                    '[', num2str(i), '/', num2str(length(files(:,1))), ']',...
+                    ' Invalid file path ''', '%s', '''\n'], filepath);
+                
+                options.error_count = options.error_count + 1;
+                continue;
+            end
+            
             % Start timer
             tic;
             
             % Import data
-            import_data{i} = ImportThermo(strcat(files{i,2},files{i,3}), 'precision', options.precision);
+            fdata = ImportThermo(filepath, 'precision', options.precision);
             
             % Stop timer
-            compute_time(i) = toc;
+            options.compute_time = options.compute_time + toc;
             
-            % Check data
-            if isempty(import_data{i})
-                disp(['Unrecognized file format (', num2str(i), '/', num2str(length(files(:,1))), ').']);
+            if ~isempty(fdata)
+                
+                import_data{end+1} = fdata;
+                
+                % File info
+                import_data{end}.file.path = filepath;
+                import_data{end}.file.name = regexp(filepath, '(?i)\w+[.]RAW', 'match');
+                import_data{end}.file.name = import_data{end}.file.name{1};
+                import_data{end}.file.bytes = fileinfo.bytes;
+                
+                if ~isfield(import_data{end}, 'xic')
+                    import_data{end}.xic = [];
+                end
+                
+                if isfield(import_data{i}, 'ms2')
+                    options.extra = 'ms2';
+                end
+                
+            else                
+                fprintf([...
+                    '[', num2str(i), '/', num2str(length(files(:,1))), ']',...
+                    ' Error loading ''', '%s', '''\n'], filepath);
+                
+                options.error_count = options.error_count + 1;
                 continue
             end
             
-            % Check fields
-            if ~isfield(import_data{i}, 'xic')
-                import_data{i}.xic = [];
-            end
-            
-            if isfield(import_data{i}, 'ms2')
-                options.extra = 'ms2';
-            end
-            
             % Display import progress
-            options.compute_time = options.compute_time + compute_time(i);
-            update(i, length(files(:,1)), options.compute_time, options.progress);
+            options.import_bytes = options.import_bytes + fileinfo.bytes;
+            update(i, length(files(:,1)), options.compute_time, options.progress, fileinfo.bytes);
         end
 end
 
@@ -180,33 +400,25 @@ import_data(cellfun(@isempty, import_data)) = [];
 
 % Check remaining data
 if isempty(import_data)
+    
+    fprintf('Unable to import selection\n');
+    
     varargout{1} = data;
     return
-
-else    
-    % Add file names
-    for i = 1:length(import_data)
-        
-        % Check for multiple files
-        if length(import_data{i}) == 1
-            import_data{i}.file.name = strcat(files{i,2}, files{i,3});
-        else
-            for j = 1:length(import_data{i})
-                import_data{i}(j).file.name = strcat(files{i,2}, files{i,3}); 
-            end
-        end
-    end
+else
     
     % Convert to structure
     import_data = [import_data{:}];
 end
 
-% Add missing fields to data structure
+% Check missing fields
 if ~isempty(options.extra)
-    data = obj.format('validate', data, 'extra', options.extra);
     import_data = obj.format('validate', import_data, 'extra', options.extra);
+    data = obj.format('validate', data, 'extra', options.extra);
+    
 elseif isfield(data, 'ms2')
     import_data = obj.format('validate', import_data, 'extra', 'ms2');
+    
 else
     import_data = obj.format('validate', import_data);
 end
@@ -216,28 +428,47 @@ if ~isempty(data) && isempty(data(1).id) && isempty(data(1).name)
     data(1) = [];
 end
 
-% Update data structure
+% Prepare output data
 for i = 1:length(import_data)
     
     % File information
     import_data(i).id = length(data) + i;
-    import_data(i).name = import_data(i).sample.name;
-    import_data(i).file.type = options.filetype;
+    import_data(i).name = import_data(i).file.name;
     
-    % Data backup
-    import_data(i).tic.backup = import_data(i).tic.values;
-    import_data(i).xic.backup = import_data(i).xic.values;
+    % Backup
+    import_data(i).backup.time = import_data(i).time;
+    import_data(i).backup.tic = import_data(i).tic.values;
+    import_data(i).backup.xic = import_data(i).xic.values;
+    import_data(i).backup.mz = import_data(i).mz;
     
-    % Initialize baseline values
+    % Baseline
     import_data(i).tic.baseline = [];
     import_data(i).xic.baseline = [];
+    
+    % Status
+    import_data(i).status.centroid = 'N';
+    import_data(i).status.baseline = 'N';
+    import_data(i).status.smoothed = 'N';
+    import_data(i).status.integrate = 'N';
 end
 
-% Append any existing data with new data
-data = [data, import_data];
+% Return data
+varargout{1} = [data, import_data];
 
-% Set output
-varargout{1} = data;
+% Display summary
+if options.compute_time > 60
+    elapsed = [num2str(options.compute_time/60, '%.1f'), ' min'];
+else
+    elapsed = [num2str(options.compute_time, '%.1f'), ' sec'];
+end
+
+fprintf(['\n',...
+    'Found   : ', num2str(length(import_data)+options.error_count), '\n',...
+    'Errors  : ', num2str(options.error_count), '\n',...
+    'Elapsed : ', elapsed, '\n',...
+    'Bytes   : ', num2str(options.import_bytes/1E6, '%.2f'), ' MB\n']);
+
+fprintf('\n[COMPLETE]\n\n');
 end
 
 
@@ -245,7 +476,7 @@ end
 function varargout = dialog(obj, varargin)
 
 % Set filetype
-extension = varargin{1};
+extension = upper(varargin{1});
 
 % Initialize JFileChooser object
 fileChooser = javax.swing.JFileChooser(java.io.File(cd));
@@ -257,7 +488,7 @@ end
 
 % Determine file description and file extension
 filter = com.mathworks.hg.util.dFilter;
-description = [obj.Options.import{strcmp(obj.Options.import(:,1), extension), 2}];
+description = [obj.options.import{strcmp(obj.options.import(:,1), extension), 2}];
 extension = lower(extension(2:end));
 
 % Set file description and file extension
@@ -286,6 +517,7 @@ end
 
 % Return selected files
 varargout{1} = files;
+
 end
 
 
@@ -297,11 +529,24 @@ if strcmpi(varargin{4},'off')
     return
 end
 
+m = num2str(varargin{1});
+n = num2str(varargin{2});
+
+if varargin{3} > 60
+    t = [num2str(varargin{3}/60, '%.1f'), ' min'];
+else
+    t = [num2str(varargin{3}, '%.1f'), ' sec'];
+end
+
+if varargin{5} > 1E6
+    size = [num2str(varargin{5}/1E6,'%.1f'), ' MB'];
+else
+    size = [num2str(varargin{5}/1E3,'%.1f'), ' KB'];
+end
+
 % Display progress
-disp([...
-    num2str(varargin{1}), '/',...
-    num2str(varargin{2}), ' in ',...
-    num2str(varargin{3}, '% 10.3f'), ' sec.']);
+fprintf(['[', m, '/', n, '] in ', t, ' (', size, ')\n']);
+
 end
 
 
@@ -313,15 +558,21 @@ nargin = length(varargin);
 
 % Check number of inputs
 if nargin < 1
-    error('Not enough input arguments.');
+    error('Not enough input arguments...');
+    
 elseif ~ischar(varargin{1})
-    error('Undefined input arguments of type ''filetype''.');
+    error('Undefined input arguments of type ''filetype''...');
+    
+elseif ischar(varargin{1})
+    varargin{1} = upper(varargin{1});
 end
 
 % Check for supported file extension
-if ~any(find(strcmp(varargin{1}, obj.Options.import)))
+if ~any(find(strcmpi(varargin{1}, obj.options.import)))
+    
     varargout{1} = [];
     varargout{2} = [];
+    
     return
 else
     options.filetype = varargin{1};
@@ -340,6 +591,7 @@ if ~isempty(input('append'))
     else
         data = obj.format();
     end
+    
 else
     data = obj.format();
 end
@@ -371,7 +623,7 @@ if ~isempty(input('precision'))
             options.precision = 3;
             disp('Input arguments of type ''precision'' invalid. Value set to: ''3''.');
         end
- 
+        
     elseif precision > 9
         
         % Check for case: 10^x
@@ -381,9 +633,11 @@ if ~isempty(input('precision'))
             options.precision = 3;
             disp('Input arguments of type ''precision'' invalid. Value set to: ''3''.');
         end
+        
     else
         options.precision = precision;
     end
+    
 else
     options.precision = 3;
 end
@@ -395,20 +649,28 @@ if ~isempty(input('progress'))
     % Check for valid input
     if any(strcmpi(options.progress, {'off', 'hide'}))
         options.progress = 'off';
+        
     elseif any(strcmpi(options.progress, {'default', 'on', 'show', 'display'}))
         options.progress = 'on';
+        
     else
         options.progress = 'on';
     end
+    
 else
     options.progress = 'on';
 end
 
 % Variables
 options.compute_time = 0;
+options.import_bytes = 0;
+
+options.file_count = 0;
+options.error_count = 0;
 options.extra = '';
 
 % Return input
 varargout{1} = data;
 varargout{2} = options;
+
 end

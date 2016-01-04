@@ -1,29 +1,41 @@
-% Method: ExportCSV
-%  -Export data as comma separated value (.CSV) file
+% ------------------------------------------------------------------------
+% Method      : ExportCSV
+% Description : Export data as comma separated values (.CSV) file
+% ------------------------------------------------------------------------
 %
-% Syntax:
-%   ExportCSV(y, 'OptionName', optionvalue,...)
-%   ExportCSV(x, y, 'OptionName', optionvalue,...)
-%   ExportCSV(x, y, z, 'OptionName', optionvalue,...)
+% ------------------------------------------------------------------------
+% Syntax
+% ------------------------------------------------------------------------
+%   data = ExportCSV(y)
+%   data = ExportCSV(x, y, Name, Value)
+%   data = ExportCSV(x, y, z, Name, Value)
 %
-% Input
-%   x          : array
-%   y          : array or matrix
-%   z          : array
+% ------------------------------------------------------------------------
+% Parameters
+% ------------------------------------------------------------------------
+%   x (optional)
+%       Description : time values (row vector)
+%       Type        : array
 %
-% Options
-%   'filename' : string
+%   y (required)
+%       Description : intensity values
+%       Type        : array or matrix
 %
-% Description
-%   x          : time values (#rows = n)
-%   y          : intensity values (#rows = n, #cols = m)
-%   z          : mass values (#cols =  m)
-%   'filename' : desired file name (default = 'data.csv')
+%   z (optional)
+%       Description : mass values (column vector) 
+%       Type        : array
 %
-% Examples:
+%   'file' (optional)
+%       Description : name of file
+%       Type        : string
+%
+% ------------------------------------------------------------------------
+% Examples
+% ------------------------------------------------------------------------
 %   ExportCSV(y)
 %   ExportCSV(x, y, 'file', '001-03.csv')
 %   ExportCSV(x, y, z, 'file', '004-01.csv')
+%
 
 function ExportCSV(varargin)
 
@@ -32,6 +44,7 @@ function ExportCSV(varargin)
 
 % Export data
 dlmwrite(options.file, data);
+
 end
 
 % Parse user input
@@ -43,8 +56,10 @@ nargin = length(varargin);
 % Check input
 if nargin < 1
     error('Not enough input arguments.');
+    
 elseif nargin <= 3
     values = sum(cellfun(@isnumeric, varargin));
+    
 elseif nargin > 3
     values = sum(cellfun(@isnumeric, varargin(1:3)));
 end
@@ -83,14 +98,14 @@ end
 
 % Check x data
 if ~isempty(x)
-
+    
     % Check x for rows
     if length(x(1,:)) == length(y(:,1))
         x = x';
     elseif length(x(:,1)) ~= length(y(:,1))
         x = [];
     end
-        
+    
     % Check x for matric
     if length(x(:,1)) == length(y(:,1)) && length(x(1,:)) > 1
         x = x(:,1);
@@ -127,7 +142,7 @@ if ~isempty(input('filename'))
     file = varargin{input('filename')+1};
     
     % Check for string input
-    if ischar(file) 
+    if ischar(file)
         
         % Check input length
         if length(file) <= 20
@@ -136,7 +151,7 @@ if ~isempty(input('filename'))
             options.file = deblank(file(1:20));
         end
         
-    % Check for cell input
+        % Check for cell input
     elseif iscell(file) && ischar(file{1})
         
         % Check input length
@@ -172,4 +187,5 @@ end
 % Return input
 varargout{1} = data;
 varargout{2} = options;
+
 end

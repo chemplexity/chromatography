@@ -1,43 +1,60 @@
-% Method: Baseline
-%  -Asymmetric least squares baseline calculation
+% ------------------------------------------------------------------------
+% Method      : Baseline
+% Description : Asymmetric least squares baseline calculation
+% ------------------------------------------------------------------------
 %
+% ------------------------------------------------------------------------
 % Syntax
+% ------------------------------------------------------------------------
 %   baseline = Baseline(y)
-%   baseline = Baseline(y, 'OptionName', optionvalue...)
+%   baseline = Baseline(y, Name, Value)
 %
-% Input
-%   y            : array or matrix
+% ------------------------------------------------------------------------
+% Parameters
+% ------------------------------------------------------------------------
+%   y (required)
+%       Description : intensity values
+%       Type        : array or matrix
 %
-% Options
-%   'smoothness' : value (~10^3 to 10^9)
-%   'asymmetry'  : value (~10^-6 to 10^-1)
+%   'smoothness' (optional)
+%       Description : smoothness parameter used for baseline calculation
+%       Type        : number
+%       Default     : 1E6
+%       Range       : 1E3 to 1E9
 %
-% Description
-%   y            : intensity values
-%   'smoothness' : smoothing parameter (default = 10^6)
-%   'asymmetry'  : asymmetry parameter (default = 10^-4)
+%   'asymmetry' (optional)
+%       Description : asymmetry parameter used for baseline calculation
+%       Type        : number
+%       Default     : 1E-4
+%       Range       : 1E-3 to 1E-9
 %
+% ------------------------------------------------------------------------
 % Examples
+% ------------------------------------------------------------------------
 %   baseline = Baseline(y)
-%   baseline = Baseline(y, 'asymmetry', 10^-2)
-%   baseline = Baseline(y, 'smoothness', 10^5)
-%   baseline = Baseline(y, 'smoothness', 10^7, 'asymmetry', 10^-3)
+%   baseline = Baseline(y, 'asymmetry', 1E-2)
+%   baseline = Baseline(y, 'smoothness', 1E5)
+%   baseline = Baseline(y, 'smoothness', 1E7, 'asymmetry', 1E-3)
 %
+% ------------------------------------------------------------------------
 % References
+% ------------------------------------------------------------------------
 %   P.H.C. Eilers, Analytical Chemistry, 75 (2003) 3631
+%
 
 function varargout = Baseline(y, varargin)
 
 % Check input
 if nargin < 1
     error('Not enough input arguments.');
+    
 elseif ~isnumeric(y)
     error('Undefined input arguments of type ''y''.');
 end
 
 % Default options
-smoothness = 10^6;
-asymmetry = 10^-4;
+smoothness = 1E6;
+asymmetry = 1E-4;
 
 % Check user input
 if nargin > 1
@@ -46,28 +63,35 @@ if nargin > 1
     
     % Check asymmetry options
     if ~isempty(input('asymmetry'));
+        
         asymmetry = varargin{input('asymmetry')+1};
         
         % Check for valid input
         if ~isnumeric(asymmetry)
-            asymmetry = 10^-4;
+            asymmetry = 1E-4;
+            
         elseif asymmetry <= 0
-            asymmetry = 10^-9;
+            asymmetry = 1E-9;
+            
         elseif asymmetry >= 1
-            asymmetry = 1 - 10^-6;
+            asymmetry = 1 - 1E-6;
         end
+        
     end
     
     % Check smoothness options
     if ~isempty(input('smoothness'));
+        
         smoothness = varargin{input('smoothness')+1};
         
         % Check for valid input
         if ~isnumeric(smoothness) || smoothness > 10^15
-            smoothness = 10^6;
+            smoothness = 1E6;
+            
         elseif smoothness <= 0
-            smoothness = 10^6;
+            smoothness = 1E6;
         end
+        
     end
 end
 
@@ -88,6 +112,7 @@ if any(min(y) < 0)
     offset = min(y);
     offset(offset > 0) = 0;
     offset(offset < 0) = abs(offset(offset < 0));
+    
 else
     offset = zeros(1, length(y(1,:)));
 end
@@ -99,6 +124,7 @@ index = 1:rows;
 % Pre-allocate memory
 baseline = zeros(size(y));
 weights = ones(rows, 1);
+
 w = spdiags(weights, 0, rows, rows);
 
 % Variables
@@ -114,7 +140,7 @@ for i = 1:length(y(1,:))
     end
     
     % Check values
-    if ~any(y(:,i) ~= 0)
+    if nnz(y(:,i)) == 0
         continue
     end
     
@@ -137,16 +163,14 @@ for i = 1:length(y(1,:))
         w = sparse(index, index, weights);
     end
     
-    % Check offset
+    % Remove negative values
+    b(b<0) = 0;
+    
+    % Remove offset
     if offset(i) ~= 0
-        
-        % Preserve negative values from input
         baseline(:,i) = b - offset(i);
         
     elseif offset(i) == 0
-        
-        % Correct negative values from smoothing
-        b(b < 0) = 0;
         baseline(:,i) = b;
     end
     
@@ -156,4 +180,5 @@ end
 
 % Set output
 varargout{1} = baseline;
+
 end

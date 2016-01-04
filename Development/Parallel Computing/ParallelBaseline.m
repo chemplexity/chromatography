@@ -1,110 +1,140 @@
-% Method: ParallelBaseline
-%  -Asymmetric least squares baseline calculation with parallel computing
+% ------------------------------------------------------------------------
+% Method      : ParallelBaseline [EXPERIMENTAL]
+% Description : Asymmetric least squares baseline with parallel computing
+% ------------------------------------------------------------------------
 %
-% Syntax
-%   baseline = ParallelBaseline(y)
-%   baseline = ParallelBaseline(y, 'OptionName', optionvalue...)
-%
-% Input
-%   y            : array or matrix
-%
-% Options
-%   'smoothness' : value (~10^3 to 10^9)
-%   'asymmetry'  : value (~10^-6 to 10^-1)
-%   'parallel'   : 'on', 'off'
-%
-% Description
-%   y            : intensity values
-%   'smoothness' : smoothing parameter (default = 10^6)
-%   'asymmetry'  : asymmetry parameter (default = 10^-4)
-%   'parallel'   : execute function with parallel computing (default = 'on')
-%
+% ------------------------------------------------------------------------
 % Requirements
-%   - Parallel Computing Toolbox (Version 6.2+)
+% ------------------------------------------------------------------------
+%   MATLAB Parallel Computing Toolbox (Version 6.2+)
 %
-% Examples
+% ------------------------------------------------------------------------
+% Syntax
+% ------------------------------------------------------------------------
 %   baseline = ParallelBaseline(y)
-%   baseline = ParallelBaseline(y, 'asymmetry', 10^-2)
-%   baseline = ParallelBaseline(y, 'smoothness', 10^5)
-%   baseline = ParallelBaseline(y, 'parallel', 'on', 'asymmetry', 10^-3)
+%   baseline = ParallelBaseline(y, Name, Value)
 %
+% ------------------------------------------------------------------------
+% Parameters
+% ------------------------------------------------------------------------
+%   y (required)
+%       Description : intensity values
+%       Type        : array or matrix
+%
+%   'parallel' (optional)
+%       Description : parallel compute baseline data
+%       Type        : 'on', 'off'
+%       Default     : 'on'
+%
+%   'smoothness' (optional)
+%       Description : smoothness parameter used for baseline calculation
+%       Type        : number
+%       Default     : 1E6
+%       Range       : 1E3 to 1E9
+%
+%   'asymmetry' (optional)
+%       Description : asymmetry parameter used for baseline calculation
+%       Type        : number
+%       Default     : 1E-4
+%       Range       : 1E-3 to 1E-9
+%
+% ------------------------------------------------------------------------
+% Examples
+% ------------------------------------------------------------------------
+%   baseline = ParallelBaseline(y)
+%   baseline = ParallelBaseline(y, 'asymmetry', 1E-2)
+%   baseline = ParallelBaseline(y, 'smoothness', 1E5)
+%   baseline = ParallelBaseline(y, 'parallel', 'on', 'asymmetry', 1E-3)
+%
+% ------------------------------------------------------------------------
 % References
+% ------------------------------------------------------------------------
 %   P.H.C. Eilers, Analytical Chemistry, 75 (2003) 3631
+%
 
 function varargout = ParallelBaseline(y, varargin)
 
 % Check input
 if nargin < 1
     error('Not enough input arguments.');
+    
 elseif ~isnumeric(y)
     error('Undefined input arguments of type ''y''.');
 end
 
 % Default options
-smoothness = 10^6;
-asymmetry = 10^-4;
+smoothness = 1E6;
+asymmetry = 1E-4;
 parallel = 'on';
 
 % Check user input
 if nargin > 1
     
     input = @(x) find(strcmpi(varargin,x),1);
-
+    
     % Check smoothness options
     if ~isempty(input('smoothness'));
+        
         smoothness = varargin{input('smoothness')+1};
-
+        
         % Check for valid input
         if ~isnumeric(smoothness) || smoothness > 10^15
             smoothness = 10^6;
+            
         elseif smoothness <= 0
             smoothness = 10^6;
-        end 
+        end
+        
     end
     
     % Check asymmetry options
     if ~isempty(input('asymmetry'));
+        
         asymmetry = varargin{input('asymmetry')+1};
-
+        
         % Check for valid input
         if ~isnumeric(asymmetry) || asymmetry <= 0
             asymmetry = 10^-4;
+            
         elseif asymmetry >= 1
             asymmetry = 1 - 10^-4;
         end
+        
     end
     
     % Check parallel computing options
     if ~isempty(input('parallel'));
+        
         parallel = varargin{input('parallel')+1};
         
         % Check for valid input
         if any(strcmpi(parallel, {'default', 'on', 'enable', 'yes'}))
             
             % Determine available toolboxes
-            tools = ver;
+            toolbox = dir([matlabroot '/toolbox']);
             
-            % Check for 'Parallel Computing Toolbox'
-            if any(strcmpi('Parallel Computing Toolbox', {tools.Name}))
-                
-                % Check version (6.2+)
-                if str2double(tools(strcmpi('Parallel Computing Toolbox', {tools.Name})).Version) >= 6.2
-                    parallel = 'on';
-                else
-                    disp('Parallel Computing Toolbox < v6.2. Proceeding without parallel computing');
-                    parallel = 'off';
-                end
-            else
+            distcomp = regexp([toolbox.name], '(?i)distcomp', 'match');
+            
+            if isempty(distcomp)
                 disp('Parallel Computing Toolbox not detected. Proceeding without parallel computing.');
                 parallel = 'off';
+                
+            elseif verLessThan('distcomp', '6.2');
+                disp('Parallel Computing Toolbox < v6.2. Errors may arise');
+                parallel = 'on';
+                
+            else
+                parallel = 'on';
             end
-
+            
         elseif any(strcmpi(parallel, {'off', 'disable', 'no'}))
             parallel = 'off';
+            
         else
             disp('Parallel Computing Toolbox not detected. Proceeding without parallel computing.');
             parallel = 'off';
         end
+        
     else
         parallel = 'off';
     end
@@ -120,7 +150,7 @@ if all(size(y) <= 3)
     disp('Insufficient number of points');
     return
 end
-    
+
 % Check for negative values
 if any(min(y) < 0)
     
@@ -128,6 +158,7 @@ if any(min(y) < 0)
     offset = min(y);
     offset(offset > 0) = 0;
     offset(offset < 0) = abs(offset(offset < 0));
+    
 else
     offset = zeros(1, length(y(1,:)));
 end
@@ -146,13 +177,13 @@ switch parallel
         % Variables
         d = diff(speye(rows), 2);
         d = smoothness * (d' * d);
-
+        
         % Calculate baseline
         parfor i = 1:length(y(1,:))
-    
+            
             % Pre-allocate memory
             weights = ones(rows, 1);
-
+            
             % Variables
             w = spdiags(weights, 0, rows, rows);
             
@@ -160,30 +191,30 @@ switch parallel
             if offset(i) ~= 0
                 y(:,i) = y(:,i) + offset(i);
             end
-    
+            
             % Check values
             if ~any(y(:,i) ~= 0)
                 continue
             end
-    
+            
             b = zeros(rows,1);
-    
+            
             % Number of iterations
             for j = 1:10
-        
+                
                 % Cholesky factorization
                 w = chol(w + d);
-        
+                
                 % Left matrix divide, multiply matrices
                 b = w \ (w' \ (weights .* y(:,i)));
-        
+                
                 % Determine weights
                 weights = asymmetry * (y(:,i) > b) + (1 - asymmetry) * (y(:,i) < b);
-        
+                
                 % Reset sparse matrix
                 w = sparse(index, index, weights);
             end
-    
+            
             % Check offset
             if offset(i) ~= 0
                 
@@ -197,45 +228,45 @@ switch parallel
                 baseline(:,i) = b;
             end
         end
-    
+        
     case 'off'
-
+        
         % Pre-allocate memory
         weights = ones(rows, 1);
-
+        
         % Variables
         d = diff(speye(rows), 2);
         d = smoothness * (d' * d);
-
+        
         w = spdiags(weights, 0, rows, rows);
-
+        
         % Calculate baseline
         for i = 1:length(y(1,:))
-    
+            
             % Check offset
             if offset(i) ~= 0
                 y(:,i) = y(:,i) + offset(i);
             end
-    
+            
             % Check values
             if ~any(y(:,i) ~= 0)
                 continue
             end
-    
+            
             b = zeros(rows,1);
-    
+            
             % Number of iterations
             for j = 1:10
-        
+                
                 % Cholesky factorization
                 w = chol(w + d);
-        
+                
                 % Left matrix divide, multiply matrices
                 b = w \ (w' \ (weights .* y(:,i)));
-        
+                
                 % Determine weights
                 weights = asymmetry * (y(:,i) > b) + (1 - asymmetry) * (y(:,i) < b);
-        
+                
                 % Reset sparse matrix
                 w = sparse(index, index, weights);
             end
@@ -260,4 +291,5 @@ end
 
 % Set output
 varargout{1} = baseline;
+
 end

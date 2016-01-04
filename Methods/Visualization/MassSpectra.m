@@ -1,43 +1,105 @@
-% Method: MassSpectra 
-%  -Plot a mass spectra histogram
+% ------------------------------------------------------------------------
+% Method      : MassSpectra
+% Description : Plot a mass spectra histogram
+% ------------------------------------------------------------------------
 %
+% ------------------------------------------------------------------------
 % Syntax
-%   MassSpectra(mz, y, 'OptionName', optionvalue...)
+% ------------------------------------------------------------------------
+%   fig = MassSpectra(mz, y)
+%   fig = MassSpectra(mz, y, Name, Value)
 %
-% Input
-%   mz          : array
-%   y           : array or matrix
+% ------------------------------------------------------------------------
+% Parameters
+% ------------------------------------------------------------------------
+%   mz (required)
+%       Description : mass values
+%       Type        : array
 %
-% Options
-%   'labels'    : 'on', 'off'
-%   'fontsize'  : value
-%   'scale'     : 'relative', 'full'
-%   'xlim'      : 'auto', [xmin, xmax]
-%   'ylim'      : 'auto', [ymin, ymax]
-%   'barwidth'  : value
-%   'export'    : see MATLAB documentation on print functions
+%   y (required)
+%       Description : intensity values
+%       Type        : matrix
 %
-% Description
-%   mz          : m/z values
-%   y           : intensity values
-%   'labels'    : show labels over m/z values (default = 'on')
-%   'fontsize'  : font size of text labels (default = 7.5)
-%   'scale'     : display relative or total intensity (default = 'relative')
-%   'xlim'      : x-axis limits (default = 'auto')
-%   'ylim'      : y-axis limits (default = 'auto')
-%   'barwidth'  : width of individual bars (default = 7)
-%   'export'    : cell array passed to the MATLAB print function (default = none)
+%   ----------------------------------------------------------------------
+%   Plot Layout
+%   ----------------------------------------------------------------------
+%   'scale' (optional)
+%       Description : plot relative or absolute values
+%       Type        : 'relative', 'absolute'
+%       Default     : 'relative'
 %
+%   'height' (optional)
+%       Description : figure height relative to screen
+%       Type        : number
+%       Default     : 0.44
+%       Range       : 0.0 to 1.0
+%
+%   'width' (optional)
+%       Description : figure width relative to screen
+%       Type        : number
+%       Default     : 0.42
+%       Range       : 0.0 to 1.0
+%
+%   'xlim' (optional)
+%       Description : x-axis limits
+%       Type        : [number, number] | 'auto'
+%       Default     : 'auto'
+%
+%   'ylim' (optional)
+%       Description : y-axis limits
+%       Type        : [number, number] | 'auto'
+%       Default     : 'auto'
+%
+%   ----------------------------------------------------------------------
+%   Plot Style
+%   ----------------------------------------------------------------------
+%   'labels' (optional)
+%       Description : show labels above abundant ions
+%       Type        : 'on', 'off'
+%       Default     : 'off'
+%
+%   'fontname' (optional)
+%       Description : font name used to axes and ion labels
+%       Type        : string
+%       Default     : 'Avenir'
+%
+%   'fontsize' (optional)
+%       Description : font size of text labels
+%       Type        : number
+%       Default     : 7.5
+%
+%   'barwidth' (optional)
+%       Description : width of individual bars
+%       Type        : number
+%       Default     : 7
+%       Range       : > 0.0
+%
+%   ----------------------------------------------------------------------
+%   Plot Export
+%   ----------------------------------------------------------------------
+%   'filename' (optional)
+%       Description : name used for file export
+%       Type        : string
+%       Default     : 'mass_spectra'
+%
+%   'export' (optional)
+%       Description : export figure to image (see MATLAB 'print' options)
+%       Type        : cell | 'on', 'off'
+%       Default     : 'off'
+%
+% ------------------------------------------------------------------------
 % Examples
+% ------------------------------------------------------------------------
 %   MassSpectra(mz, y)
 %   MassSpectra(mz, y, 'labels', 'off', 'scale', 'full')
-%   MassSpectra(mz, y 'export', {'myfig', '-dtiff', '-r300'})
+%   MassSpectra(mz, y 'export', {'MyFigure01', '-dtiff', '-r300'})
+%
 
 function varargout = MassSpectra(varargin)
 
 % Check input
 [mz, y, options] = parse(varargin);
-    
+
 % Check for normalization
 if strcmpi(options.scale, 'relative')
     
@@ -56,6 +118,7 @@ else
     if ~isempty(options.ylimits) && options.ylimits(2) <= 1
         options.ylimits(2) = options.ylimits(2) * max(max(y));
     end
+    
     if ~isempty(options.ylimits) && options.ylimits(1) <= 1
         options.ylimits(1) = options.ylimits(1) * max(max(y));
     end
@@ -64,8 +127,30 @@ else
     options.ylabel = 'Intensity';
 end
 
+% Determine available fonts
+fonts = listfonts;
+
+% Check for valid font
+if ~any(strcmp(fonts, options.font.name))
+    
+    if any(strcmp(fonts, 'Avenir Next'))
+        options.font.name = 'Avenir Next';
+        
+    elseif any(strcmp(fonts, 'Lucida Sans'))
+        options.font.name = 'Lucida Sans';
+        
+    elseif any(strcmp(fonts, 'Helvetica Neue'))
+        options.font.name = 'Helvetica Neue';
+        
+    elseif any(strcmp(fonts, 'Century Gothic'))
+        options.font.name = 'Century Gothic';
+        
+    else
+        options.font.name = 'Arial';
+    end
+end
+
 % Set figure options
-options.font.name = 'Avenir Next';
 options.font.size = 13.5;
 options.line.color = [0.22,0.22,0.22];
 options.line.width = 1.25;
@@ -78,14 +163,18 @@ else
     options.line.style = 'none';
 end
 
+% Size and position
+left = (1 - options.width) / 2;
+bottom = (1 - options.height) / 2;
+
 % Initialize figure
 options.figure = figure(...
     'units', 'normalized',...
-    'position', [(1-0.4)/2, 0.2, 0.42, 0.44],...
+    'position', [left, bottom, options.width, options.height],...
     'color', 'white',...
     'paperpositionmode', 'auto',...
     'papertype', 'usletter',...
-    'visible','off');
+    'visible','on');
 
 % Initialize axes
 options.axes = axes(...
@@ -135,7 +224,7 @@ end
 
 % Determine window for y-axis scaling
 window = mz >= options.xlimits(1) & mz <= options.xlimits(2);
-    
+
 if isempty(options.ylimits)
     options.ylimits = [0 - (max(y(window)) * 0.003), max(y(window)) + (0.05 * max(y(window)))];
 end
@@ -146,16 +235,16 @@ set(options.axes, 'ylim', options.ylimits);
 
 % Check label options
 if strcmpi(options.labels, 'on')
-
+    
     % Index downward points: y(n) > y(n+1)
     dy = y(1,:) > circshift(y(1,:), [0,-1]);
     
-    % Index upward points: y(n) > y(n-1) 
+    % Index upward points: y(n) > y(n-1)
     dy(2,:) = y(1,:) > circshift(y(1,:), [0, 1]);
     
     % Index local maxima: y(n-1) < y(n) > y(n+1)
     dy(3,:) = dy(1,:) & dy(2,:);
-
+    
     % Extract local maxima ions
     xlocal = mz(dy(3,:));
     ylocal = y(dy(3,:));
@@ -164,7 +253,7 @@ if strcmpi(options.labels, 'on')
     dy = ylocal(1,:) > circshift(ylocal, [0,-1]);
     dy(2,:) = ylocal(1,:) > circshift(ylocal, [0, 1]);
     dy(3,:) = dy(1,:) & dy(2,:);
-
+    
     % Filter noise
     xlocal = xlocal(dy(3,:));
     ylocal = ylocal(dy(3,:));
@@ -176,14 +265,14 @@ if strcmpi(options.labels, 'on')
     % Filter values outside window
     ylocal(:, xlocal < options.xlimits(1) | xlocal > options.xlimits(2)) = [];
     xlocal(:, xlocal < options.xlimits(1) | xlocal > options.xlimits(2)) = [];
-   
+    
     % Variables
     counter = 1;
     padding = 0.01 * (max(mz) - min(mz));
     
     % Filter noise
     while counter ~= 0 && ~isempty(ylocal)
-    
+        
         % Determine m/z between peaks
         xlocal(2,:) = circshift(xlocal(1,:), [0,-1]) - xlocal(1,:);
         xlocal(2,end) = padding;
@@ -290,7 +379,7 @@ if strcmpi(options.labels, 'on')
                 % Display labels
                 cellfun(@(x) set(x, 'visible', 'on'), options.text);
                 
-            % Check label distance
+                % Check label distance
             elseif counter == 0
                 
                 % Check label overlap from distant columns
@@ -324,17 +413,35 @@ if strcmpi(options.labels, 'on')
         remove(2,:) = xtext(2,:) > options.xlimits(2);
         remove(3,:) = ytext(1,:) < options.ylimits(1);
         remove(4,:) = ytext(2,:) > options.ylimits(2);
-        remove = remove(1,:) | remove(2,:) | remove(3,:) | remove(4,:);
+        
+        % Find text overlapping data
+        for i = 1:length(remove(1,:))
+            
+            % Padding around x-values
+            xpad = (xtext(2,i) - xtext(1,i)) * 0.10;
+            
+            % Determine y-values within extent of label
+            ydata = y(mz > (xtext(1,i) + xpad) & mz < (xtext(2,i) - xpad));
+            
+            % Check for overlap
+            if any(ytext(1,i) + 0.1 < ydata)
+                remove(5,i) = 1;
+            else
+                remove(5,i) = 0;
+            end
+        end
+        
+        remove = remove(1,:) | remove(2,:) | remove(3,:) | remove(4,:) | remove(5,:);
         
         % Remove text outside axes
         if sum(remove) > 0
             
             % Temporarily hide labels
             cellfun(@(x) set(x, 'visible', 'off'), options.text);
-                
+            
             % Remove labels
             options.text(remove) = [];
-                
+            
             % Display labels
             cellfun(@(x) set(x, 'visible', 'on'), options.text);
         end
@@ -373,44 +480,44 @@ align([options.axes,options.empty],'VerticalAlignment','bottom');
 align([options.axes,options.empty],'HorizontalAlignment','left');
 
 % Set version specific properties
-switch version('-release')
+if verLessThan('matlab', 'R2014b')
     
-    case {'2014b', '2015a'}
-        
+    try
         % Resize callback
-        set(options.figure, 'sizechangedfcn', @(varargin) set(options.empty, 'position', get(options.axes, 'position')));
-        
-        % Prevent axes overlap
-        set(get(get(options.axes, 'yruler'),'axle'), 'visible', 'off');
-        set(get(get(options.axes, 'xruler'),'axle'), 'visible', 'off');
-        set(get(get(options.axes, 'ybaseline'),'axle'), 'visible', 'off');
-        
-    otherwise
-        try
-            % Resize callback
-            set(options.figure, 'resizefcn', @(varargin) set(options.empty, 'position', get(options.axes, 'position')));
-        catch
-        end
+        set(options.figure, 'resizefcn', @(varargin) set(options.empty, 'position', get(options.axes, 'position')));
+    catch
+    end
+    
+else
+    
+    % Resize callback
+    set(options.figure, 'sizechangedfcn', @(varargin) set(options.empty, 'position', get(options.axes, 'position')));
+    
+    % Prevent axes overlap
+    set(get(get(options.axes, 'yruler'),'axle'), 'visible', 'off');
+    set(get(get(options.axes, 'xruler'),'axle'), 'visible', 'off');
+    set(get(get(options.axes, 'ybaseline'),'axle'), 'visible', 'off');
+    
 end
 
 % Export figure
 if iscell(options.export)
+    
     try
         disp('Rendering image, please wait...');
         print(options.figure, options.export{:});
         disp('Rendering complete!');
+        
     catch
         disp('-Error reading print options, rendering image with default options...');
-        print(options.figure, 'spectra', '-dpng', '-r300');
+        print(options.figure, options.filename, '-dpng', '-r300');
         disp('Rendering complete!');
     end
 end
 
-% Display figure
-set(options.figure, 'visible', 'on');
-
 % Set output
 varargout{1} = options;
+
 end
 
 % Parse user input
@@ -418,6 +525,7 @@ function [mz, y, options] = parse(varargin)
 
 varargin = varargin{1};
 nargin = length(varargin);
+options = [];
 
 % Check input
 if nargin <= 1
@@ -427,11 +535,14 @@ end
 % Check data
 if isnumeric(varargin{1})
     mz = varargin{1};
+    
 else
     error('Undefined input arguments of type ''mz''.');
 end
+
 if isnumeric(varargin{2})
     y = varargin{2};
+    
 else
     error('Undefined input arguments of type ''y''.');
 end
@@ -440,21 +551,25 @@ end
 if length(mz(:,1)) > length(mz(1,:))
     mz = mz';
 end
+
 if length(y(:,1)) == length(mz(1,:)) && length(y(:,1)) ~= length(y(1,:))
     y = y';
 end
+
 if ~any(size(y) == 1)
-    y = sum(y);
+    y = mean(y);
 end
+
 if length(mz(1,:)) ~= length(y(1,:))
     disp('Index exceeds matrix dimensions.');
     return
 end
-    
+
 % Check input precision
 if ~isa(mz, 'double')
     mz = double(mz);
 end
+
 if ~isa(y, 'double')
     y = double(y);
 end
@@ -467,7 +582,7 @@ mz(mz < 0) = [];
 y(y < 0) = 0;
 
 if isempty(mz)
-    disp('Input arguments of type ''mz'' must be positive.'); 
+    disp('Input arguments of type ''mz'' must be positive.');
 end
 
 % Check user input
@@ -475,16 +590,20 @@ input = @(x) find(strcmpi(varargin, x),1);
 
 % Label options
 if ~isempty(input('labels'))
+    
     options.labels = varargin{input('labels')+1};
-                    
+    
     % Check for valid input
     if any(strcmpi(options.labels, {'default', 'on', 'show', 'display'}))
         options.labels = 'on';
+        
     elseif any(strcmpi(options.labels, {'off', 'hide'}))
         options.labels = 'off';
+        
     else
         options.labels = 'on';
     end
+    
 else
     options.labels = 'on';
 end
@@ -493,53 +612,103 @@ end
 % Label font size options
 if ~isempty(input('labelsize'))
     fontsize = varargin{input('labelsize')+1};
+    
 elseif ~isempty(input('fontsize'))
     fontsize = varargin{input('fontsize')+1};
+    
 else
     fontsize = [];
 end
 
 % Check for valid font size
 if ~isempty(fontsize)
+    
     if any(strcmpi(fontsize, {'default'})) || ~isnumeric(fontsize)
         options.label.fontsize = 7.5;
+        
     elseif fontsize >= 30 || fontsize <= 1
         options.label.fontsize = 7.5;
+        
     else
         options.label.fontsize = fontsize;
     end
+    
 else
     options.label.fontsize = 7.5;
 end
 
 
+% Font name options
+if ~isempty(input('fontname'))
+    
+    options.font.name = varargin{input('fontname')+1};
+    
+    % Check for valid input
+    if any(strcmpi(options.font.name, {'default'}))
+        options.font.name = 'Avenir Next';
+        
+    elseif ~ischar(options.font.name)
+        options.font.name = 'Avenir Next';
+    end
+    
+else
+    options.font.name = 'Avenir Next';
+end
+
+
 % Scale options
 if ~isempty(input('scale'))
+    
     options.scale = varargin{input('scale')+1};
-                    
+    
     % Check for valid input
     if any(strcmpi(options.scale, {'default', 'relative', 'normalize', 'normalized'}))
         options.scale = 'relative';
+        
     elseif any(strcmpi(options.scale, {'full', 'separate'}))
         options.scale = 'full';
+        
     else
         options.scale = 'relative';
     end
+    
 else
     options.scale = 'relative';
+end
+
+
+% Filename options
+if ~isempty(input('filename'))
+    
+    options.filename = varargin{input('filename')+1};
+    
+    if iscell(options.filename) && ischar(options.filename{1})
+        options.filename = options.filename{1};
+        
+    elseif isnumeric(options.filename)
+        options.filename = num2str(options.filename);
+        
+    elseif ~ischar(options.filename)
+        options.filename = 'mass_spectra';
+    end
+    
+else
+    options.filename = 'mass_spectra';
 end
 
 
 % Export options
 if ~isempty(input('export'))
     options.export = varargin{input('export')+1};
-      
+    
     % Check for valid input
     if strcmpi(options.export, 'on')
-        options.export = {'spectra', '-dpng', '-r300'};
+        options.export = {options.filename, '-dpng', '-r300'};
+        
     elseif ~iscell(options.export)
         options.export = 'off';
     end
+    
 else
     options.export = 'off';
 end
@@ -547,17 +716,20 @@ end
 
 % X-limits options
 if ~isempty(input('xlim'))
+    
     xlimits = varargin{input('xlim')+1};
     
     % Check for valid input
     if ~isnumeric(xlimits) || any(strcmpi(xlimits, {'default', 'auto'}))
         options.xlimits = [];
+        
     elseif xlimits(2) < xlimits(1) || length(xlimits) ~= 2;
         options.xlimits = [];
+        
     else
         options.xlimits = xlimits;
     end
-
+    
 else
     options.xlimits = [];
 end
@@ -565,16 +737,20 @@ end
 
 % Y-limits options
 if ~isempty(input('ylim'))
+    
     ylimits = varargin{input('ylim')+1};
     
     % Check user input
     if ~isnumeric(ylimits) || any(strcmpi(ylimits, {'default', 'auto'}))
         options.ylimits = [];
+        
     elseif ylimits(2) < ylimits(1) || length(ylimits) ~= 2
         options.ylimits = [];
-    else 
+        
+    else
         options.ylimits = ylimits;
-    end    
+    end
+    
 else
     options.ylimits = [];
 end
@@ -582,32 +758,87 @@ end
 
 % Barwidth options
 if ~isempty(input('barwidth'))
+    
     options.bar.width = varargin{input('barwidth')+1};
-                   
+    
     if ~isnumeric(options.bar.width)
         options.bar.width = 7;
+        
     elseif options.bar.width <= 0 || options.bar.width > 999
         options.bar.width = 7;
+        
     else
         options.bar.width = options.bar.width(1);
-    end 
+    end
+    
 else
     options.bar.width = 7;
 end
 
 
+% Height options
+if ~isempty(input('height'))
+    
+    options.height = varargin{input('height')+1};
+    
+    if ~isnumeric(options.height)
+        options.height = 0.44;
+        
+    elseif options.height <= 0 || options.height > 100
+        options.height = 0.44;
+        
+    elseif options.height > 1
+        options.height = options.height / 100;
+        
+    else
+        options.height = options.height(1);
+    end
+    
+else
+    options.height = 0.44;
+end
+
+
+% Width options
+if ~isempty(input('width'))
+    
+    options.width = varargin{input('width')+1};
+    
+    if ~isnumeric(options.width)
+        options.width = 0.42;
+        
+    elseif options.width <= 0 || options.width > 100
+        options.width = 0.42;
+        
+    elseif options.width > 1
+        options.width = options.width / 100;
+        
+    else
+        options.width = options.width(1);
+    end
+    
+else
+    options.width = 0.42;
+end
+
+
 % Threshold options (experimental)
 if ~isempty(input('threshold'))
+    
     options.threshold = varargin{input('threshold')+1};
-                   
+    
     if ~isnumeric(options.threshold)
-        options.threshold = 0.015;
+        options.threshold = 0.01;
+        
     elseif options.threshold <= 0 || options.threshold > 1
-        options.threshold = 0.015;
+        options.threshold = 0.01;
+        
     else
         options.threshold = options.threshold(1);
-    end 
+    end
+    
 else
-    options.threshold = 0.015;
+    options.threshold = 0.01;
 end
+
 end

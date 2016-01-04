@@ -1,101 +1,192 @@
-% Class: Chromatography
-%  -Methods for processing chromatography and mass spectrometry data
+% ------------------------------------------------------------------------
+% Class       : Chromatography
+% Description : Functions for chromatography and mass spectrometry data
+% ------------------------------------------------------------------------
 %
-% Initialize
-%   obj = Chromatography
+% ------------------------------------------------------------------------
+% Syntax
+% ------------------------------------------------------------------------
+%   obj = Chromatography;
 %
+% ------------------------------------------------------------------------
 % Methods
+% ------------------------------------------------------------------------
+%   obj.import
+%       Description : import instrument data files
+%       Syntax      : data = obj.import(filetype, Name, Value)
 %
-%   Import
-%       data = obj.import(filetype, 'OptionName', optionvalue...)
+%   obj.centroid
+%       Description : centroid mass values
+%       Syntax      : data = obj.centroid(data, Name, Value)
 %
-%   Preprocessing
-%       data = obj.centroid(data, 'OptionName', optionvalue...)
-%       data = obj.baseline(data, 'OptionName', optionvalue...)
-%       data = obj.smooth(data, 'OptionName', optionvalue...)
+%   obj.baseline
+%       Description : calculate baseline for chromatogram
+%       Syntax      : data = obj.baseline(data, Name, Value)
 %
-%   Integration
-%       data = obj.integrate(data, 'OptionName', optionvalue...)
+%   obj.smooth
+%       Description : smooth chromatogram
+%       Syntax      : data = obj.smooth(data, Name, Value)
 %
-%   Visualization
-%       fig = obj.visualize(data, 'OptionName', optionvalue...)
+%   obj.integrate
+%       Description : find and integrate peaks in chromatogram
+%       Syntax      : data = obj.integrate(data, Name, Value)
+%
+%   obj.visualize
+%       Description : plot chromatogram or mass spectra
+%       Syntax      : fig = obj.visualize(data, Name, Value)
 %
 
 classdef Chromatography
     
+    
+    % ---------------------------------------
+    % Properties
+    % ---------------------------------------
+    properties (Constant = true)
+        
+        url = 'https://github.com/chemplexity/chromatography';
+        version = '0.1.5';
+
+    end
+    
     properties
-        Defaults
+        
+        defaults
+        options
+        
     end
     
-    properties (SetAccess = private)
-        Data
-        Options
-        Diagnostics
-    end
     
+    % ---------------------------------------
+    % Methods
+    % ---------------------------------------
     methods
         
-        % Initialize class
+        
+        % ---------------------------------------
+        % Initialization
+        % ---------------------------------------
         function obj = Chromatography()
-
-            % Initialize properties
-            obj = defaults(obj);
-            obj = options(obj);
-            obj = diagnostics(obj);            
-        end
-        
-        
-        % Initialize default options
-        function obj = defaults(obj, varargin)
-           
-            % Baseline
-            obj.Defaults.baseline.smoothness = 1E6;
-            obj.Defaults.baseline.asymmetry = 1E-4;
             
-            % Smoothing
-            obj.Defaults.smoothing.smoothness = 5;
-            obj.Defaults.smoothing.asymmetry = 0.5;
+            source = fileparts(which('Chromatography'));
+            source = regexp(source, '.+(?=[@])', 'match');            
             
-            % Integration
-            obj.Defaults.integrate.model = 'exponential gaussian hybrid';
+            % ---------------------------------------
+            % Path
+            % ---------------------------------------
+            addpath(source{1});
+            addpath(genpath([source{1}, 'Methods']));
+            addpath(genpath([source{1}, 'Development']));
+            addpath(genpath([source{1}, 'Examples']));
             
-            % Visualization
-            obj.Defaults.visualize.position = [0.25, 0.25, 0.5, 0.5];
+            % ---------------------------------------
+            % Defaults
+            % ---------------------------------------
+            obj.defaults.baseline_smoothness = 1E6;
+            obj.defaults.baseline_asymmetry = 1E-4;
+            obj.defaults.smoothing_smoothness = 0.5;
+            obj.defaults.smoothing_asymmetry = 0.5;
+            obj.defaults.integrate_model = 'exponential gaussian hybrid';
+            obj.defaults.plot_position = [0.25, 0.25, 0.5, 0.5];
             
-        end
-        
-        
-        % Initialize fixed options
-        function obj = options(obj, varargin)
-           
-            % Import
-            obj.Options.import = {...
+            if verLessThan('matlab', 'R2014b')
+                obj.defaults.plot_colormap = 'jet';
+            else
+                obj.defaults.plot_colormap = 'parula';
+            end
+            
+            % ---------------------------------------
+            % Options
+            % ---------------------------------------
+            obj.options.import = {...
                 '.CDF', 'netCDF (*.CDF)';
                 '.D',   'Agilent (*.D)';
                 '.MS',  'Agilent (*.MS)';
                 '.RAW', 'Thermo (*.RAW)'};
             
-            % Export
-            obj.Options.export = {...
+            obj.options.export = {...
                 '.CSV', '(*.CSV)'};
-
         end
         
         
-        % Initialize diagnostic information
-        function obj = diagnostics(obj, varargin)
+        % ---------------------------------------
+        % Reset
+        % ---------------------------------------
+        function data = reset(~, data, varargin)
             
-            % Diagnostics
-            obj.Diagnostics.system_os = computer;
-            obj.Diagnostics.matlab_version = version('-release');
-            obj.Diagnostics.toolbox_version = '0.1.4';
+            fprintf('\n\n[RESET]\n\n');
+            
+            if ~isstruct(data)
+                fprintf('[ERROR] Input data must be of type ''struct''\n');
+                return
+            end
+            
+            % ---------------------------------------
+            % Parse input
+            % ---------------------------------------
+            input = @(x) find(strcmpi(varargin, x),1);
+
+            % Option: 'samples'
+            if ~isempty(input('samples'))
+                samples = varargin{input('samples')+1};
+                
+                % Input: 'default', 'all'
+                if any(strcmpi(samples, {'default', 'all'}))
+                    samples = 1:length(data);
+                    
+                % Input: numeric
+                elseif ~isnumeric(samples)
+                    samples = str2double(samples);
+                    
+                    % Check for numeric input
+                    if ~any(isnan(samples))
+                        samples = round(samples);
+                    else
+                        samples = 1:length(data);
+                    end
+                    
+                    % Check input limits
+                    samples = samples(samples <= length(data));
+                    samples = samples(samples >= 1);
+                end
+                
+            else    
+
+                % Default: 'all'
+                samples = 1:length(data);
+            end
+            
+            % ---------------------------------------
+            % Restore data to original values
+            % ---------------------------------------
+            fprintf(['Resetting ' num2str(numel(samples)), ' files...\n']);
+            
+            for i = 1:length(samples)
+                
+                id = samples(i);
+                
+                data(id).time = data(id).backup.time;
+                data(id).tic.values = data(id).backup.tic;
+                data(id).xic.values = data(id).backup.xic;
+                data(id).mz = data(id).backup.mz;
+                
+                data(id).tic.baseline = [];
+                data(id).xic.baseline = [];
+                
+                data(id).status.centroid = 'N';
+                data(id).status.smoothed = 'N';
+                data(id).status.baseline = 'N';
+                data(id).status.integrate = 'N';
+            end
+            
+            fprintf('\n[COMPLETE]\n\n');
         end
         
-        
-        % Core data structure
+        % ---------------------------------------
+        % Schema
+        % ---------------------------------------
         function data = format(varargin)
             
-            % Top-level fields
             basic = {...
                 'id',...
                 'name',...
@@ -105,18 +196,25 @@ classdef Chromatography
                 'time',...
                 'tic',...
                 'xic',...
-                'mz'};
+                'mz',...
+                'backup',...
+                'status'};
             
-            % Sub-level fields
             file = {...
+                'path',...
                 'name',...
-                'type'};
+                'bytes'};
             
             sample = {...
-                'name'};
+                'name',...
+                'description',...
+                'sequence',...
+                'vial',...
+                'replicate'};
             
             method = {...
                 'name',...
+                'operator',...
                 'instrument',...
                 'date',...
                 'time'};
@@ -124,14 +222,12 @@ classdef Chromatography
             tic = {...
                 'values',...
                 'baseline',...
-                'peaks',...
-                'backup'};
+                'peaks'};
             
             xic = {...
                 'values',...
                 'baseline',...
-                'peaks',...
-                'backup'};
+                'peaks'};
             
             peaks = {...
                 'time',...
@@ -141,7 +237,22 @@ classdef Chromatography
                 'fit',...
                 'error'};
             
-            % Check number of inputs
+            backup = {...
+                'time',...
+                'tic',...
+                'xic',...
+                'mz'};
+            
+            status = {...
+                'version',...
+                'centroid',...
+                'baseline',...
+                'smoothed',...
+                'integrate'};
+            
+            % ---------------------------------------
+            % Parse input
+            % ---------------------------------------
             if nargin < 2
                 
                 % Create an empty data structure
@@ -157,67 +268,207 @@ classdef Chromatography
                     return
                 end
                 
-                % Check basic fields
                 data = check(data, basic);
                 
-                % Check nested fields
                 for i = 1:length(data)
                     
-                    % General information
+                    % Metadata
                     data(i).file = check(data(i).file, file);
                     data(i).sample = check(data(i).sample, sample);
                     data(i).method = check(data(i).method, method);
                     
-                    % Total ion chromatograms
+                    % Instrument data
                     data(i).tic = check(data(i).tic, tic);
                     data(i).tic.peaks = check(data(i).tic.peaks, peaks);
                     
-                    % Extracted ion chromatograms
                     data(i).xic = check(data(i).xic, xic);
                     data(i).xic.peaks = check(data(i).xic.peaks, peaks);
+                    
+                    % Supplemental data
+                    data(i).backup = check(data(i).backup, backup);
+                    data(i).status = check(data(i).status, status);
                 end
                 
-                % Check for extra fields
+                % Extended data
                 if ~isempty(find(strcmpi(varargin, 'extra'),1))
                     extra = varargin{find(strcmpi(varargin, 'extra'),1)+1};
                     
-                    % Add MS2 field
+                    % Add MS^2 field
                     if strcmpi(extra, 'ms2')
                         data = check(data, {'ms2'});
                     end
                 end
             end
             
-        
-            % Validate structure
+            % ---------------------------------------
+            % Check data structure
+            % ---------------------------------------
             function structure = check(structure, fields)
                 
-                % Check structure input
+                % Check input types
                 if ~isstruct(structure)
                     structure = [];
                 end
                 
-                % Check fields input
                 if ~iscell(fields)
                     return
                 end
                 
-                % Check for empty structure
+                % Check input values
                 if isempty(structure)
                     structure = cell2struct(cell(1,length(fields)), fields, 2);
                     
-                % Check for missing fields
                 elseif ~isempty(~isfield(structure, fields))
+                    
+                    % Check for missing fields
                     missing = fields(~isfield(structure, fields));
                     
-                    % Add missing peak fields to structure
+                    % Add missing field to structure
                     if ~isempty(missing)
+                    
                         for j = 1:length(missing)
                             structure = setfield(structure, {1}, missing{j}, []);
                         end
+                        
                     end
                 end
             end
-        end        
+        end
+
+        % ---------------------------------------
+        % Update
+        % ---------------------------------------
+        function update(varargin)
+            
+            fprintf('\n\n[UPDATE]\n\n');
+            
+            source = fileparts(which('Chromatography'));
+            source = regexp(source, '.+(?=[@])', 'match');
+            
+            % ---------------------------------------
+            % Path
+            % ---------------------------------------
+            if ~isempty(source)
+                fprintf('Updating Chromatography Toolbox.... \n');
+                cd(source{1});
+            else
+                fprintf('Chromatography Toolbox not on search path...\n\n');
+                fprintf('[EXIT]\n');
+                return
+            end
+            
+            % ---------------------------------------
+            % Windows
+            % ---------------------------------------
+            if ispc
+                
+                % Check system for git
+                [status, output] = system('where git');
+                
+                if ~status
+                    git = regexp(output,'(?i)C:\\(\\|\w)*', 'match');
+                    git = [git{1}, '.exe'];
+                
+                % Error: git command not on path
+                elseif status
+                    fprintf('Unable to find ''git.exe'' on path... \n');
+                    fprintf('Searching system for ''git.exe''... \n');
+                    
+                    % Attempt to find git.exe
+                    [status, output] = system('dir C:\Users\*git.exe /s');
+                    
+                    % Error: git.exe not foun
+                    if status
+                        fprintf('Unable to update without ''git.exe'' \n');
+                        fprintf('[ABORT] \n');
+                        return
+                    end
+                    
+                    git = regexp(output,'(?i)(?!of)C:\\(\\|\w)*', 'match');
+                    git = [git{1}, '\git.exe'];
+                end
+                
+                % Update folder access
+                [~, ~] = system(['icacls "', source{1}, '\" /grant Users:(OI)(CI)F']);
+                
+            % ---------------------------------------
+            % Unix
+            % ---------------------------------------
+            elseif isunix
+                
+                % Check system for git
+                [status, output] = system('which git');
+                
+                if ~status
+                    git = regexp(output,'(?i)([/]|\w)+git', 'match');
+                    git = git{1};
+                
+                % Error: git command not on path
+                elseif status
+                    fprintf('Unable to update without ''git''... \n');
+                    fprintf('[ABORT] \n');
+                    return
+                end
+                
+            end
+                    
+            % ---------------------------------------
+            % Check system git
+            % ---------------------------------------
+            fprintf(['Using ''', '%s', '''... \n'], git);
+            [status, ~] = system([git, ' --version']);
+                    
+            % Error: git.exe does not work
+            if status
+                fprintf('Error executing ''git --version''... \n');
+                fprintf('[ABORT] \n');
+                return
+            end
+            
+            % ---------------------------------------
+            % Check git repository
+            % ---------------------------------------
+            [status, ~] = system([git, ' status']);
+            
+            if status
+                fprintf('Initializing git repository... \n');
+                
+                % Initialize git repository
+                [~,~] = system([git, ' init']);
+                [~,~] = system([git, ' remote add origin ', Chromatography.url, '.git']);
+            end
+            
+            % ---------------------------------------
+            % Fetch latest updates
+            % ---------------------------------------
+            fprintf('Fetching updates from ''%s''... \n\n', Chromatography.url);
+            system([git, ' fetch -v']);
+               
+            if status
+                [~,~] = system([git, ' checkout -f master']);
+            end
+            
+            % ---------------------------------------
+            % Checkout branch
+            % ---------------------------------------
+            if nargin > 0 && ischar(varargin{1})
+                
+                switch varargin{1}
+                    
+                    case {'master'}
+                        system([git, ' checkout -f master']);                        
+                        
+                    case {'release'}
+                        system([git, ' checkout -f release/v0.1.5']);
+                        
+                    case {'dev', 'development'}
+                        system([git, ' checkout -f dev']);
+                end
+            end
+            
+            fprintf('\nUpdate complete... \n\n');
+            fprintf(['Version: ', Chromatography.version, '\n\n']);
+            fprintf('[COMPLETE] \n');
+        end
     end
 end
