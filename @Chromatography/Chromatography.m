@@ -1,7 +1,10 @@
 % ------------------------------------------------------------------------
 % Class       : Chromatography
 % Description : Functions for chromatography and mass spectrometry data
-% ------------------------------------------------------------------------
+%
+% Version     : 0.1.6
+% Website     : https://github.com/chemplexity/chromatography
+%------------------------------------------------------------------------
 %
 % ------------------------------------------------------------------------
 % Syntax
@@ -35,6 +38,10 @@
 %       Description : plot chromatogram or mass spectra
 %       Syntax      : fig = obj.visualize(data, Name, Value)
 %
+%   obj.update
+%       Description : plot chromatogram or mass spectra
+%       Syntax      : obj.update
+%
 
 classdef Chromatography
     
@@ -45,7 +52,7 @@ classdef Chromatography
     properties (Constant = true)
         
         url = 'https://github.com/chemplexity/chromatography';
-        version = '0.1.5';
+        version = '0.1.6';
 
     end
     
@@ -340,7 +347,7 @@ classdef Chromatography
         % ---------------------------------------
         function update(varargin)
             
-            fprintf('\n\n[UPDATE]\n\n');
+            fprintf(['\n', '[UPDATE]', '\n\n']);
             
             source = fileparts(which('Chromatography'));
             source = regexp(source, '.+(?=[@])', 'match');
@@ -349,7 +356,7 @@ classdef Chromatography
             % Path
             % ---------------------------------------
             if ~isempty(source)
-                fprintf('Updating Chromatography Toolbox.... \n');
+                fprintf('Updating Chromatography Toolbox.... \n\n');
                 cd(source{1});
             else
                 fprintf('Chromatography Toolbox not on search path...\n\n');
@@ -459,16 +466,16 @@ classdef Chromatography
                         system([git, ' checkout -f master']);                        
                         
                     case {'release'}
-                        system([git, ' checkout -f release/v0.1.5']);
+                        system([git, ' checkout -f release/v', Chromatography.version]);
                         
                     case {'dev', 'development'}
                         system([git, ' checkout -f dev']);
                 end
             end
             
-            fprintf('\nUpdate complete... \n\n');
+            fprintf(['\n', 'Update complete...', '\n\n']);
             fprintf(['Version: ', Chromatography.version, '\n\n']);
-            fprintf('[COMPLETE] \n');
+            fprintf(['[COMPLETE]', '\n']);
         end
     end
 end
