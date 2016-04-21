@@ -242,7 +242,7 @@ for i = 1:length(samples)
                 names = options.name(i);     
             case 'all'
                 names(length(z)) = {''};
-                mz = z(ions);
+                mz = z(:);
             case 'xic'
                 names(length(z)) = {''};
                 mz = z(ions(ions <= length(z)));
