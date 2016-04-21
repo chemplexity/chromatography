@@ -45,7 +45,7 @@ classdef Chromatography
     properties (Constant = true)
         
         url = 'https://github.com/chemplexity/chromatography';
-        version = '0.1.5';
+        version = '0.1.51';
 
     end
     
