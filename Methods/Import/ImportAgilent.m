@@ -81,12 +81,12 @@ function varargout = AgilentMS(varargin)
     function [data, options] = FileInfo(file, data, options)
         
         % Sample name
-        fseek(file, 40, 'bof');
-        data.sample.name = deblank(fread(file, fread(file, 1, 'uint8'), 'uint8=>char')');
+        fseek(file, 24, 'bof');
+        data.sample.name = strtrim(deblank(fread(file, fread(file, 1, 'uint8'), 'uint8=>char')'));
         
         % Sample description
         fseek(file, 86, 'bof');
-        data.sample.description = strtrim(fread(file, fread(file, 1, 'uint8'), 'uint8=>char')');
+        data.sample.description = strtrim(deblank(fread(file, fread(file, 1, 'uint8'), 'uint8=>char')'));
         
         fseek(file, 252, 'bof');
         data.sample.sequence = fread(file, 1, 'short', 0, 'b');
@@ -95,15 +95,15 @@ function varargout = AgilentMS(varargin)
         
         % Method name
         fseek(file, 228, 'bof');
-        data.method.name = deblank(fread(file, fread(file, 1, 'uint8'), 'uint8=>char')');
+        data.method.name = strtrim(deblank(fread(file, fread(file, 1, 'uint8'), 'uint8=>char')'));
         
         % Method operator
         fseek(file, 148, 'bof');
-        data.method.operator = deblank(fread(file, fread(file, 1, 'uint8'), 'uint8=>char')');
+        data.method.operator = strtrim(deblank(fread(file, fread(file, 1, 'uint8'), 'uint8=>char')'));
         
         % Method date/time
         fseek(file, 178, 'bof');
-        date = deblank(fread(file, 20, 'uint8=>char')');
+        date = strtrim(deblank(fread(file, fread(file, 1, 'uint8'), 'uint8=>char')'));
         
         data.method.date = '';
         data.method.time = '';
@@ -129,13 +129,16 @@ function varargout = AgilentMS(varargin)
             end
         end
         
+        data.method.date = strtrim(deblank(data.method.date));
+        data.method.time = strtrim(deblank(data.method.time));
+        
         % Instrument name
         fseek(file, 208, 'bof');
-        data.instrument.name = deblank(fread(file, fread(file, 1, 'uint8'), 'uint8=>char')');
+        data.instrument.name = strtrim(deblank(fread(file, fread(file, 1, 'uint8'), 'uint8=>char')'));
         
         % Instrument inlet
         fseek(file, 218, 'bof');
-        data.instrument.inlet = deblank(fread(file, fread(file, 1, 'uint8'), 'uint8=>char')');
+        data.instrument.inlet = strtrim(deblank(fread(file, fread(file, 1, 'uint8'), 'uint8=>char')'));
         
         % Total scans
         fseek(file, 278, 'bof');
@@ -147,7 +150,7 @@ function varargout = AgilentMS(varargin)
         
         % XIC offset
         fseek(file, options.offset.tic, 'bof');
-        options.offset.xic = (fread(file, options.scans, 'int', 8, 'b')) .* 2 - 2;
+        options.offset.xic = fread(file, options.scans, 'int', 8, 'b') .* 2 - 2;
         
         % Nomalization offset
         fseek(file, 272, 'bof');
@@ -217,27 +220,18 @@ function varargout = AgilentMS(varargin)
         mz = round(mz .* 10^options.precision) ./ 10^options.precision;
         data.mz = unique(mz, 'sorted');
         
-        % Reshape intensity values (rows = time, columns = m/z)
-        if length(data.mz) == length(xic) / length(data.time)
+        index(:,2) = cumsum(n);
+        index(:,1) = circshift(index(:,2), [1,0]) + 1;
+        index(1,1) = 1;
             
-            % Fixed scan size
-            data.xic = reshape(xic, length(data.mz), length(data.time))';
-        else
+        % Pre-allocate memory
+        data.xic = zeros(length(data.time), length(data.mz));
             
-            % Variable scan size
-            index(:,2) = cumsum(n);
-            index(:,1) = circshift(index(:,2), [1,0]) + 1;
-            index(1,1) = 1;
+        % Index columns
+        [~, cols] = ismember(mz, data.mz);
             
-            % Pre-allocate memory
-            data.xic = zeros(length(data.time), length(data.mz));
-            
-            % Index columns
-            [~, cols] = ismember(mz, data.mz);
-            
-            for i = 1:scans
-                data.xic(i, cols(index(i,1):index(i,2))) = xic(index(i,1):index(i,2));
-            end
+        for i = 1:scans
+            data.xic(i, cols(index(i,1):index(i,2))) = xic(index(i,1):index(i,2));
         end
     end
 
@@ -305,21 +299,35 @@ function varargout = AgilentCH(varargin)
 %
     function [data, options] = FileInfo(file, data, options)
         
+        if any(strcmpi(options.version, {'8', '81'}))
+            encoding = 'uint8=>char';
+        else
+            encoding = 'uint16=>char';
+        end
+        
         % Sample name
         fseek(file, options.offset.sample, 'bof');
-        data.sample.name = deblank(fread(file, fread(file, 1, 'uint8'), 'uint8=>char', 1, 'b')');
+        data.sample.name = strtrim(deblank(fread(file, fread(file, 1, 'uint8'), encoding, 'l')'));
+        
+        fseek(file, options.offset.description, 'bof');
+        data.sample.description = strtrim(deblank(fread(file, fread(file, 1, 'uint8'), encoding, 'l')'));
         
         % Method name
         fseek(file, options.offset.method, 'bof');
-        data.method.name = deblank(fread(file, fread(file, 1, 'uint8'), 'uint8=>char', 1, 'b')');
+        data.method.name = strtrim(deblank(fread(file, fread(file, 1, 'uint8'), encoding, 'l')'));
         
         % Method operator
         fseek(file, options.offset.operator, 'bof');
-        data.method.operator = deblank(fread(file, fread(file, 1, 'uint8'), 'uint8=>char', 1, 'b')');
+        data.method.operator = strtrim(deblank(fread(file, fread(file, 1, 'uint8'), encoding, 'l')'));
+        
+        fseek(file, 252, 'bof');
+        data.sample.sequence = fread(file, 1, 'short', 0, 'b');
+        data.sample.vial = fread(file, 1, 'short', 0, 'b');
+        data.sample.replicate = fread(file, 1, 'short', 0, 'b');
         
         % Method date/time
         fseek(file, options.offset.date, 'bof');
-        date = deblank(fread(file, fread(file, 1, 'uint8'), 'uint8=>char', 1, 'b')');
+        date = strtrim(deblank(fread(file, fread(file, 1, 'uint8'), encoding, 'l')'));
         
         try
             date = datenum(date, 'dd mmm yy HH:MM PM');
@@ -342,13 +350,16 @@ function varargout = AgilentCH(varargin)
             end
         end
         
+        data.method.date = strtrim(deblank(data.method.date));
+        data.method.time = strtrim(deblank(data.method.time));
+        
         % Instrument type
-        fseek(file, options.offset.method, 'bof');
-        data.instrument.name = deblank(fread(file, fread(file, 1, 'uint8'), 'uint8=>char', 1, 'b')');
+        fseek(file, options.offset.instrument, 'bof');
+        data.instrument.name = strtrim(deblank(fread(file, fread(file, 1, 'uint8'), encoding, 'l')'));
         
         % Instrument units
         fseek(file, options.offset.units, 'bof');
-        data.instrument.units = deblank(fread(file, fread(file, 1, 'uint8'), 'uint8=>char', 1, 'b')');
+        data.instrument.units = strtrim(deblank(fread(file, fread(file, 1, 'uint8'), encoding, 'l')'));
     end
 
 % Variables
@@ -388,6 +399,7 @@ switch options.version
         
         % Sample Info
         options.offset.sample = 24;
+        options.offset.description = 86;
         
         % Method Info
         options.offset.method = 228;
@@ -409,7 +421,7 @@ switch options.version
         xmin = fread(file, 1, 'int32', 'b') / 60000;
         xmax = fread(file, 1, 'int32', 'b') / 60000;
         
-        data.time = linspace(xmin, xmax, length(data.tic));
+        data.time = linspace(xmin, xmax, length(data.tic))';
         
         fseek(file, 542, 'bof');
         header = fread(file, 1, 'int32', 'b');
@@ -430,6 +442,7 @@ switch options.version
         
         % Sample Info
         options.offset.sample = 24;
+        options.offset.description = 86;
         
         % Method Info
         options.offset.method = 228;
@@ -451,7 +464,7 @@ switch options.version
         xmin = fread(file, 1, 'float32', 'b') / 60000;
         xmax = fread(file, 1, 'float32', 'b') / 60000;
         
-        data.time = linspace(xmin, xmax, length(data.tic));
+        data.time = linspace(xmin, xmax, length(data.tic))';
         
         fseek(file, 636, 'bof');
         intercept =  fread(file, 1, 'float64', 'b');
@@ -466,6 +479,7 @@ switch options.version
         
         % Sample Info
         options.offset.sample = 858;
+        options.offset.description = 1369;
         
         % Method Info
         options.offset.method = 2574;
@@ -487,7 +501,7 @@ switch options.version
         xmin = fread(file, 1, 'float32', 'b') / 60000;
         xmax = fread(file, 1, 'float32', 'b') / 60000;
         
-        data.time = linspace(xmin, xmax, length(data.tic));
+        data.time = linspace(xmin, xmax, length(data.tic))';
         
         fseek(file, 4724, 'bof');
         intercept =  fread(file, 1, 'float64', 'b');
@@ -502,6 +516,7 @@ switch options.version
         
         % Sample Info
         options.offset.sample = 858;
+        options.offset.description = 1369;
         
         % Method Info
         options.offset.method = 2574;
@@ -523,7 +538,7 @@ switch options.version
         xmin = fread(file, 1, 'float32', 'b') / 60000;
         xmax = fread(file, 1, 'float32', 'b') / 60000;
         
-        data.time = linspace(xmin, xmax, length(data.tic));
+        data.time = linspace(xmin, xmax, length(data.tic))';
         
         fseek(file, 4724, 'bof');
         intercept =  fread(file, 1, 'float64', 'b');
