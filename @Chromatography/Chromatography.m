@@ -2,7 +2,7 @@
 % Class       : Chromatography
 % Description : Functions for chromatography and mass spectrometry data
 %
-% Version     : 0.1.6
+% Version     : 0.1.51
 % Website     : https://github.com/chemplexity/chromatography
 %------------------------------------------------------------------------
 %
@@ -39,7 +39,7 @@
 %       Syntax      : fig = obj.visualize(data, Name, Value)
 %
 %   obj.update
-%       Description : plot chromatogram or mass spectra
+%       Description : updates toolbox to latest version
 %       Syntax      : obj.update
 %
 
@@ -51,12 +51,8 @@ classdef Chromatography
     % ---------------------------------------
     properties (Constant = true)
         
-        url = 'https://github.com/chemplexity/chromatography';
-<<<<<<< HEAD
-        version = '0.1.6';
-=======
+        url     = 'https://github.com/chemplexity/chromatography';
         version = '0.1.51';
->>>>>>> hotfix/v0.1.51
 
     end
     

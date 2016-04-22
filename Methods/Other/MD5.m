@@ -20,7 +20,6 @@
 % ------------------------------------------------------------------------
 %   checksum = MD5('FID1A.CH')
 %   checksum = MD5('001-32-2.RAW')
-%
 
 function checksum = MD5(file)
 
@@ -39,7 +38,8 @@ fstream = java.io.FileInputStream(java.io.File(file));
 dstream = java.security.DigestInputStream(fstream, md5);
 
 % Determine MD5 checksum
-while(dstream.read() ~= -1); end
+while (dstream.read() ~= -1); end
 
 checksum = reshape(dec2hex(typecast(md5.digest(),'uint8'))', 1, []);
+
 end

@@ -1,0 +1,20 @@
+ 443 1d59 30423b51 c1dc
+Method       Method started: (F) line# 3 vial# 5 inj# 1     14:55:29 08/28/95
+ 443 1d59 30423b51 c1dc
+Method       Method started: (B) line# 3 vial# 1 inj# 1     14:55:29 08/28/95
+  67 1d59 30423b51    0
+Method       Instrument running sample vial# 5 (front)      14:55:29 08/28/95
+  67 1d59 30423b51    0
+Method       Instrument running sample vial# 1 (back)       14:55:29 08/28/95
+  70 1d57 30423e18    0
+CP Macro     Analyzing rawdata SIG10005.D                   15:07:20 08/28/95
+  67 1d59 30423e1c    0
+Method       Instrument run completed                       15:07:24 08/28/95
+  70 1d57 30423e20    0
+CP Macro     Loading Data Analysis Method of 100A5HZ.M      15:07:28 08/28/95
+  70 1d57 30423e22    0
+CP Macro     Analyzing rawdata SIG20005.D                   15:07:30 08/28/95
+  70 1d57 30423e2a    0
+CP Macro     Loading Data Analysis Method of 100A5HZ.M      15:07:38 08/28/95
+  67 1d59 30423e2b    0
+Method       Method completed                               15:07:39 08/28/95

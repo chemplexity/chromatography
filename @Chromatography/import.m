@@ -176,7 +176,7 @@ switch options.filetype
             tic;
             
             % Import data
-            fdata = ImportAgilent(filepath, 'precision', options.precision);
+            fdata = ImportAgilent(filepath);
             
             % Stop timer
             options.compute_time = options.compute_time + toc;
@@ -263,7 +263,7 @@ switch options.filetype
             tic;
             
             % Import file data
-            fdata = ImportAgilent(filepath, 'precision', options.precision);
+            fdata = ImportAgilent(filepath);
             
             % Stop timer
             options.compute_time = options.compute_time + toc;
