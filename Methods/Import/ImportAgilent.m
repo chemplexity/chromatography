@@ -126,6 +126,7 @@ else
     status(option.verbose, 1);
 end
 
+<<<<<<< HEAD
 % ---------------------------------------
 % File selection
 % ---------------------------------------
@@ -138,12 +139,93 @@ else
     
     % Get files from user input
     for i = 1:length(option.path)
+=======
+%
+% Agilent // Mass Spectrometer
+%
+function varargout = AgilentMS(varargin)
+
+%
+% File Information
+%
+    function [data, options] = FileInfo(file, data, options)
+        
+        % Sample name
+        fseek(file, 24, 'bof');
+        data.sample.name = strtrim(deblank(fread(file, fread(file, 1, 'uint8'), 'uint8=>char')'));
+        
+        % Sample description
+        fseek(file, 86, 'bof');
+        data.sample.description = strtrim(deblank(fread(file, fread(file, 1, 'uint8'), 'uint8=>char')'));
+        
+        fseek(file, 252, 'bof');
+        data.sample.sequence = fread(file, 1, 'short', 0, 'b');
+        data.sample.vial = fread(file, 1, 'short', 0, 'b');
+        data.sample.replicate = fread(file, 1, 'short', 0, 'b');
+        
+        % Method name
+        fseek(file, 228, 'bof');
+        data.method.name = strtrim(deblank(fread(file, fread(file, 1, 'uint8'), 'uint8=>char')'));
+        
+        % Method operator
+        fseek(file, 148, 'bof');
+        data.method.operator = strtrim(deblank(fread(file, fread(file, 1, 'uint8'), 'uint8=>char')'));
+        
+        % Method date/time
+        fseek(file, 178, 'bof');
+        date = strtrim(deblank(fread(file, fread(file, 1, 'uint8'), 'uint8=>char')'));
+        
+        data.method.date = '';
+        data.method.time = '';
+        
+        try
+            date = datenum(date, 'dd mmm yy HH:MM PM');
+            data.method.date = datestr(date, 'mm/dd/yy');
+            data.method.time = datestr(date, 'HH:MM PM');
+        catch
+            try
+                date = datenum(date, 'mm/dd/yy HH:MM:SS PM');
+                data.method.date = datestr(date, 'mm/dd/yy');
+                data.method.time = datestr(date, 'HH:MM PM');
+            catch
+                try
+                    date = datenum(date, 'dd-mmm-yy, HH:MM:SS');
+                    data.method.date = datestr(date, 'mm/dd/yy');
+                    data.method.time = datestr(date, 'HH:MM PM');
+                catch
+                    data.method.date = date;
+                    data.method.time = date;
+                end
+            end
+        end
+        
+        data.method.date = strtrim(deblank(data.method.date));
+        data.method.time = strtrim(deblank(data.method.time));
+        
+        % Instrument name
+        fseek(file, 208, 'bof');
+        data.instrument.name = strtrim(deblank(fread(file, fread(file, 1, 'uint8'), 'uint8=>char')'));
+        
+        % Instrument inlet
+        fseek(file, 218, 'bof');
+        data.instrument.inlet = strtrim(deblank(fread(file, fread(file, 1, 'uint8'), 'uint8=>char')'));
+        
+        % Total scans
+        fseek(file, 278, 'bof');
+        options.scans = fread(file, 1, 'uint', 'b');
+>>>>>>> hotfix/v0.1.51
         
         [~, filepath] = fileattrib(option.path{i});
         
+<<<<<<< HEAD
         if isstruct(filepath)
             filelist = [filelist; filepath];
         end
+=======
+        % XIC offset
+        fseek(file, options.offset.tic, 'bof');
+        options.offset.xic = fread(file, options.scans, 'int', 8, 'b') .* 2 - 2;
+>>>>>>> hotfix/v0.1.51
         
     end
 end
@@ -173,6 +255,7 @@ while option.depth > 0
         
         [~,~,ext] = fileparts(filelist(i).Name);
         
+<<<<<<< HEAD
         if any(strcmpi(ext, {'.M', '.git', '.lnk'}))
             continue
             
@@ -194,6 +277,20 @@ while option.depth > 0
                     end
                 end
             end
+=======
+        index(:,2) = cumsum(n);
+        index(:,1) = circshift(index(:,2), [1,0]) + 1;
+        index(1,1) = 1;
+            
+        % Pre-allocate memory
+        data.xic = zeros(length(data.time), length(data.mz));
+            
+        % Index columns
+        [~, cols] = ismember(mz, data.mz);
+            
+        for i = 1:scans
+            data.xic(i, cols(index(i,1):index(i,2))) = xic(index(i,1):index(i,2));
+>>>>>>> hotfix/v0.1.51
         end
     end
     
@@ -317,6 +414,7 @@ function status(varargin)
     end
 end
 
+<<<<<<< HEAD
 % ---------------------------------------
 % FileUI
 % ---------------------------------------
@@ -365,6 +463,74 @@ if status == fc.APPROVE_OPTION
         if isstruct(f)
             filelist = [filelist; f];
         end
+=======
+%
+% Flame Ionization Detector (8, 81, 179, 181)
+%
+    function [data, options] = FileInfo(file, data, options)
+        
+        if any(strcmpi(options.version, {'8', '81'}))
+            encoding = 'uint8=>char';
+        else
+            encoding = 'uint16=>char';
+        end
+        
+        % Sample name
+        fseek(file, options.offset.sample, 'bof');
+        data.sample.name = strtrim(deblank(fread(file, fread(file, 1, 'uint8'), encoding, 'l')'));
+        
+        fseek(file, options.offset.description, 'bof');
+        data.sample.description = strtrim(deblank(fread(file, fread(file, 1, 'uint8'), encoding, 'l')'));
+        
+        % Method name
+        fseek(file, options.offset.method, 'bof');
+        data.method.name = strtrim(deblank(fread(file, fread(file, 1, 'uint8'), encoding, 'l')'));
+        
+        % Method operator
+        fseek(file, options.offset.operator, 'bof');
+        data.method.operator = strtrim(deblank(fread(file, fread(file, 1, 'uint8'), encoding, 'l')'));
+        
+        fseek(file, 252, 'bof');
+        data.sample.sequence = fread(file, 1, 'short', 0, 'b');
+        data.sample.vial = fread(file, 1, 'short', 0, 'b');
+        data.sample.replicate = fread(file, 1, 'short', 0, 'b');
+        
+        % Method date/time
+        fseek(file, options.offset.date, 'bof');
+        date = strtrim(deblank(fread(file, fread(file, 1, 'uint8'), encoding, 'l')'));
+        
+        try
+            date = datenum(date, 'dd mmm yy HH:MM PM');
+            data.method.date = datestr(date, 'mm/dd/yy');
+            data.method.time = datestr(date, 'HH:MM PM');
+        catch
+            try
+                date = datenum(date, 'mm/dd/yy HH:MM:SS PM');
+                data.method.date = datestr(date, 'mm/dd/yy');
+                data.method.time = datestr(date, 'HH:MM PM');
+            catch
+                try
+                    date = datenum(date, 'dd-mmm-yy, HH:MM:SS');
+                    data.method.date = datestr(date, 'mm/dd/yy');
+                    data.method.time = datestr(date, 'HH:MM PM');
+                catch
+                    data.method.date = date;
+                    data.method.time = date;
+                end
+            end
+        end
+        
+        data.method.date = strtrim(deblank(data.method.date));
+        data.method.time = strtrim(deblank(data.method.time));
+        
+        % Instrument type
+        fseek(file, options.offset.instrument, 'bof');
+        data.instrument.name = strtrim(deblank(fread(file, fread(file, 1, 'uint8'), encoding, 'l')'));
+        
+        % Instrument units
+        fseek(file, options.offset.units, 'bof');
+        data.instrument.units = strtrim(deblank(fread(file, fread(file, 1, 'uint8'), encoding, 'l')'));
+>>>>>>> hotfix/v0.1.51
     end
 end
 
@@ -377,9 +543,44 @@ function data = parseinfo(f)
 
 data.file.version = fpascal(f, 0, 'uint8');
 
+<<<<<<< HEAD
 switch data.file.version
 
     case {'2', '8', '81', '30', '31'}
+=======
+switch options.version
+    
+    case {'8'}
+        
+        % Sample Info
+        options.offset.sample = 24;
+        options.offset.description = 86;
+        
+        % Method Info
+        options.offset.method = 228;
+        options.offset.operator = 148;
+        options.offset.date = 178;
+        
+        % Instrument Info
+        options.offset.instrument = 218;
+        options.offset.inlet = 208;
+        options.offset.units = 580;
+        
+        fseek(file, 264, 'bof');
+        offset = (fread(file, 1, 'int32', 'b') - 1) * 512;
+        
+        [data, options] = FileInfo(file, data, options);
+        data.tic = DeltaCompression(file, offset);
+        
+        fseek(file, 282, 'bof');
+        xmin = fread(file, 1, 'int32', 'b') / 60000;
+        xmax = fread(file, 1, 'int32', 'b') / 60000;
+        
+        data.time = linspace(xmin, xmax, length(data.tic))';
+        
+        fseek(file, 542, 'bof');
+        header = fread(file, 1, 'int32', 'b');
+>>>>>>> hotfix/v0.1.51
         
         data.file.info        = fpascal(f,  4,   'uint8');
         data.sample.name      = fpascal(f,  24,  'uint8');
@@ -440,7 +641,13 @@ switch data.file.version
         offset = fnumeric(f, 260, 'int32') * 2 - 2;
         scans  = fnumeric(f, 278, 'int32');
         
+<<<<<<< HEAD
     case {'8', '81', '179', '181', '30', '130'}
+=======
+        % Sample Info
+        options.offset.sample = 24;
+        options.offset.description = 86;
+>>>>>>> hotfix/v0.1.51
         
         offset = (fnumeric(f, 264, 'int32') - 1) * 512 ;
         scans  = fnumeric(f, 278, 'int32');
@@ -466,7 +673,11 @@ switch data.file.version
         offset = farray(f, offset, 'int32', scans, 8) * 2 - 2;
         data   = fpacket(f, data, offset);
         
+<<<<<<< HEAD
     case {'8', '30', '130'}
+=======
+        data.time = linspace(xmin, xmax, length(data.tic))';
+>>>>>>> hotfix/v0.1.51
         
         data.channel   = 1;
         data.intensity = fdelta(f, offset);
@@ -480,6 +691,7 @@ switch data.file.version
         
     case {'179'}
         
+<<<<<<< HEAD
         data.channel   = 1;
         data.intensity = fdoublearray(f, offset);
         data.time      = ftime(t0, t1, numel(data.intensity));
@@ -488,6 +700,33 @@ end
 switch data.file.version
     
     case {'8'}
+=======
+        % Sample Info
+        options.offset.sample = 858;
+        options.offset.description = 1369;
+        
+        % Method Info
+        options.offset.method = 2574;
+        options.offset.operator = 1880;
+        options.offset.date = 2391;
+        
+        % Instrument Info
+        options.offset.instrument = 2533;
+        options.offset.inlet = 2492;
+        options.offset.units = 4172;
+        
+        fseek(file, 264, 'bof');
+        offset = (fread(file, 1, 'int32', 'b') - 1) * 512;
+        
+        [data, options] = FileInfo(file, data, options);
+        data.tic = DoubleArray(file, offset);
+        
+        fseek(file, 282, 'bof');
+        xmin = fread(file, 1, 'float32', 'b') / 60000;
+        xmax = fread(file, 1, 'float32', 'b') / 60000;
+        
+        data.time = linspace(xmin, xmax, length(data.tic))';
+>>>>>>> hotfix/v0.1.51
         
         version   = fnumeric(f, 542, 'int32');
         intercept = fnumeric(f, 636, 'float64');
@@ -505,12 +744,18 @@ switch data.file.version
         intercept = fnumeric(f, 636, 'float64');
         slope     = fnumeric(f, 644, 'float64');
         
+<<<<<<< HEAD
         if all(version ~= 1,2)
             data.intensity = data.intensity .* slope + intercept;
             
         elseif version == 2
             data.intensity = data.intensity .* 0.00240841663372301;
         end
+=======
+        % Sample Info
+        options.offset.sample = 858;
+        options.offset.description = 1369;
+>>>>>>> hotfix/v0.1.51
         
     case {'81'}
         
@@ -525,11 +770,15 @@ switch data.file.version
         intercept = fnumeric(f, 4724, 'float64');
         slope     = fnumeric(f, 4732, 'float64');
         
+<<<<<<< HEAD
         if all(version ~= 1,2)
             data.intensity = data.intensity .* slope + intercept;
         elseif version == 2
             data.intensity = data.intensity .* 0.00240841663372301;
         end
+=======
+        data.time = linspace(xmin, xmax, length(data.tic))';
+>>>>>>> hotfix/v0.1.51
         
     case {'179, 181'}
         

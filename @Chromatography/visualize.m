@@ -603,16 +603,19 @@ elseif strcmpi(options.ypermission, 'write')
     end
     
 end
-
 end
 
 function plot_update(options)
 
-padding.x = (options.xlimits(2) - options.xlimits(1)) * (options.padding);
-padding.y = (options.ylimits(2) - options.ylimits(1)) * options.padding;
+if ~isempty(options.xlimits)
+    padding.x = (options.xlimits(2) - options.xlimits(1)) * options.padding;
+    set(options.axes, 'xlim', [options.xlimits(1)-padding.x, options.xlimits(2)+padding.x]);
+end
 
-set(options.axes, 'xlim', [options.xlimits(1)-padding.x, options.xlimits(2)+padding.x]);
-set(options.axes, 'ylim', [options.ylimits(1)-padding.y, options.ylimits(2)+padding.y]);
+if ~isempty(options.ylimits)
+    padding.y = (options.ylimits(2) - options.ylimits(1)) * options.padding;
+    set(options.axes, 'ylim', [options.ylimits(1)-padding.y, options.ylimits(2)+padding.y]);
+end
 
 if strcmpi(options.legend, 'off')
    legend(options.axes, 'hide');
