@@ -627,6 +627,7 @@ function data = fpacket(f, data, offset)
 
 x = [];
 y = [];
+n = [];
 
 for i = 1:length(offset)
     
@@ -639,10 +640,12 @@ for i = 1:length(offset)
     
 end
 
+z = y(1,:) ./ 20;
+
 n(:,2) = cumsum(n);
 n(:,3) = n(:,2) - n(:,1) + 1;
 
-z = y(1,:);
+% Int to Float
 e = bitand(y(2,:), 49152, 'int32');
 y = bitand(y(2,:), 16383, 'int32');
 
@@ -651,16 +654,19 @@ while any(e) ~= 0
     e(e~=0) = e(e~=0) - 16384;
 end
 
-data.time      = x ./ 60000;
-data.channel   = unique(z, 'sorted');
+% Time values
+data.time = x ./ 60000;
+
+% Channel values
+data.channel = unique(z, 'sorted');
+
+[~, index] = ismember(z, data.channel);
+
+% Intensity values
 data.intensity = zeros(numel(data.time), numel(data.channel));
 
-[~, cols] = ismember(z, data.channel);
-
-data.channel = data.channel ./ 20;
-
 for i = 1:numel(data.time)
-    data.intensity(i, cols(n(i,3):n(i,2))) = y(n(i,3):n(i,2));
+    data.intensity(i, index(n(i,3):n(i,2))) = y(n(i,3):n(i,2));
 end
 
 end
@@ -683,14 +689,13 @@ end
 % ---------------------------------------
 function y = fdelta(f, offset)
 
-i = 1;
-buffer = [0,0,0,0];
-
 fseek(f, 0, 'eof');
 n = ftell(f);
 
 fseek(f, offset, 'bof');
 y = zeros(floor(n/2), 1);
+
+buffer = [0,0,0,0,0];
 
 while ftell(f) < n
     
@@ -702,6 +707,7 @@ while ftell(f) < n
         for j = 1:bitand(buffer(1), 4095, 'int16');
             
             buffer(3) = fread(f, 1, 'int16', 'b');
+            buffer(5) = buffer(5) + 1;
             
             if buffer(3) ~= -32768
                 buffer(2) = buffer(2) + buffer(3);
@@ -709,8 +715,8 @@ while ftell(f) < n
                 buffer(2) = fread(f, 1, 'int32', 'b');
             end
             
-            y(i,1) = buffer(2);
-            i = i + 1;
+            y(buffer(5),1) = buffer(2);
+            
         end
         
         buffer(4) = buffer(2);
@@ -720,8 +726,8 @@ while ftell(f) < n
     end
 end
 
-if i < length(y)
-    y(i:end,:) = [];
+if buffer(5)+1 < length(y)
+    y(buffer(5)+1:end,1) = [];
 end
 
 end
@@ -731,18 +737,18 @@ end
 % ---------------------------------------
 function y = fdoubledelta(f, offset)
 
-i = 1;
-buffer = [0,0,0];
-
 fseek(f, 0, 'eof');
 n = ftell(f);
 
 fseek(f, offset, 'bof');
 y = zeros(floor(n/2), 1);
 
+buffer = [0,0,0,0];
+
 while ftell(f) < n
     
     buffer(3) = fread(f, 1, 'int16', 'b');
+    buffer(4) = buffer(4) + 1;
     
     if buffer(3) ~= 32767
         buffer(2) = buffer(2) + buffer(3);
@@ -753,12 +759,12 @@ while ftell(f) < n
         buffer(2) = 0;
     end
     
-    y(i,1) = buffer(1);
-    i = i + 1;
+    y(buffer(4),1) = buffer(1);
+    
 end
 
-if i < length(y)
-    y(i:end,:) = [];
+if buffer(4)+1 < length(y)
+    y(buffer(4)+1:end,1) = [];
 end
 
 end
@@ -775,4 +781,3 @@ fseek(f, offset, 'bof');
 y = fread(f, n, 'float64', 'l');
 
 end
-
