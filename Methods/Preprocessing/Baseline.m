@@ -40,7 +40,6 @@
 % References
 % ------------------------------------------------------------------------
 %   P.H.C. Eilers, Analytical Chemistry, 75 (2003) 3631
-%
 
 function varargout = Baseline(y, varargin)
 

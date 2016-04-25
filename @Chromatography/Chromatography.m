@@ -378,7 +378,7 @@ classdef Chromatography
                 
                 % Error: git command not on path
                 elseif status
-                    fprintf('Unable to find ''git.exe'' on path... \n');
+                    
                     fprintf('Searching system for ''git.exe''... \n');
                     
                     % Attempt to find git.exe
@@ -423,6 +423,7 @@ classdef Chromatography
             % Check system git
             % ---------------------------------------
             fprintf(['Using ''', '%s', '''... \n'], git);
+            
             [status, ~] = system([git, ' --version']);
                     
             % Error: git.exe does not work
@@ -438,6 +439,7 @@ classdef Chromatography
             [status, ~] = system([git, ' status']);
             
             if status
+                
                 fprintf('Initializing git repository... \n');
                 
                 % Initialize git repository
@@ -449,7 +451,7 @@ classdef Chromatography
             % Fetch latest updates
             % ---------------------------------------
             fprintf('Fetching updates from ''%s''... \n\n', Chromatography.url);
-            system([git, ' fetch -v']);
+            system([git, ' pull -v']);
                
             if status
                 [~,~] = system([git, ' checkout -f master']);

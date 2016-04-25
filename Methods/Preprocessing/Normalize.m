@@ -1,6 +1,6 @@
 % ------------------------------------------------------------------------
 % Method      : Normalize
-% Description : Normalize signal between 0 and 1
+% Description : Scale values between 0 and 1
 % ------------------------------------------------------------------------
 %
 % ------------------------------------------------------------------------
@@ -16,21 +16,26 @@
 %       Description : intensity values
 %       Type        : array or matrix
 %
-%   scope (optional)
-%       Description : scale to array ('local') or matrix ('global') min/max
+%   'scope' (optional)
+%       Description : normalize values by row, by column, or by matrix
 %       Type        : string
-%       Options     : 'local', 'global'
-%       Default     : 'local'
+%       Options     : 'row', 'column', 'matrix'
+%       Default     : 'column'
 %
 % ------------------------------------------------------------------------
 % Examples
 % ------------------------------------------------------------------------
 %   y = Normalize(y)
-%   y = Normalize(y, 'scope', 'local')
-%   y = Normalize(y, 'scope', 'global')
-%
+%   y = Normalize(y, 'scope', 'matrix')
+%   y = Normalize(y, 'scope', 'column')
+
 
 function varargout = Normalize(varargin)
+
+% ---------------------------------------
+% Defaults
+% ---------------------------------------
+default.scope = 'column';
 
 % ---------------------------------------
 % Input
@@ -41,7 +46,7 @@ addRequired(p, 'y',...
     @(x) validateattributes(x, {'numeric'}, {'nonnan', 'nonempty'}));
 
 addParameter(p, 'scope',...
-    'local',...
+    default.scope,...
     @(x) validateattributes(x, {'char'}, {'nonempty'}));
 
 parse(p, varargin{:});
@@ -49,18 +54,28 @@ parse(p, varargin{:});
 % ---------------------------------------
 % Variables
 % ---------------------------------------
-y = p.Results.y;
+y     = p.Results.y;
 scope = p.Results.scope;
 
 % ---------------------------------------
 % Normalize
 % ---------------------------------------
-if strcmpi(scope, 'global')
-    ymin = min(min(y));
-    ymax = max(max(y));
-else
-    ymin = min(y);
-    ymax = max(y);
+switch scope
+    
+    case {'matrix', 'mat', 'm'}
+        
+        ymin = min(min(y));
+        ymax = max(max(y));
+        
+    case {'column', 'col', 'c'}
+        
+        ymin = min(y);
+        ymax = max(y);
+        
+    case {'row', 'r'}
+        
+        ymin = min(y,[],2);
+        ymax = max(y,[],2);
 end
 
 y = bsxfun(@rdivide,...

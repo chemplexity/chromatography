@@ -23,7 +23,6 @@
 % Examples
 % ------------------------------------------------------------------------
 %   [mz, y] = Centroid(mz, y)
-%
 
 function varargout = Centroid(varargin)
 

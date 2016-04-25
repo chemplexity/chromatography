@@ -35,7 +35,6 @@
 %   y = Smooth(y, 'asymmetry', 0.4)
 %   y = Smooth(y, 'smoothness', 500)
 %   y = Smooth(y, 'smoothness', 10, 'asymmetry', 0.25)
-%
 
 function varargout = Smooth(y, varargin)
 

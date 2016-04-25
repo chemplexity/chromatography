@@ -21,7 +21,7 @@
 %       Description : intensity values
 %       Type        : array or matrix
 %
-%   order (optional)
+%   'order' (optional)
 %       Description : calculate nth order derivative
 %       Type        : integer
 %       Options     : >=1
@@ -34,7 +34,6 @@
 %   dy = Derivative(x, y)
 %   dy = Derivative(x, y, 'order', 1)
 %   dy = Derivative(y, 'order', 4)
-%
 
 function varargout = Derivative(varargin)
 
@@ -57,7 +56,7 @@ addParameter(p, 'order',...
 parse(p, varargin{:});
 
 % ---------------------------------------
-% Variables
+% Parse
 % ---------------------------------------
 x = p.Results.x;
 y = p.Results.y;

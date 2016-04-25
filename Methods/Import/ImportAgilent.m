@@ -727,7 +727,7 @@ while ftell(f) < n
 end
 
 if buffer(5)+1 < length(y)
-    y(buffer(5)+1:end,1) = [];
+    y(buffer(5)+1:end) = [];
 end
 
 end
@@ -764,7 +764,7 @@ while ftell(f) < n
 end
 
 if buffer(4)+1 < length(y)
-    y(buffer(4)+1:end,1) = [];
+    y(buffer(4)+1:end) = [];
 end
 
 end
