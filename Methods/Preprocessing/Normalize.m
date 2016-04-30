@@ -76,6 +76,7 @@ switch scope
         
         ymin = min(y,[],2);
         ymax = max(y,[],2);
+        
 end
 
 y = bsxfun(@rdivide,...

@@ -28,141 +28,158 @@
 %       Default     : 0.5
 %       Range       : 0.0 to 1.0
 %
+%   'iterations' (optional)
+%       Description : total iterations used for smoothing calculation
+%       Type        : number
+%       Default     : 5
+%       Range       : >0
+%
+%   'convergence' (optional)
+%       Description : stopping criteria
+%       Type        : number
+%       Default     : 1E-4
+%       Range       : >0
+%
 % ------------------------------------------------------------------------
 % Examples
 % ------------------------------------------------------------------------
 %   y = Smooth(y)
 %   y = Smooth(y, 'asymmetry', 0.4)
-%   y = Smooth(y, 'smoothness', 500)
-%   y = Smooth(y, 'smoothness', 10, 'asymmetry', 0.25)
+%   y = Smooth(y, 'smoothness', 500, 'iterations', 2)
+%   y = Smooth(y, 'smoothness', 10, 'asymmetry', 0.45)
+%
+% ------------------------------------------------------------------------
+% References
+% ------------------------------------------------------------------------
+%   P.H.C. Eilers, Analytical Chemistry, 75 (2003) 3631
 
-function varargout = Smooth(y, varargin)
+function y = Smooth(varargin)
 
-% Check input
-if nargin < 1
-    error('Not enough input arguments.');
-elseif ~isnumeric(y)
-    error('Undefined input arguments of type ''y''.');
-end
+% ---------------------------------------
+% Default
+% ---------------------------------------
+default.smoothness  = 0.5;
+default.asymmetry   = 0.5;
+default.iterations  = 5;
+default.convergence = 1E-4;
 
-% Default options
-asymmetry = 0.5;
-smoothness = 0.5;
+% ---------------------------------------
+% Input
+% ---------------------------------------
+p = inputParser;
 
-% Check options
-if nargin > 1
-    
-    % Check user input
-    input = @(x) find(strcmpi(varargin, x),1);
-    
-    % Check asymmetry options
-    if ~isempty(input('asymmetry'));
-        asymmetry = varargin{input('asymmetry')+1};
-        
-        % Check user input
-        if ~isnumeric(asymmetry)
-            asymmetry = 0.5;
-        elseif asymmetry <= 0
-            asymmetry = 1E-9;
-        elseif asymmetry >= 1
-            asymmetry = 1 - 1E-6;
-        end
-    end
-    
-    % Check smoothness options
-    if ~isempty(input('smoothness'));
-        smoothness = varargin{input('smoothness')+1};
-        
-        % Check user input
-        if ~isnumeric(smoothness)
-            smoothness = 0.5;
-        elseif smoothness <= 0
-            smoothness = 1E-9;
-        end
-    end
-end
+addRequired(p, 'y',...
+    @(x) validateattributes(x, {'numeric'}, {'nonnan', 'nonempty'}));
 
-% Check precision
+addParameter(p, 'smoothness',...
+    default.smoothness,...
+    @(x) validateattributes(x, {'numeric'}, {'scalar'}));
+
+addParameter(p, 'asymmetry',...
+    default.asymmetry,...
+    @(x) validateattributes(x, {'numeric'}, {'scalar'}));
+
+addParameter(p, 'iterations',...
+    default.iterations,...
+    @(x) validateattributes(x, {'numeric'}, {'scalar'}));
+
+addParameter(p, 'convergence',...
+    default.convergence,...
+    @(x) validateattributes(x, {'numeric'}, {'scalar'}));
+
+parse(p, varargin{:});
+
+% ---------------------------------------
+% Parse
+% ---------------------------------------
+y           = p.Results.y;
+s           = p.Results.smoothness;
+a           = p.Results.asymmetry;
+iterations  = p.Results.iterations;
+convergence = p.Results.convergence;
+
+% ---------------------------------------
+% Validate
+% ---------------------------------------
 if ~isa(y, 'double')
     y = double(y);
 end
 
-% Check data length
-if all(size(y) <= 3)
-    error('Insufficient number of points.');
+if s <= 0
+    s = 1E-9;
 end
 
-% Check for negative values
-if any(min(y) < 0)
-    
-    % Determine offset
-    offset = min(y);
-    offset(offset > 0) = 0;
-    offset(offset < 0) = abs(offset(offset < 0));
-else
-    offset = zeros(1, length(y(1,:)));
+if a <= 0
+    a = 1E-9;
+elseif a >= 1
+    a = 1 - 1E-9;
 end
 
+% ---------------------------------------
 % Variables
-rows = length(y(:,1));
-index = 1:rows;
+% ---------------------------------------
+[m,n] = size(y);
 
-% Pre-allocate memory
-smoothed = zeros(size(y));
-weights = ones(rows, 1);
-w = spdiags(weights, 0, rows, rows);
+% Weights
+w = ones(m, 2);
 
-% Variables
-d = diff(speye(rows), 2);
-d = smoothness * (d' * d);
+% Diagonal matrix
+W = spdiags(w(:,1), 0, m, m);
 
-% Calculate smoothed data
-for i = 1:length(y(1,:))
+% Difference matrix
+D = diff(speye(m), 2);
+D = s * (D' * D);
+
+% ---------------------------------------
+% Smooth
+% ---------------------------------------
+for i = 1:n
     
-    % Check offset
-    if offset(i) ~= 0
-        y(:,i) = y(:,i) + offset(i);
-    end
-    
-    % Check values
-    if ~any(y(:,i) ~= 0)
+    % Check y-values
+    if ~nnz(y(:,i))
         continue
     end
     
-    % Pre-allocate memory
-    s = zeros(rows,1);
-    
-    % Number of iterations
-    for j = 1:10
+    for j = 1:iterations
         
         % Cholesky factorization
-        w = chol(w + d);
+        [W, error] = chol(W + D);
         
-        % Left matrix divide, multiply matrices
-        s = w \ (w' \ (weights .* y(:,i)));
+        % Check errors
+        if error
+            disp(j);
+            break
+        end
         
-        % Determine weights
-        weights = asymmetry * (y(:,i) > s) + (1 - asymmetry) * (y(:,i) < s);
+        % Calculate signal
+        z = W \ (W' \ (w(:,1) .* y(:,i)));
         
-        % Reset sparse matrix
-        w = sparse(index, index, weights);
+        % Calculate weights
+        w(:,2) = w(:,1);
+        w(:,1) = a * (y(:,i) > z) + (1 - a) * (y(:,i) < z);
+        
+        % Check convergence
+        if mean(abs(diff(w,[],2))) <= convergence
+            break
+        end
+        
+        % Check iterations
+        if j == iterations
+            break
+        end
+        
+        % Update diagonal matrix
+        W = sparse(1:m, 1:m, w(:,1));
+        
     end
     
-    % Remove negative values
-    s(s<0) = 0;
+    % Reset weights
+    w(:,1) = 1;
+    W = spdiags(w(:,1), 0, m, m);
     
-    % Check offset
-    if offset(i) ~= 0
-        smoothed(:,i) = s - offset(i);
-        
-    elseif offset(i) == 0
-        smoothed(:,i) = s;
-    end
+    % Update signal
+    y(:,i) = z;
     
-    % Reset variables
-    weights = ones(rows, 1);
 end
 
-% Set output
-varargout{1} = smoothed;
 end

@@ -26,7 +26,19 @@
 %       Description : asymmetry parameter used for baseline calculation
 %       Type        : number
 %       Default     : 1E-4
-%       Range       : 1E-3 to 1E-9
+%       Range       : 1E-2 to 1E-9
+%
+%   'iterations' (optional)
+%       Description : total iterations used for baseline calculation
+%       Type        : number
+%       Default     : 10
+%       Range       : >0
+%
+%   'convergence' (optional)
+%       Description : stopping criteria
+%       Type        : number
+%       Default     : 1E-4
+%       Range       : >0
 %
 % ------------------------------------------------------------------------
 % Examples
@@ -41,143 +53,134 @@
 % ------------------------------------------------------------------------
 %   P.H.C. Eilers, Analytical Chemistry, 75 (2003) 3631
 
-function varargout = Baseline(y, varargin)
+function b = Baseline(varargin)
 
-% Check input
-if nargin < 1
-    error('Not enough input arguments.');
-    
-elseif ~isnumeric(y)
-    error('Undefined input arguments of type ''y''.');
-end
+% ---------------------------------------
+% Default
+% ---------------------------------------
+default.smoothness  = 1E6;
+default.asymmetry   = 1E-4;
+default.iterations  = 10;
+default.convergence = 1E-4;
 
-% Default options
-smoothness = 1E6;
-asymmetry = 1E-4;
+% ---------------------------------------
+% Input
+% ---------------------------------------
+p = inputParser;
 
-% Check user input
-if nargin > 1
-    
-    input = @(x) find(strcmpi(varargin,x),1);
-    
-    % Check asymmetry options
-    if ~isempty(input('asymmetry'));
-        
-        asymmetry = varargin{input('asymmetry')+1};
-        
-        % Check for valid input
-        if ~isnumeric(asymmetry)
-            asymmetry = 1E-4;
-            
-        elseif asymmetry <= 0
-            asymmetry = 1E-9;
-            
-        elseif asymmetry >= 1
-            asymmetry = 1 - 1E-6;
-        end
-        
-    end
-    
-    % Check smoothness options
-    if ~isempty(input('smoothness'));
-        
-        smoothness = varargin{input('smoothness')+1};
-        
-        % Check for valid input
-        if ~isnumeric(smoothness) || smoothness > 10^15
-            smoothness = 1E6;
-            
-        elseif smoothness <= 0
-            smoothness = 1E6;
-        end
-        
-    end
-end
+addRequired(p, 'y',...
+    @(x) validateattributes(x, {'numeric'}, {'nonnan', 'nonempty'}));
 
-% Check data precision
+addParameter(p, 'smoothness',...
+    default.smoothness,...
+    @(x) validateattributes(x, {'numeric'}, {'scalar'}));
+
+addParameter(p, 'asymmetry',...
+    default.asymmetry,...
+    @(x) validateattributes(x, {'numeric'}, {'scalar'}));
+
+addParameter(p, 'iterations',...
+    default.iterations,...
+    @(x) validateattributes(x, {'numeric'}, {'scalar'}));
+
+addParameter(p, 'convergence',...
+    default.convergence,...
+    @(x) validateattributes(x, {'numeric'}, {'scalar'}));
+
+parse(p, varargin{:});
+
+% ---------------------------------------
+% Parse
+% ---------------------------------------
+y           = p.Results.y;
+s           = p.Results.smoothness;
+a           = p.Results.asymmetry;
+iterations  = p.Results.iterations;
+convergence = p.Results.convergence;
+
+% ---------------------------------------
+% Validate
+% ---------------------------------------
 if ~isa(y, 'double')
     y = double(y);
 end
 
-% Check data length
-if all(size(y) <= 3)
-    error('Insufficient number of points.');
+if s <= 0
+    s = 1E-9;
 end
 
-% Check for negative values
-if any(min(y) < 0)
-    
-    % Determine offset
-    offset = min(y);
-    offset(offset > 0) = 0;
-    offset(offset < 0) = abs(offset(offset < 0));
-    
-else
-    offset = zeros(1, length(y(1,:)));
+if a <= 0
+    a = 1E-9;
+elseif a >= 1
+    a = 1 - 1E-9;
 end
 
+% ---------------------------------------
 % Variables
-rows = length(y(:,1));
-index = 1:rows;
+% ---------------------------------------
+[m,n] = size(y);
 
-% Pre-allocate memory
-baseline = zeros(size(y));
-weights = ones(rows, 1);
+% Baseline
+b = zeros(m,n);
 
-w = spdiags(weights, 0, rows, rows);
+% Weights
+w = ones(m, 2);
 
-% Variables
-d = diff(speye(rows), 2);
-d = smoothness * (d' * d);
+% Diagonal matrix
+W = spdiags(w(:,1), 0, m, m);
 
-% Calculate baseline
-for i = 1:length(y(1,:))
+% Difference matrix
+D = diff(speye(m), 2);
+D = s * (D' * D);
+
+% ---------------------------------------
+% Baseline
+% ---------------------------------------
+for i = 1:n
     
-    % Check offset
-    if offset(i) ~= 0
-        y(:,i) = y(:,i) + offset(i);
-    end
-    
-    % Check values
-    if nnz(y(:,i)) == 0
+    % Check y-values
+    if ~nnz(y(:,i))
         continue
     end
     
-    % Pre-allocate memory
-    b = zeros(rows,1);
-    
-    % Number of iterations
-    for j = 1:10
+    for j = 1:iterations
         
         % Cholesky factorization
-        w = chol(w + d);
+        [W, error] = chol(W + D);
         
-        % Left matrix divide, multiply matrices
-        b = w \ (w' \ (weights .* y(:,i)));
-        
-        % Determine weights
-        weights = asymmetry * (y(:,i) > b) + (1 - asymmetry) * (y(:,i) < b);
-        
-        % Reset sparse matrix
-        w = sparse(index, index, weights);
-    end
-    
-    % Remove negative values
-    b(b<0) = 0;
-    
-    % Remove offset
-    if offset(i) ~= 0
-        baseline(:,i) = b - offset(i);
-        
-    elseif offset(i) == 0
-        baseline(:,i) = b;
-    end
-    
-    % Reset variables
-    weights = ones(rows, 1);
-end
+        % Check errors
+        if error
+            break
+        end
 
-% Set output
-varargout{1} = baseline;
+        % Calculate signal
+        z = W \ (W' \ (w(:,1) .* y(:,i)));
+        
+        % Calculate weights
+        w(:,2) = w(:,1);
+        w(:,1) = a * (y(:,i) > z) + (1 - a) * (y(:,i) < z);
+        
+        % Check convergence
+        if mean(abs(diff(w,[],2))) <= convergence
+            break
+        end
+        
+        % Check iterations
+        if j == iterations
+            break
+        end
+        
+        % Update diagonal matrix
+        W = sparse(1:m, 1:m, w(:,1));
+        
+    end
+    
+    % Reset weights
+    w(:,1) = 1;
+    W = spdiags(w(:,1), 0, m, m);
+    
+    % Update baseline
+    b(:,i) = z;
+end
 
 end

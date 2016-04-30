@@ -58,8 +58,8 @@ parse(p, varargin{:});
 % ---------------------------------------
 % Parse
 % ---------------------------------------
-x = p.Results.x;
-y = p.Results.y;
+x     = p.Results.x;
+y     = p.Results.y;
 order = p.Results.order;
 
 % ---------------------------------------
@@ -87,7 +87,7 @@ end
 % ---------------------------------------
 dx = x;
 dy = y;
-n = round(order(1));
+n  = round(order(1));
 
 for i = 1:n
     
@@ -103,10 +103,11 @@ for i = 1:n
     
 end
 
+dy(isnan(dy)|isinf(dy)) = 0;
+
 % ---------------------------------------
 % Output
 % ---------------------------------------
-dy(isnan(dy)|isinf(dy)) = 0;
 varargout{1} = dy;
 
 end
