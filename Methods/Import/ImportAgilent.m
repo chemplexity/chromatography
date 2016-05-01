@@ -319,7 +319,7 @@ function status(varargin)
 
         % [LOADING]
         case 6
-            fprintf(['[LOADING] (', num2str(varargin{3}), '/', num2str(varargin{4}), ')']);
+            fprintf(['[', num2str(varargin{3}), '/', num2str(varargin{4}), ']']);
             fprintf(' %s \n', varargin{5});
 
     end
@@ -333,9 +333,15 @@ function file = FileUI()
 % ---------------------------------------
 % JFileChooser (Java)
 % ---------------------------------------
+if ~usejava('swing')
+    return
+end
+
 fc = javax.swing.JFileChooser(java.io.File(pwd));
 
-% Selection options
+% ---------------------------------------
+% Options
+% ---------------------------------------
 fc.setFileSelectionMode(fc.FILES_AND_DIRECTORIES);
 fc.setMultiSelectionEnabled(true);
 fc.setAcceptAllFileFilterUsed(false);
@@ -479,16 +485,6 @@ switch data.file_version
         t0 = fnumeric(f, 282, 'int32') / 60000;
         t1 = fnumeric(f, 286, 'int32') / 60000;
         
-    otherwise
-        
-        t0 = 0;
-        t1 = 0;
-     
-end
-
-% Check time values
-if t0 == 0 && t1 == 0
-    return
 end
 
 % Signal data
@@ -512,6 +508,10 @@ switch data.file_version
         data.time      = ftime(t0, t1, numel(data.intensity));
         
     case {'179'}
+        
+        if fnumeric(f, offset, 'int32') == 2048
+            offset = offset + 2048;
+        end
         
         data.channel   = 0;
         data.intensity = fdoublearray(f, offset);
@@ -670,9 +670,6 @@ function instrStr = parseinstrument(data)
 
 instrMatch = @(x,str) any(cellfun(@any, regexpi(x, str)));
 
-instrRegex.GC  = {'GC'};
-instrRegex.LC  = {'LC'};
-instrRegex.CE  = {'CE'};
 instrRegex.DAD = {'DAD', '1040', '1050', '1315', '4212', '7117'};
 instrRegex.VWD = {'VWD', '1314', '7114'};
 instrRegex.MWD = {'MWD', '1365'};
@@ -691,11 +688,11 @@ switch data.file_version
 
     case {'2'}
         
-        if instrMatch(instrInfo, instrRegex.CE)
+        if instrMatch(instrInfo, {'CE'})
             instrStr = 'CE/MS';
-        elseif instrMatch(instrInfo, instrRegex.LC)
+        elseif instrMatch(instrInfo, {'LC'})
             instrStr = 'LC/MS';
-        elseif instrMatch(instrInfo, instrRegex.GC)
+        elseif instrMatch(instrInfo, {'GC'})
             instrStr = 'GC/MS';
         else
             instrStr = 'MS';
@@ -703,7 +700,7 @@ switch data.file_version
         
     case {'8', '81', '179', '181'}
         
-        if instrMatch(instrInfo, instrRegex.GC)
+        if instrMatch(instrInfo, {'GC'})
             instrStr = 'GC/FID'; 
         else
             instrStr = 'GC';
@@ -725,7 +722,7 @@ switch data.file_version
             instrStr = 'LC/ADC';
         elseif instrMatch(instrInfo, instrRegex.ELS)
             instrStr = 'LC/ELSD';
-        elseif instrMatch(instrInfo, instrRegex.CE)
+        elseif instrMatch(instrInfo, {'CE'})
             instrStr = 'CE';
         else
             instrStr = 'LC';
