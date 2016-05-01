@@ -1,6 +1,6 @@
 % ------------------------------------------------------------------------
 % Method      : Align
-% Description : Parametric time warping chromatogram alignment
+% Description : Batch signal alignment with parametric time warping
 % ------------------------------------------------------------------------
 %
 % ------------------------------------------------------------------------
@@ -136,4 +136,5 @@ for i = 1:n
     varargout{2}{i} = index;
     
 end
+
 end

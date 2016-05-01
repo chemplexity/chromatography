@@ -1,52 +1,42 @@
 % ------------------------------------------------------------------------
 % Method      : ImportAgilent
-% Description : Import Agilent data files (.D, .MS, .CH, .UV)
+% Description : Read Agilent data files (.D, .MS, .CH, .UV)
 % ------------------------------------------------------------------------
 %
 % ------------------------------------------------------------------------
 % Syntax
 % ------------------------------------------------------------------------
 %   data = ImportAgilent()
-%   data = ImportAgilent(Name, Value)
+%   data = ImportAgilent(file)
+%   data = ImportAgilent( __ , Name, Value)
 %
 % ------------------------------------------------------------------------
-% Parameters
+% Input (Optional)
 % ------------------------------------------------------------------------
-%   'filepath' (optional)
-%       Description : file or folder path
-%       Type        : string or cell
-%       Default     : opens file selection interface
+%   file -- name of file or folder path
+%       empty (default) | string | cell array
 %
-%   'filedepth' (optional)
-%       Description : subfolder search depth
-%       Type        : integer
-%       Options     : >= 0
-%       Default     : 1
+% ------------------------------------------------------------------------
+% Input (Name, Value)
+% ------------------------------------------------------------------------
+%   'depth' -- subfolder search depth
+%       1 (default) | integer
 %
-%   'filecontent' (optional)
-%       Description : import file metadata or raw signal data or both
-%       Type        : string
-%       Options     : 'all', 'metadata', 'data'
-%       Default     : 'all'
+%   'content' -- read file header, signal data, or both
+%       'all' (default) | 'header' | 'signal'
 %
-%   'verbose' (optional)
-%       Description : display import progress in command window
-%       Type        : string
-%       Options     : 'on', 'off'
-%       Default     : 'on'
+%   'verbose' -- show progress in command window
+%       'on' (default) | 'off'
 %
 % ------------------------------------------------------------------------
 % Examples
 % ------------------------------------------------------------------------
 %   data = ImportAgilent()
-%   data = ImportAgilent('filepath', {'/Data/2014/01/', '/Data/2013/01/'})
-%   data = ImportAgilent('filepath', {'00201F.D', '00201B.D', '00301F.D'})
-%   data = ImportAgilent('filepath', '/Data/2014/', 'filedepth', 6)
-%   data = ImportAgilent('filedepth', 6)
-%   data = ImportAgilent('filetype', '.CH')
-%   data = ImportAgilent('filecontent', 'metadata', 'filedepth', 8)
+%   data = ImportAgilent('00159F.D')
+%   data = ImportAgilent({'/Data/2016/04/', '00201B.D'})
+%   data = ImportAgilent('/Data/2016/', 'depth', 4)
+%   data = ImportAgilent('content', 'header', 'depth', 8)
 %   data = ImportAgilent('verbose', 'off')
-
 
 function data = ImportAgilent(varargin)
 
@@ -54,13 +44,13 @@ function data = ImportAgilent(varargin)
 % Initialize
 % ---------------------------------------
 data      = [];
-filelist  = [];
+file      = [];
 supported = {'.MS', '.CH', '.UV'};
 
 % ---------------------------------------
 % Defaults
 % ---------------------------------------
-default.path    = [];
+default.file    = [];
 default.depth   = 1;
 default.content = 'all';
 default.verbose = 'on';
@@ -71,18 +61,18 @@ default.formats = {'.D', '.MS', '.CH', '.UV'};
 % ---------------------------------------
 p = inputParser;
 
-addParameter(p,...
-    'filepath',...
-    default.path,...
-    @(x) validateattributes(x, {'char', 'cell'}, {'nonempty'}));
+addOptional(p,...
+    'file',...
+    default.file,...
+    @(x) validateattributes(x, {'char', 'cell'}));
 
 addParameter(p,...
-    'filedepth',...
+    'depth',...
     default.depth,...
     @(x) validateattributes(x, {'numeric'}, {'scalar', 'nonnegative'}));
 
 addParameter(p,...
-    'filecontent',...
+    'content',...
     default.content,...
     @(x) validateattributes(x, {'char'}, {'nonempty'}));
 
@@ -96,26 +86,26 @@ parse(p, varargin{:});
 % ---------------------------------------
 % Options
 % ---------------------------------------
-option.path    = p.Results.filepath;
-option.depth   = p.Results.filedepth;
-option.content = p.Results.filecontent;
+option.file    = p.Results.file;
+option.depth   = p.Results.depth;
+option.content = p.Results.content;
 option.verbose = p.Results.verbose;
 
 % ---------------------------------------
 % Validate
 % ---------------------------------------
-if ~isempty(option.path)
+if ~isempty(option.file)
     
-    if iscell(option.path)
-        option.path(~cellfun(@ischar, option.path)) = [];
+    if iscell(option.file)
+        option.file(~cellfun(@ischar, option.file)) = [];
         
-    elseif ischar(option.path)
-        option.path = {option.path};    
+    elseif ischar(option.file)
+        option.file = {option.file};
     end
     
 end
-    
-if ~any(strcmpi(option.content, {'all', 'metadata', 'data'}))
+
+if ~any(strcmpi(option.content, {'all', 'header', 'signal'}))
     option.content, 'all';
 end
     
@@ -129,144 +119,161 @@ end
 % ---------------------------------------
 % File selection
 % ---------------------------------------
-if isempty(option.path)
+if isempty(option.file)
     
     % Get files from file selection interface
-    filelist = FileUI();
+    file = FileUI();
     
 else
     
     % Get files from user input
-    for i = 1:length(option.path)
+    for i = 1:length(option.file)
 
-        [~, filepath] = fileattrib(option.path{i});
+        [~, filepath] = fileattrib(option.file{i});
         
         if isstruct(filepath)
-            filelist = [filelist; filepath];
-        end        
+            file = [file; filepath];
+        end       
     end
+    
 end
 
-if isempty(filelist)
+% Check selection for files
+if isempty(file)
     status(option.verbose, 2);
     status(option.verbose, 3);
     return
 end
 
-if sum([filelist.directory]) == 0
+% Check selection for folders
+if sum([file.directory]) == 0
     option.depth = 0;
 end
 
 % ---------------------------------------
 % Search subfolders
 % ---------------------------------------
-n = [1, length(filelist)];
-l = 1;
+n = [1, length(file)];
+l = option.depth;
 
-% Recursive file search
-while option.depth > 0
-    
-    status(option.verbose, 4, l, n(2)-n(1)+1);
+while l > 0
     
     for i = n(1):n(2)
         
-        [~,~,ext] = fileparts(filelist(i).Name);
+        [~, ~, ext] = fileparts(file(i).Name);
         
         if any(strcmpi(ext, {'.M', '.git', '.lnk'}))
             continue
             
-        elseif filelist(i).directory == 1
+        elseif file(i).directory == 1
             
-            f = dir(filelist(i).Name);
-            f(cellfun(@(x) any(strcmpi(x,{'.','..'})), {f.name})) = [];
+            f = dir(file(i).Name);
+            f(cellfun(@(x) any(strcmpi(x, {'.', '..'})), {f.name})) = [];
             
             for j = 1:length(f)
                 
-                filepath = [filelist(i).Name, filesep, f(j).name];
+                filepath = [file(i).Name, filesep, f(j).name];
                 [~, filepath] = fileattrib(filepath);
                 
                 if isstruct(filepath)
+                    
                     [~, ~, ext] = fileparts(filepath.Name);
                     
                     if any(strcmpi(ext, supported)) || filepath.directory
-                        filelist = [filelist; filepath];
+                        file = [file; filepath];
                     end
                 end
             end
         end
     end
     
-    if length(filelist) <= n(2)
+    % Exit subfolder search
+    if length(file) <= n(2)
         break
     end
     
-    n = [n(2) + 1, length(filelist)];
-    l = l + 1;
+    % Update values
+    n = [n(2) + 1, length(file)];
+    l = l - 1;
     
-    option.depth = option.depth - 1;
 end
 
 % ---------------------------------------
 % Filter 
 % ---------------------------------------
-[~,~,filetype] = cellfun(@(x) fileparts(x), {filelist.Name}, 'uniformoutput', 0);
+[~,~,ext] = cellfun(@(x) fileparts(x), {file.Name}, 'uniformoutput', 0);
 
-filelist(cellfun(@(x) ~any(strcmpi(x, {'.MS','.CH','.UV'})), filetype)) = [];
+% Remove unsupported file extensions
+file(cellfun(@(x) ~any(strcmpi(x, {'.MS','.CH','.UV'})), ext)) = [];
 
-if isempty(filelist)
+% Check selection for files
+if isempty(file)
     status(option.verbose, 2);
     status(option.verbose, 3);
     return
 else
-    status(option.verbose, 5, length(filelist));
+    status(option.verbose, 5, length(file));
 end
 
 % ---------------------------------------
 % Data
 % ---------------------------------------
-data.file.version     = [];
-data.file.info        = [];
-data.sample.name      = [];
-data.sample.info      = [];
-data.sample.operator  = [];
-data.sample.datetime  = [];
-data.sample.inlet     = [];
-data.sample.detector  = [];
-data.sample.method    = [];
-data.sample.seqindex  = [];
-data.sample.vial      = [];
-data.sample.replicate = [];
-data.time             = [];
-data.intensity        = [];
-data.channel          = [];
+data.file_path       = [];
+data.file_name       = [];
+data.file_info       = [];
+data.file_version    = [];
+data.sample_name     = [];
+data.sample_info     = [];
+data.operator        = [];
+data.datetime        = [];
+data.instrument      = [];
+data.inlet           = [];
+data.detector        = [];
+data.method          = [];
+data.seqindex        = [];
+data.vial            = [];
+data.replicate       = [];
+data.time            = [];
+data.intensity       = [];
+data.channel         = [];
+data.time_units      = [];
+data.intensity_units = [];
+data.channel_units   = [];
 
 % ---------------------------------------
 % Import
 % ---------------------------------------
-for i = 1:length(filelist)
+for i = 1:length(file)
     
-    status(option.verbose, 6, i, length(filelist), filelist(i).Name);
+    % Update file infomation
+    [fdir, fname, fext] = fileparts(file(i).Name);
+    
+    data(i,1).file_path = fdir;
+    data(i,1).file_name = upper([fname, fext]);
+    
+     % Update status
+    status(option.verbose, 6, i, length(file), data(i,1).file_name);
 
-    data(i,1).file.name = filelist(i).Name;
-    
-    f = fopen(filelist(i).Name, 'r');
+    % Open data file
+    f = fopen(file(i).Name, 'r');
     
     switch option.content
         
-        case {'all', 'data'}
-            data(i,1) = parseinfo(f);
+        case {'all', 'signal'}
+            data(i,1) = parseinfo(f, data(i,1));
             data(i,1) = parsedata(f, data(i,1));
             
-        case 'metadata'
-            data(i,1) = parseinfo(f);
+        case 'header'
+            data(i,1) = parseinfo(f, data(i,1));
     end
     
+    % Close data file
     fclose(f);
     
 end
 
-file = [data.file];
-data(cellfun(@isempty, {file.version})) = [];
+% Remove unsupported files
+data(cellfun(@isempty, {data.file_version})) = [];
 
 status(option.verbose, 3);
 
@@ -277,10 +284,12 @@ end
 % ---------------------------------------
 function status(varargin)
         
+    % Check verbose
     if ~varargin{1}
         return
     end
 
+    % Display status
     switch varargin{2}
             
         % [IMPORT]
@@ -306,7 +315,7 @@ function status(varargin)
             
         % [STATUS]
         case 5
-            fprintf(['[STATUS] Files   : ', num2str(varargin{3}), '\n\n']);
+            fprintf(['[STATUS] Files : ', num2str(varargin{3}), '\n\n']);
 
         % [LOADING]
         case 6
@@ -319,7 +328,7 @@ end
 % ---------------------------------------
 % FileUI
 % ---------------------------------------
-function filelist = FileUI()
+function file = FileUI()
 
 % ---------------------------------------
 % JFileChooser (Java)
@@ -347,7 +356,7 @@ fc.addChoosableFileFilter(agilent);
 % ---------------------------------------
 % Initialize UI
 % ---------------------------------------
-filelist = [];
+file   = [];
 status = fc.showOpenDialog(fc);
 
 if status == fc.APPROVE_OPTION
@@ -362,7 +371,7 @@ if status == fc.APPROVE_OPTION
         
         % Append to file list
         if isstruct(f)
-            filelist = [filelist; f];
+            file = [file; f];
         end
     end
 end
@@ -372,58 +381,60 @@ end
 % ---------------------------------------
 % File information
 % ---------------------------------------
-function data = parseinfo(f)
+function data = parseinfo(f, data)
 
-data.file.version = fpascal(f, 0, 'uint8');
+data.file_version = fpascal(f, 0, 'uint8');
 
-switch data.file.version
+if isempty(data.file_version)
+    return
+end
+
+switch data.file_version
 
     case {'2', '8', '81', '30', '31'}
         
-        data.file.info        = fpascal(f,  4,   'uint8');
-        data.sample.name      = fpascal(f,  24,  'uint8');
-        data.sample.info      = fpascal(f,  86,  'uint8');
-        data.sample.operator  = fpascal(f,  148, 'uint8');
-        data.sample.datetime  = parsedate(fpascal(f, 178, 'uint8'));
-        data.sample.detector  = fpascal(f,  208, 'uint8');
-        data.sample.inlet     = fpascal(f,  218, 'uint8');
-        data.sample.method    = fpascal(f,  228, 'uint8');
-        data.sample.seqindex  = fnumeric(f, 252, 'int16');
-        data.sample.vial      = fnumeric(f, 254, 'int16');
-        data.sample.replicate = fnumeric(f, 256, 'int16');
+        data.file_info   = fpascal(f,  4,   'uint8');
+        data.sample_name = fpascal(f,  24,  'uint8');
+        data.sample_info = fpascal(f,  86,  'uint8');
+        data.operator    = fpascal(f,  148, 'uint8');
+        data.datetime    = fpascal(f,  178, 'uint8');
+        data.detector    = fpascal(f,  208, 'uint8');
+        data.inlet       = fpascal(f,  218, 'uint8');
+        data.method      = fpascal(f,  228, 'uint8');
+        data.seqindex    = fnumeric(f, 252, 'int16');
+        data.vial        = fnumeric(f, 254, 'int16');
+        data.replicate   = fnumeric(f, 256, 'int16');
     
     case {'130', '131', '179', '181'}
      
-        data.file.info        = fpascal(f,  347,  'uint16');
-        data.sample.name      = fpascal(f,  858,  'uint16');
-        data.sample.info      = fpascal(f,  1369, 'uint16');
-        data.sample.operator  = fpascal(f,  1880, 'uint16');
-        data.sample.datetime  = parsedate(fpascal(f, 2391, 'uint16'));
-        data.sample.detector  = fpascal(f,  2492, 'uint16');
-        data.sample.inlet     = fpascal(f,  2533, 'uint16');
-        data.sample.method    = fpascal(f,  2574, 'uint16');
-        data.sample.seqindex  = fnumeric(f, 252,  'int16');
-        data.sample.vial      = fnumeric(f, 254,  'int16');
-        data.sample.replicate = fnumeric(f, 256,  'int16');
-
-    otherwise
+        data.file_info   = fpascal(f,  347,  'uint16');
+        data.sample_name = fpascal(f,  858,  'uint16');
+        data.sample_info = fpascal(f,  1369, 'uint16');
+        data.operator    = fpascal(f,  1880, 'uint16');
+        data.datetime    = fpascal(f,  2391, 'uint16');
+        data.detector    = fpascal(f,  2492, 'uint16');
+        data.inlet       = fpascal(f,  2533, 'uint16');
+        data.method      = fpascal(f,  2574, 'uint16');
+        data.seqindex    = fnumeric(f, 252,  'int16');
+        data.vial        = fnumeric(f, 254,  'int16');
+        data.replicate   = fnumeric(f, 256,  'int16');
         
-        data.file.info        = [];
-        data.sample.name      = [];
-        data.sample.info      = [];
-        data.sample.operator  = [];
-        data.sample.datetime  = [];
-        data.sample.detector  = [];
-        data.sample.inlet     = [];
-        data.sample.method    = [];
-        data.sample.seqindex  = [];
-        data.sample.vial      = [];
-        data.sample.replicate = [];
 end
 
-data.time      = [];
-data.intensity = [];
-data.channel   = [];
+% Parse datetime
+if ~isempty(data.datetime)
+    data.datetime = parsedate(data.datetime);
+end
+
+% Parse method name
+if ~isempty(data.method) && any(strfind(data.method, '.M'));
+    [~, data.method] = fileparts(data.method);
+end
+
+% Fix formatting
+data.detector = upper(data.detector);
+data.inlet    = upper(data.inlet);
+data.operator = upper(data.operator);
 
 end
 
@@ -432,7 +443,12 @@ end
 % ---------------------------------------
 function data = parsedata(f, data)
 
-switch data.file.version
+if isempty(data.file_version)
+    return
+end
+
+% Signal information
+switch data.file_version
     
     case {'2'}
         
@@ -443,9 +459,15 @@ switch data.file.version
 
         offset = (fnumeric(f, 264, 'int32') - 1) * 512 ;
         scans  = fnumeric(f, 278, 'int32');
+        
+    otherwise
+        
+        return
+        
 end
 
-switch data.file.version
+% Time values
+switch data.file_version
     
     case {'81', '179', '181'}
         
@@ -456,9 +478,21 @@ switch data.file.version
         
         t0 = fnumeric(f, 282, 'int32') / 60000;
         t1 = fnumeric(f, 286, 'int32') / 60000;
+        
+    otherwise
+        
+        t0 = 0;
+        t1 = 0;
+     
 end
 
-switch data.file.version
+% Check time values
+if t0 == 0 && t1 == 0
+    return
+end
+
+% Signal data
+switch data.file_version
     
     case {'2'}
         
@@ -467,24 +501,60 @@ switch data.file.version
         
     case {'8', '30', '130'}
 
-        data.channel   = 1;
+        data.channel   = 0;
         data.intensity = fdelta(f, offset);
         data.time      = ftime(t0, t1, numel(data.intensity));
         
     case {'81', '181'}
         
-        data.channel   = 1;
+        data.channel   = 0;
         data.intensity = fdoubledelta(f, offset);
         data.time      = ftime(t0, t1, numel(data.intensity));
         
     case {'179'}
         
-        data.channel   = 1;
+        data.channel   = 0;
         data.intensity = fdoublearray(f, offset);
         data.time      = ftime(t0, t1, numel(data.intensity));
 end
 
-switch data.file.version
+% Signal units
+switch data.file_version
+    
+    case {'2'}
+        
+        data.time_units      = 'minutes';
+        data.intensity_units = 'counts';
+        data.channel_units   = 'm/z';
+        
+    case {'8', '81', '30'}
+        
+        data.time_units      = 'minutes';
+        data.intensity_units = fpascal(f,  580, 'uint8');
+        data.channel_units   = fpascal(f,  596, 'uint8');
+        
+    case {'31'}
+
+        data.time_units      = 'minutes';
+        data.intensity_units = fpascal(f, 326, 'uint8');
+        data.channel_units   = '';
+
+    case {'130', '179', '181'}
+
+        data.time_units      = 'minutes';
+        data.intensity_units = fpascal(f, 4172, 'uint16');
+        data.channel_units   = fpascal(f, 4213, 'uint16');
+
+    case {'131'}
+
+        data.time_units      = 'minutes';
+        data.intensity_units = fpascal(f, 3093, 'uint16');
+        data.channel_units   = '';
+        
+end
+
+% Signal correction
+switch data.file_version
     
     case {'8'}
         
@@ -494,6 +564,7 @@ switch data.file.version
         
         if any(version == [1,2,3])
             data.intensity = data.intensity .* 1.33321110047553;
+            
         else
             data.intensity = data.intensity .* slope + intercept;
         end
@@ -526,11 +597,12 @@ switch data.file.version
         
         if all(version ~= 1,2)
             data.intensity = data.intensity .* slope + intercept;
+            
         elseif version == 2
             data.intensity = data.intensity .* 0.00240841663372301;
         end
         
-    case {'179, 181'}
+    case {'179', '181'}
         
         intercept = fnumeric(f, 4724, 'float64');
         slope     = fnumeric(f, 4732, 'float64');
@@ -538,7 +610,11 @@ switch data.file.version
         if slope ~= 0
             data.intensity = data.intensity .* slope + intercept;
         end
+        
 end
+
+% Determine instrument type
+data.instrument = parseinstrument(data);
 
 end
 
@@ -555,6 +631,7 @@ dateFormat = {...
     'mm/dd/yy HH:MM:SS PM',...
     'mm/dd/yy HH:MM:SS',...
     'mm/dd/yyyy HH:MM',...
+    'mm/dd/yyyy HH:MM:SS PM',...
     'mm.dd.yyyy HH:MM:SS',...
     'dd-mmm-yy HH:MM:SS',...
     'dd-mmm-yy, HH:MM:SS'};
@@ -565,6 +642,7 @@ dateRegex = {...
     '\d{2}[/]\d{2}[/]\d{2}\s*\d{2}[:]\d{2}[:]\d{2} \w{2}',...
     '\d{1,2}[/]\d{1,2}[/]\d{2}\s*\d{1,2}[:]\d{2}[:]\d{2}',...
     '\d{2}[/]\d{2}[/]\d{4}\s*\d{2}[:]\d{2}',...
+    '\d{1,2}[/]\d{1,2}[/]\d{4}\s*\d{1,2}[:]\d{2}[:]\d{2} \w{2}',...
     '\d{2}[.]\d{2}[.]\d{4}\s*\d{2}[:]\d{2}[:]\d{2}',...
     '\d{2}[-]\w{3}[-]\d{2}\s*\d{2}[:]\d{2}[:]\d{2}',...
     '\d{2}[-]\w{3}[-]\d{2}[,]\s*\d{2}[:]\d{2}[:]\d{2}'};
@@ -579,6 +657,83 @@ if ~isempty(dateStr)
         dateStr = datestr(dateNum, formatOut);
     end
     
+else
+    dateStr = [];
+end
+
+end
+
+% ---------------------------------------
+% Data = instrument
+% ---------------------------------------
+function instrStr = parseinstrument(data)
+
+instrMatch = @(x,str) any(cellfun(@any, regexpi(x, str)));
+
+instrRegex.GC  = {'GC'};
+instrRegex.LC  = {'LC'};
+instrRegex.CE  = {'CE'};
+instrRegex.DAD = {'DAD', '1040', '1050', '1315', '4212', '7117'};
+instrRegex.VWD = {'VWD', '1314', '7114'};
+instrRegex.MWD = {'MWD', '1365'};
+instrRegex.FLD = {'FLD', '1321'};
+instrRegex.RID = {'RID', '1362'};
+instrRegex.ADC = {'ADC', '35900'};
+instrRegex.ELS = {'ELS', 'GCI', '4260', '7102'};
+
+instrInfo = [...
+    data.file_info,...
+    data.inlet,...
+    data.detector,...
+    data.channel_units];
+
+switch data.file_version
+
+    case {'2'}
+        
+        if instrMatch(instrInfo, instrRegex.CE)
+            instrStr = 'CE/MS';
+        elseif instrMatch(instrInfo, instrRegex.LC)
+            instrStr = 'LC/MS';
+        elseif instrMatch(instrInfo, instrRegex.GC)
+            instrStr = 'GC/MS';
+        else
+            instrStr = 'MS';
+        end
+        
+    case {'8', '81', '179', '181'}
+        
+        if instrMatch(instrInfo, instrRegex.GC)
+            instrStr = 'GC/FID'; 
+        else
+            instrStr = 'GC';
+        end
+        
+    case {'30', '31', '130', '131'}
+        
+        if instrMatch(instrInfo, instrRegex.DAD)
+            instrStr = 'LC/DAD';
+        elseif instrMatch(instrInfo, instrRegex.VWD)
+            instrStr = 'LC/VWD';
+        elseif instrMatch(instrInfo, instrRegex.MWD)
+            instrStr = 'LC/MWD';
+        elseif instrMatch(instrInfo, instrRegex.FLD)
+            instrStr = 'LC/FLD';
+        elseif instrMatch(instrInfo, instrRegex.RID)
+            instrStr = 'LC/RID';
+        elseif instrMatch(instrInfo, instrRegex.ADC)
+            instrStr = 'LC/ADC';
+        elseif instrMatch(instrInfo, instrRegex.ELS)
+            instrStr = 'LC/ELSD';
+        elseif instrMatch(instrInfo, instrRegex.CE)
+            instrStr = 'CE';
+        else
+            instrStr = 'LC';
+        end
+        
+    otherwise
+        instrStr = '';
+        
 end
 
 end
