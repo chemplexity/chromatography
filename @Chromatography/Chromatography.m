@@ -369,13 +369,9 @@ classdef Chromatography
             % ---------------------------------------
             if ispc
                 
-                [status, output] = system('where git');
+                [status, ~] = system('where git');
                 
-                if ~status
-                    git = regexp(output,'(?i)C:\\(\\|\w)*', 'match');
-                    git = [git{1}, '.exe'];
-                    
-                elseif status
+                if status
                     
                     fprintf('[STATUS] Searching system for ''git.exe''... \n');
                     
@@ -395,9 +391,11 @@ classdef Chromatography
                         return
                     end
                     
-                    git = regexp(output,'(?i)(?!of)C:\\(\\|\w)*', 'match');
+                    git = regexp(output,'(?i)(?!of)\S[:]\\(\\|\w)*', 'match');
                     git = [git{1}, '\git.exe'];
                     
+                else
+                    git = 'git';
                 end
                 
                 % Update folder access
@@ -408,14 +406,9 @@ classdef Chromatography
             % ---------------------------------------
             elseif isunix
                 
-                [status, output] = system('which git');
+                [status, ~] = system('which git');
                 
-                if ~status
-                    
-                    git = regexp(output,'(?i)([/]|\w)+git', 'match');
-                    git = git{1};
-                    
-                elseif status
+                if status
                     
                     if ismac
                         link = 'https://git-scm.com/download/mac';
@@ -430,9 +423,13 @@ classdef Chromatography
                     fprintf(['\n', repmat('-',1,50), '\n\n']);
                     
                     return
+                    
+                else
+                    git = 'git';
                 end
+                
             end
-            
+
             % ---------------------------------------
             % Check system git
             % ---------------------------------------
@@ -446,7 +443,7 @@ classdef Chromatography
                 fprintf('[EXIT]');
                 fprintf(['\n', repmat('-',1,50), '\n\n']);
                 
-                return 
+                return
             end
             
             % ---------------------------------------
@@ -489,7 +486,7 @@ classdef Chromatography
                 end
             end
             
-            fprintf(['\n', '[STATUS] Update successful...', '\n\n']);
+            fprintf(['[STATUS] Update complete!', '\n\n']);
             fprintf(['Chromatography Toolbox v', Chromatography.version, '\n']);
             
             fprintf(['\n', repmat('-',1,50), '\n']);
