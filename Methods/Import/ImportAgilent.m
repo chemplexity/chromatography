@@ -453,7 +453,9 @@ if isempty(data.file_version)
     return
 end
 
-% Signal information
+% ---------------------------------------
+% Data offset
+% ---------------------------------------
 switch data.file_version
     
     case {'2'}
@@ -462,17 +464,14 @@ switch data.file_version
         scans  = fnumeric(f, 278, 'int32');
         
     case {'8', '81', '179', '181', '30', '130'}
-
+        
         offset = (fnumeric(f, 264, 'int32') - 1) * 512 ;
-        scans  = fnumeric(f, 278, 'int32');
-        
-    otherwise
-        
-        return
-        
+        scans  = fnumeric(f, 278, 'int32');  
 end
 
+% ---------------------------------------
 % Time values
+% ---------------------------------------
 switch data.file_version
     
     case {'81', '179', '181'}
@@ -484,26 +483,28 @@ switch data.file_version
         
         t0 = fnumeric(f, 282, 'int32') / 60000;
         t1 = fnumeric(f, 286, 'int32') / 60000;
-        
 end
 
-% Signal data
+% ---------------------------------------
+% Intensity values
+% ---------------------------------------
 switch data.file_version
     
     case {'2'}
+        
+        data.intensity = farray(f, offset + 8, 'int32', scans, 8);
+        data.time      = farray(f, offset + 4, 'int32', scans, 8) ./ 60000;
         
         offset = farray(f, offset, 'int32', scans, 8) * 2 - 2;
         data   = fpacket(f, data, offset);
         
     case {'8', '30', '130'}
 
-        data.channel   = 0;
         data.intensity = fdelta(f, offset);
         data.time      = ftime(t0, t1, numel(data.intensity));
         
     case {'81', '181'}
         
-        data.channel   = 0;
         data.intensity = fdoubledelta(f, offset);
         data.time      = ftime(t0, t1, numel(data.intensity));
         
@@ -513,12 +514,13 @@ switch data.file_version
             offset = offset + 2048;
         end
         
-        data.channel   = 0;
         data.intensity = fdoublearray(f, offset);
         data.time      = ftime(t0, t1, numel(data.intensity));
 end
 
-% Signal units
+% ---------------------------------------
+% Units
+% ---------------------------------------
 switch data.file_version
     
     case {'2'}
@@ -549,11 +551,12 @@ switch data.file_version
 
         data.time_units      = 'minutes';
         data.intensity_units = fpascal(f, 3093, 'uint16');
-        data.channel_units   = '';
-        
+        data.channel_units   = '';     
 end
 
-% Signal correction
+% ---------------------------------------
+% Scaling
+% ---------------------------------------
 switch data.file_version
     
     case {'8'}
@@ -562,11 +565,11 @@ switch data.file_version
         intercept = fnumeric(f, 636, 'float64');
         slope     = fnumeric(f, 644, 'float64');
         
-        if any(version == [1,2,3])
-            data.intensity = data.intensity .* 1.33321110047553;
-            
-        else
-            data.intensity = data.intensity .* slope + intercept;
+        switch version    
+            case {1, 2, 3}
+                data.intensity = data.intensity .* 1.33321110047553;
+            otherwise
+                data.intensity = data.intensity .* slope + intercept;
         end
         
     case {'30'}
@@ -575,11 +578,13 @@ switch data.file_version
         intercept = fnumeric(f, 636, 'float64');
         slope     = fnumeric(f, 644, 'float64');
         
-        if all(version ~= 1,2)
-            data.intensity = data.intensity .* slope + intercept;
-            
-        elseif version == 2
-            data.intensity = data.intensity .* 0.00240841663372301;
+        switch version
+            case {1}
+                data.intensity = data.intensity .* 1;
+            case {2}
+                data.intensity = data.intensity .* 0.00240841663372301;
+            otherwise
+                data.intensity = data.intensity .* slope + intercept;
         end
 
     case {'81'}
@@ -595,11 +600,13 @@ switch data.file_version
         intercept = fnumeric(f, 4724, 'float64');
         slope     = fnumeric(f, 4732, 'float64');
         
-        if all(version ~= 1,2)
-            data.intensity = data.intensity .* slope + intercept;
-            
-        elseif version == 2
-            data.intensity = data.intensity .* 0.00240841663372301;
+        switch version
+            case {1}
+                data.intensity = data.intensity .* 1;
+            case {2}
+                data.intensity = data.intensity .* 0.00240841663372301;
+            otherwise
+                data.intensity = data.intensity .* slope + intercept;
         end
         
     case {'179', '181'}
@@ -607,13 +614,12 @@ switch data.file_version
         intercept = fnumeric(f, 4724, 'float64');
         slope     = fnumeric(f, 4732, 'float64');
         
-        if slope ~= 0
-            data.intensity = data.intensity .* slope + intercept;
-        end
-        
+        data.intensity = data.intensity .* slope + intercept;
 end
 
-% Determine instrument type
+% ---------------------------------------
+% Instrument
+% ---------------------------------------
 data.instrument = parseinstrument(data);
 
 end
@@ -656,9 +662,6 @@ if ~isempty(dateStr)
         dateNum = datenum(dateStr, dateFormat{dateIndex});
         dateStr = datestr(dateNum, formatOut);
     end
-    
-else
-    dateStr = [];
 end
 
 end
@@ -670,29 +673,25 @@ function instrStr = parseinstrument(data)
 
 instrMatch = @(x,str) any(cellfun(@any, regexpi(x, str)));
 
-instrRegex.DAD = {'DAD', '1040', '1050', '1315', '4212', '7117'};
-instrRegex.VWD = {'VWD', '1314', '7114'};
-instrRegex.MWD = {'MWD', '1365'};
-instrRegex.FLD = {'FLD', '1321'};
-instrRegex.RID = {'RID', '1362'};
-instrRegex.ADC = {'ADC', '35900'};
-instrRegex.ELS = {'ELS', 'GCI', '4260', '7102'};
-
-instrInfo = [...
+instrStr = [...
     data.file_info,...
     data.inlet,...
     data.detector,...
     data.channel_units];
 
+if isempty(instrStr)
+    return
+end
+
 switch data.file_version
 
     case {'2'}
         
-        if instrMatch(instrInfo, {'CE'})
+        if instrMatch(instrStr, {'CE'})
             instrStr = 'CE/MS';
-        elseif instrMatch(instrInfo, {'LC'})
+        elseif instrMatch(instrStr, {'LC'})
             instrStr = 'LC/MS';
-        elseif instrMatch(instrInfo, {'GC'})
+        elseif instrMatch(instrStr, {'GC'})
             instrStr = 'GC/MS';
         else
             instrStr = 'MS';
@@ -700,7 +699,7 @@ switch data.file_version
         
     case {'8', '81', '179', '181'}
         
-        if instrMatch(instrInfo, {'GC'})
+        if instrMatch(instrStr, {'GC'})
             instrStr = 'GC/FID'; 
         else
             instrStr = 'GC';
@@ -708,29 +707,25 @@ switch data.file_version
         
     case {'30', '31', '130', '131'}
         
-        if instrMatch(instrInfo, instrRegex.DAD)
+        if instrMatch(instrStr, {'DAD', '1315', '4212', '7117'})
             instrStr = 'LC/DAD';
-        elseif instrMatch(instrInfo, instrRegex.VWD)
+        elseif instrMatch(instrStr, {'VWD', '1314', '7114'})
             instrStr = 'LC/VWD';
-        elseif instrMatch(instrInfo, instrRegex.MWD)
+        elseif instrMatch(instrStr, {'MWD', '1365'})
             instrStr = 'LC/MWD';
-        elseif instrMatch(instrInfo, instrRegex.FLD)
+        elseif instrMatch(instrStr, {'FLD', '1321'})
             instrStr = 'LC/FLD';
-        elseif instrMatch(instrInfo, instrRegex.RID)
-            instrStr = 'LC/RID';
-        elseif instrMatch(instrInfo, instrRegex.ADC)
-            instrStr = 'LC/ADC';
-        elseif instrMatch(instrInfo, instrRegex.ELS)
+        elseif instrMatch(instrStr, {'ELS', '4260', '7102'})
             instrStr = 'LC/ELSD';
-        elseif instrMatch(instrInfo, {'CE'})
+        elseif instrMatch(instrStr, {'RID', '1362'})
+            instrStr = 'LC/RID';
+        elseif instrMatch(instrStr, {'ADC', '35900'})
+            instrStr = 'LC/ADC';
+        elseif instrMatch(instrStr, {'CE'})
             instrStr = 'CE';
         else
             instrStr = 'LC';
         end
-        
-    otherwise
-        instrStr = '';
-        
 end
 
 end
@@ -750,7 +745,6 @@ else
 end
 
 end
-
 
 % ---------------------------------------
 % Data = numeric
@@ -777,27 +771,34 @@ end
 % ---------------------------------------
 function data = fpacket(f, data, offset)
 
-x = [];
 y = [];
-n = [];
 
+% Read data
 for i = 1:length(offset)
     
-    fseek(f, offset(i)+2, 'bof');
+    fseek(f, offset(i)+12, 'bof');
     
-    x(i,1) = fread(f, 1, 'int32', 6, 'b');
+    %x(i,1) = fread(f, 1, 'int32', 6, 'b');
     n(i,1) = fread(f, 1, 'int16', 4, 'b');
-    
     y(:,end+1:end+n(i)) = fread(f, [2, n(i)], 'uint16', 'b');
     
 end
 
-z = y(1,:) ./ 20;
+y(1,:) = y(1,:) ./ 20;
+
+% Channel values
+data.channel = unique(y(1,:), 'sorted');
+
+[~, index] = ismember(y(1,:), data.channel);
+
+data.channel = [0, data.channel];
+
+% Intensity values
+data.intensity(numel(data.time), numel(data.channel)) = 0;
 
 n(:,2) = cumsum(n);
 n(:,3) = n(:,2) - n(:,1) + 1;
 
-% Int to Float
 e = bitand(y(2,:), 49152, 'int32');
 y = bitand(y(2,:), 16383, 'int32');
 
@@ -806,19 +807,8 @@ while any(e) ~= 0
     e(e~=0) = e(e~=0) - 16384;
 end
 
-% Time values
-data.time = x ./ 60000;
-
-% Channel values
-data.channel = unique(z, 'sorted');
-
-[~, index] = ismember(z, data.channel);
-
-% Intensity values
-data.intensity = zeros(numel(data.time), numel(data.channel));
-
 for i = 1:numel(data.time)
-    data.intensity(i, index(n(i,3):n(i,2))) = y(n(i,3):n(i,2));
+    data.intensity(i, index(n(i,3):n(i,2))+1) = y(n(i,3):n(i,2));
 end
 
 end

@@ -144,7 +144,7 @@ for i = 1:length(samples)
     % Calculate curve fitting results
     switch obj.defaults.integrate_model
         
-        case 'exponential gaussian hybrid'
+        case 'emg'
             peaks = ExponentialGaussian(x, y, 'center', center, 'width', width);
             
         otherwise
