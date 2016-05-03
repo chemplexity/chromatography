@@ -7,18 +7,14 @@
 % Syntax
 % ------------------------------------------------------------------------
 %   data = ImportAgilent()
-%   data = ImportAgilent(file)
 %   data = ImportAgilent( __ , Name, Value)
-%
-% ------------------------------------------------------------------------
-% Input (Optional)
-% ------------------------------------------------------------------------
-%   file -- name of file or folder path
-%       empty (default) | string | cell array
 %
 % ------------------------------------------------------------------------
 % Input (Name, Value)
 % ------------------------------------------------------------------------
+%   'file' -- name of file or folder path
+%       empty (default) | string | cell array
+%
 %   'depth' -- subfolder search depth
 %       1 (default) | integer
 %
@@ -32,9 +28,9 @@
 % Examples
 % ------------------------------------------------------------------------
 %   data = ImportAgilent()
-%   data = ImportAgilent('00159F.D')
-%   data = ImportAgilent({'/Data/2016/04/', '00201B.D'})
-%   data = ImportAgilent('/Data/2016/', 'depth', 4)
+%   data = ImportAgilent('file', '00159F.D')
+%   data = ImportAgilent('file', {'/Data/2016/04/', '00201B.D'})
+%   data = ImportAgilent('file', '/Data/2016/', 'depth', 4)
 %   data = ImportAgilent('content', 'header', 'depth', 8)
 %   data = ImportAgilent('verbose', 'off')
 
@@ -61,10 +57,10 @@ default.formats = {'.D', '.MS', '.CH', '.UV'};
 % ---------------------------------------
 p = inputParser;
 
-addOptional(p,...
+addParameter(p,...
     'file',...
     default.file,...
-    @(x) validateattributes(x, {'char', 'cell'}));
+    @(x) validateattributes(x, {'cell', 'char'}, {'nonempty'}));
 
 addParameter(p,...
     'depth',...

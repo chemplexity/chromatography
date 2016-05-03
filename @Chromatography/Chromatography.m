@@ -465,7 +465,7 @@ classdef Chromatography
             % ---------------------------------------
             fprintf('[STATUS] Fetching latest updates from ''%s''...\n', Chromatography.url);
             
-            system([git, ' pull -v']);
+            [~,~] = system([git, ' pull']);
             
             if status
                 [~,~] = system([git, ' checkout -f master']);
@@ -479,10 +479,10 @@ classdef Chromatography
                 switch varargin{1}
                     
                     case {'master'}
-                        system([git, ' checkout -f master']);
+                        [~,~] = system([git, ' checkout -f master']);
                         
                     case {'dev', 'development'}
-                        system([git, ' checkout -f dev']);
+                        [~,~] = system([git, ' checkout -f dev']);
                 end
             end
             

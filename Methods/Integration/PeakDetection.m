@@ -1,61 +1,130 @@
-% Method: PeakDetection
-%  -Find peaks and peak boundary points
+% ------------------------------------------------------------------------
+% Method      : PeakDetection
+% Description : Locate peaks and peak boundary points
+% ------------------------------------------------------------------------
 %
+% ------------------------------------------------------------------------
 % Syntax
-%   peaks = PeakDetection(y)
+% ------------------------------------------------------------------------
 %   peaks = PeakDetection(x, y)
-%   peaks = PeakDetection(x, y, 'OptionName', optionvalue...)
+%   peaks = PeakDetection( __ , Name, Value)
 %
-% Input
-%   x        : array
-%   y        : array or matrix
+% ------------------------------------------------------------------------
+% Input (Required)
+% ------------------------------------------------------------------------
+%   x -- time values
+%       array | matrix
 %
-% Options
-%   'center' : value or array
-%   'width'  : value or array
+%   y -- intensity values
+%       array | matrix
 %
-% Description
-%   x        : time values
-%   y        : intensity values
-%   'center' : window center (default = x at max(y))
-%   'width'  : window width (default = 5% of length(x))
+% ------------------------------------------------------------------------
+% Input (Name, Value)
+% ------------------------------------------------------------------------
+%   'center' -- search window center
+%       x at max(y) (default) | number
 %
+%   'width' -- search window width
+%       1 (default) | number
+%
+% ------------------------------------------------------------------------
 % Examples
-%   peaks = PeakDetection(y)
-%   peaks = PeakDetection(y, 'width', 1.5)
+% ------------------------------------------------------------------------
+%   peaks = PeakDetection(x, y, 'width', 1.5, 'center', 42)
 %   peaks = PeakDetection(x, y, 'center', 22.10)
 
-function varargout = PeakDetection(varargin)
+function peaks = PeakDetection(varargin)
 
-% Check input
-[x, y, options] = parse(varargin);
+% ---------------------------------------
+% Defaults
+% ---------------------------------------
+default.center  = 0;
+default.width   = 1;
 
-% Pre-allocate memory
-empty = zeros(2, length(y(1,:)));
+% ---------------------------------------
+% Input
+% ---------------------------------------
+p = inputParser;
 
-% Initialize peak data
-peak.center = empty;
-peak.height = empty;
-peak.width = empty;
-peak.a = empty;
-peak.b = empty;
-peak.alpha = empty;
+addRequired(p,...
+    'x',...
+    @(x) validateattributes(x, {'numeric'}, {'increasing', 'nonempty'}));
 
-% Determine peak locations
-for i = 1:length(y(1,:))
+addRequired(p,...
+    'y',...
+    @(x) validateattributes(x, {'numeric'}, {'nonnan', 'nonempty'}));
+
+addParameter(p,...
+    'center',...
+    default.center,...
+    @(x) validateattributes(x, {'numeric'}, {'scalar'}));
+
+addParameter(p,...
+    'width',...
+    default.width,...
+    @(x) validateattributes(x, {'numeric'}, {'scalar'}));
+
+parse(p, varargin{:});
+
+% ---------------------------------------
+% Options
+% ---------------------------------------
+x      = p.Results.x;
+y      = p.Results.y;
+
+options.center = p.Results.center;
+options.width  = p.Results.width;
+
+p = [];
+
+% ---------------------------------------
+% Validate
+% ---------------------------------------
+xmin = min(x);
+xmax = max(x);
+[~, ymax] = max(y);
+
+if options.center == 0
+    options.center = x(ymax,:);
+elseif options.center < xmin
+    options.center = xmin + options.width / 2;
+elseif options.center > xmax
+    options.center = xmax - options.width / 2;
+end
+
+if options.width < 0
+    options.width = 0;
+end
+
+% ---------------------------------------
+% Initialize
+% ---------------------------------------
+n = length(y(1,:));
+
+peaks.center(2,n) = 0;
+peaks.height(2,n) = 0;
+peaks.width(2,n)  = 0;
+peaks.a(2,n)      = 0;
+peaks.b(2,n)      = 0;
+peaks.alpha(2,n)  = 0;
+
+% ---------------------------------------
+% Find peaks
+% ---------------------------------------
+for i = 1:n
+
+    if nnz(y(:,i)) == 0
+        continue
+    end
     
-    % Set variables
-    if length(options.center) == length(y(1,:))
+    if numel(options.center) == n
         center = options.center(i);
-    else
-        center = options.center(1);
-    end
-    if length(options.width) == length(y(1,:))
-        width = options.width(i);
-    else
-        width = options.width(1);
     end
     
+    if numel(options.width) == n
+        width = options.width(i);
+    end
+
     % Index downward points: y(n) > y(n+1)
     dy.d = y(:,i) > circshift(y(:,i), [-1, 0]);
     
@@ -64,13 +133,14 @@ for i = 1:length(y(1,:))
     
     % Determine local maxima: y(n-1) < y(n) > y(n+1)
     p.i = dy.d & dy.u;
-    p.x = x(p.i);
-    p.y = y(p.i, i);
     
     % Check for local maxima
     if ~any(dy.d & dy.u)
         continue
     end
+    
+    p.x = x(p.i);
+    p.y = y(p.i, i);
     
     % Filter local maxima outside window
     window = p.x >= center-(width/2) & p.x <= center+(width/2);
@@ -181,17 +251,23 @@ for i = 1:length(y(1,:))
     end
     
     % Check asymmetry of left side determined boundaries
+    n = 2;
+    
     if p.x - l.l.x > l.r.x - p.x
         
         % Calculate large spline around peak center
         l.c.x = x(x >= l.l.x & x <= l.r.x);
         l.c.y = spline([l.l.x, p.x, l.r.x], [l.l.y*p.y, p.y, l.r.y*p.y], l.c.x);
+        l.c.e = sum((y(x >= l.l.x & x <= l.r.x) - l.c.y) .^ 2);
+        
     else
         
         % Calculate small spline around peak center
-        step = (x(p.i+2) - x(p.i-2)) / (p.i+2 - p.i-2 + 1);
-        l.c.x = x(p.i-2):(step/10):x(p.i+2);
-        l.c.y = spline(x(p.i-2:p.i+2), y(p.i-2:p.i+2,i), l.c.x);
+        step = (x(p.i+n) - x(p.i-n)) / (p.i+n - p.i-n + 1);
+        l.c.x = x(p.i-n):(step/10):x(p.i+n);
+        l.c.y = spline(x(p.i-n:p.i+n), y(p.i-n:p.i+n,i), l.c.x);
+        l.c.e = 0;
+        
     end
     
     % Check asymmetry of right side determined boundaries
@@ -199,149 +275,86 @@ for i = 1:length(y(1,:))
         
         % Calculate large spline around peak center
         r.c.x = x(x >= r.l.x & x <= r.r.x);
-        r.c.y = spline([r.l.x, p.x, r.r.x], [r.l.y*p.y, p.y, r.r.y*p.y], r.c.x);
+        r.c.y = spline([r.l.x, p.x, r.r.x], [r.l.y*p.y, p.y, r.r.y*p.y], r.c.x);        
+        r.c.e = sum((y(x >= r.l.x & x <= r.r.x) - r.c.y) .^ 2);
+        
     else
         
         % Calculate small spline around peak center
-        step = (x(p.i+2) - x(p.i-2)) / (p.i+2 - p.i-2 + 1);
-        r.c.x = x(p.i-2):(step/10):x(p.i+2);
-        r.c.y = spline(x(p.i-2:p.i+2), y(p.i-2:p.i+2,i), r.c.x);
+        step = (x(p.i+n) - x(p.i-n)) / (p.i+n - p.i-n + 1);
+        
+        r.c.x = x(p.i-n):(step/10):x(p.i+n);
+        r.c.y = spline(x(p.i-n:p.i+n), y(p.i-n:p.i+n,i), r.c.x);
+        r.c.e = 0;
+        
     end
     
     % Determine peak center and height from interpolated values
     [c.l.y, c.l.i] = max(l.c.y);
     [c.r.y, c.r.i] = max(r.c.y);
     
-    center = [l.c.x(c.l.i); r.c.x(c.r.i)];
-    height = [c.l.y; c.r.y];
+    if l.c.e < r.c.e
+        center = [l.c.x(c.l.i); p.x];
+        height = [c.l.y; p.y];
+    elseif r.c.e > l.c.e
+        center = [r.c.x(c.r.i); p.x];
+        height = [c.r.y; p.y];
+    else
+        center = [mean([l.c.x(c.l.i), r.c.x(c.r.i)]); p.x];
+        height = [mean([c.l.y, c.r.y]); p.y];
+    end
     
     % Check for valid boundaries
-    if l.r.x < center(1)
+    if l.r.x < center(1) && l.c.e <= r.c.e
         l.r.x = center(1) + (center(1) - l.l.x);
     end
-    if r.r.x < center(2)
-        r.r.x = center(2) + (center(2) - r.l.x);
+    
+    if r.r.x < center(1) && r.c.e <= l.c.e
+        r.r.x = center(1) + (center(1) - r.l.x);
     end
     
     % Determine peak width
-    width = [l.r.x-l.l.x; r.r.x-r.l.x];
+    if l.c.e < r.c.e
+        width = [l.r.x-l.l.x; l.r.x-l.l.x];%r.r.x-r.l.x];
+    else
+        width = [r.r.x-r.l.x; r.r.x-r.l.x];%r.r.x-r.l.x];
+    end
+    
+    ymin = min(y(:,i));
     
     % Determine peak asymmetry values
-    a = [center(1) - l.l.x; center(2) - r.l.x];
-    b = [l.r.x - center(1); r.r.x - center(2)];
-    alpha(1,1) = ((l.l.y * p.y) - min(y(:,i))) / (height(1) - min(y(:,i)));
-    alpha(2,1) = ((r.r.y * p.y) - min(y(:,i))) / (height(2) - min(y(:,i)));
+    if l.c.e < r.c.e
+        
+        a = [center(1) - l.l.x; center(2) - l.l.x];
+        b = [l.r.x - center(1); l.r.x - center(2)];
     
+        alpha(1,1) = ((l.l.y * p.y) - ymin) / (height(1) - ymin);
+        alpha(2,1) = ((l.r.y * p.y) - ymin) / (height(2) - ymin);
+    
+    else
+        
+        a = [center(1) - r.l.x; center(2) - r.l.x];
+        b = [r.r.x - center(1); r.r.x - center(2)];
+    
+        alpha(1,1) = ((r.l.y * p.y) - ymin) / (height(1) - ymin);
+        alpha(2,1) = ((r.r.y * p.y) - ymin) / (height(2) - ymin);
+        
+    end
+        
     % Check for any out of range values
     a(a < 0) = width(a < 0) / 2;
     b(b < 0) = width(a < 0) / 2;
+    
     alpha(alpha < 0 | alpha >= 1) = 0.5;
     
     % Update peak values
-    peak.center(:,i) = center;
-    peak.height(:,i) = height;
-    peak.width(:,i) = width;
-    peak.a(:,i) = a;
-    peak.b(:,i) = b;
-    peak.alpha(:,i) = alpha;
+    peaks.center(:,i) = center;
+    peaks.height(:,i) = height;
+    peaks.width(:,i)  = width;
+    peaks.a(:,i)      = a;
+    peaks.b(:,i)      = b;
+    peaks.alpha(:,i)  = alpha;
+    
 end
 
-% Output
-varargout{1} = peak;
-end
-
-% Parse user input
-function varargout = parse(varargin)
-
-varargin = varargin{1};
-nargin = length(varargin);
-
-% Check input
-if nargin < 1
-    error('Not enough input arguments.');
-elseif nargin >= 1 && isnumeric(varargin{1}) && ~isnumeric(varargin{2})
-    y = varargin{1};
-    x = 1:length(y(:,1));
-elseif nargin >1 && isnumeric(varargin{1}) && isnumeric(varargin{2})
-    x = varargin{1};
-    y = varargin{2};
-else
-    error('Undefined input arguments of type ''xy''.');
-end
-
-% Check data precision
-if ~isa(x, 'double')
-    x = double(x);
-end
-if ~isa(y, 'double')
-    y = double(y);
-end
-
-% Check data orientation
-if length(x(1,:)) > length(x(:,1))
-    x = x';
-end
-if length(y(1,:)) == length(x(:,1))
-    y = y';
-end
-if length(x(:,1)) ~= length(y(:,1))
-    error('Input dimensions must aggree.');
-end
-
-% Check user input
-input = @(x) find(strcmpi(varargin, x),1);
-
-% Check center options
-if ~isempty(input('center'))
-    options.center = varargin{input('center')+1};
-elseif ~isempty(input('time'))
-    options.center = varargin{input('time')+1};
-else
-    [~,index] = max(y);
-    options.center = x(index);
-end
-
-% Check for valid input
-if isempty(options.center)
-    [~,index] = max(y);
-    options.center = x(index);
-elseif ~isnumeric(options.center)
-    error('Undefined input arguments of type ''center''.');
-elseif max(options.center) > max(x) || min(options.center) < min(x)
-    [~,index] = max(y);
-    options.center = x(index);
-end
-
-% Check width options
-if ~isempty(input('width'))
-    options.width = varargin{input('width')+1};
-elseif ~isempty(input('time'))
-    options.width = varargin{input('window')+1};
-else
-    options.width(1:length(options.center)) = max(x) * 0.05;
-end
-
-% Check for valid input
-if isempty(options.width) || min(options.width) <= 0
-    options.width(1:length(options.center),1) = max(x) * 0.05;
-elseif ~isnumeric(options.width)
-    error('Undefined input arguments of type ''width''.');
-end
-
-% Find out of range values (maximum)
-if any(options.center + (options.width/2)) >= max(x)
-    index = options.center + (options.width/2) >= max(x);
-    options.width(index) =  max(x) - (options.width(index)/2);
-end
-
-% Find out of range values (minimum)
-if any(options.center - (options.width/2)) <= min(x)
-    index = options.center - (options.width/2) <= min(x);
-    options.width(index) =  min(x) + (options.width(index)/2);
-end
-
-% Return input
-varargout{1} = x;
-varargout{2} = y;
-varargout{3} = options;
 end

@@ -79,44 +79,64 @@ for i = 1:length(y(1,:))
     e = EGH.e(peak.a(:,i), peak.b(:,i), peak.alpha(:,i));
     
     % Pre-allocate memory
-    yfit = zeros(length(y(:,i)),2);
+    yfit = zeros(length(y(:,i)), 4);
     
     % Determine limits of function
     lim(:,1) = (2 * w(1)^2) + (e(1) .* (x-c(1))) > 0;
     lim(:,2) = (2 * w(2)^2) + (e(2) .* (x-c(2))) > 0;
     
+    lim(:,3) = (2 * w(1)^2) + (-e(1) .* (x-c(1))) > 0;
+    lim(:,4) = (2 * w(2)^2) + (-e(2) .* (x-c(2))) > 0;
+    
     % Calculate fit
     yfit(lim(:,1),1) = EGH.y(x(lim(:,1)),c(1),h(1),w(1),e(1));
     yfit(lim(:,2),2) = EGH.y(x(lim(:,2)),c(2),h(2),w(2),e(2));
     
+    yfit(lim(:,3),3) = EGH.y(x(lim(:,3)),c(1),h(1),w(1),-e(1));
+    yfit(lim(:,4),4) = EGH.y(x(lim(:,4)),c(2),h(2),w(2),-e(2));
+    
     % Set values outside normal range to zero
-    yfit(yfit(:,1) < h(1)*10^-6 | yfit(:,1) > h(1)*2, 1) = 0;
-    yfit(yfit(:,2) < h(2)*10^-6 | yfit(:,2) > h(2)*2, 2) = 0;
+    yfit(yfit(:,1) < h(1)*10^-9 | yfit(:,1) > h(1)*10, 1) = 0;
+    yfit(yfit(:,2) < h(2)*10^-9 | yfit(:,2) > h(2)*10, 2) = 0;
+    
+    yfit(yfit(:,3) < h(1)*10^-9 | yfit(:,3) > h(1)*10, 3) = 0;
+    yfit(yfit(:,4) < h(2)*10^-9 | yfit(:,4) > h(2)*10, 4) = 0;
     
     % Calculate residuals
-    r = repmat(y(:,i),[1,2]) - yfit;
+    r = repmat(y(:,i), [1,4]) - yfit;
     
     % Determine bounds for error calculation
     lim(:,1) = x >= c(1)-w(1) & x <= c(1)+w(1);
     lim(:,2) = x >= c(2)-w(2) & x <= c(2)+w(2);
     
+    lim(:,3) = x >= c(1)-w(1) & x <= c(1)+w(1);
+    lim(:,4) = x >= c(2)-w(2) & x <= c(2)+w(2);
+    
     % Determine fit error
-    rmsd(1) = sqrt(sum(r(lim(:,1),1).^2) ./ sum(lim(:,1))) / (h(1) - min(min(y))) * 100;
-    rmsd(2) = sqrt(sum(r(lim(:,2),2).^2) ./ sum(lim(:,2))) / (h(2) - min(min(y))) * 100;
+    ymin = min(min(y));
+    
+    rmsd(1) = sqrt(sum(r(lim(:,1),1).^2) ./ sum(lim(:,1))) / (h(1) - ymin) * 100;
+    rmsd(2) = sqrt(sum(r(lim(:,2),2).^2) ./ sum(lim(:,2))) / (h(2) - ymin) * 100;
+    
+    rmsd(3) = sqrt(sum(r(lim(:,3),3).^2) ./ sum(lim(:,3))) / (h(1) - ymin) * 100;
+    rmsd(4) = sqrt(sum(r(lim(:,4),4).^2) ./ sum(lim(:,4))) / (h(2) - ymin) * 100;
     
     % Determine better fit
-    if rmsd(1) <= rmsd(2)
-        index = 1;
+    [~, index] = min(rmsd);
+    
+    if index > 2    
+        index = index - 2;
+        e = -e(index);
     else
-        index = 2;
+        e = e(index);
     end
     
     % Determine area factors
-    t = EGH.t(w(index),e(index));
+    t = EGH.t(w(index), e);
     e0 = EGH.c(t, EGH.factors);
     
     % Determine area
-    area = EGH.a(h(index),w(index),e(index),e0);
+    area = EGH.a(h(index), w(index), e, e0);
     
     % Check results
     if isnan(area) || isnan(rmsd(index))
