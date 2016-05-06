@@ -1,6 +1,6 @@
 % ------------------------------------------------------------------------
 % Method      : MD5
-% Description : Calculate MD5 checksum of file
+% Description : Returns the MD5 checksum of file
 % ------------------------------------------------------------------------
 %
 % ------------------------------------------------------------------------
@@ -9,11 +9,10 @@
 %   checksum = MD5(file)
 %
 % ------------------------------------------------------------------------
-% Parameters
+% Input (Required)
 % ------------------------------------------------------------------------
-%   file (required)
-%       Description : absolute or relative path of file
-%       Type        : string
+%   file -- absolute or relative path of file
+%       string
 %
 % ------------------------------------------------------------------------
 % Examples
@@ -21,25 +20,47 @@
 %   checksum = MD5('FID1A.CH')
 %   checksum = MD5('001-32-2.RAW')
 
-function checksum = MD5(file)
+function checksum = MD5(varargin)
 
-% Input validation
-if ~ischar(file) 
-    error('Error: input must be of type ''char''');
-    
-elseif ~exist(file, 'file')
-    error('Error: file does not exist');
+% ---------------------------------------
+% Initialize
+% ---------------------------------------
+checksum = 0;
+
+% ---------------------------------------
+% Input
+% ---------------------------------------
+p = inputParser;
+
+addRequired(p,...
+    'file',...
+    @(x) validateattributes(x, {'char', 'cell'}, {'nonempty'}));
+
+parse(p, varargin{:});
+
+% ---------------------------------------
+% Parse
+% ---------------------------------------
+file = p.Results.file;
+
+% ---------------------------------------
+% Validate
+% ---------------------------------------
+if ~fileattrib(file)
+    return
 end
 
-% Initialize java.security
+% ---------------------------------------
+% MD5
+% ---------------------------------------
 md5 = java.security.MessageDigest.getInstance('MD5');
 
-fstream = java.io.FileInputStream(java.io.File(file));
-dstream = java.security.DigestInputStream(fstream, md5);
+file = java.io.FileInputStream(java.io.File(file));
+file = java.security.DigestInputStream(file, md5);
 
-% Determine MD5 checksum
-while (dstream.read() ~= -1); end
+while file.read() ~= -1
+end
 
-checksum = reshape(dec2hex(typecast(md5.digest(),'uint8'))', 1, []);
+checksum = reshape(dec2hex(typecast(md5.digest(), 'uint8'))', 1, []);
 
 end

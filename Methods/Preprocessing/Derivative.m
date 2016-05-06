@@ -63,7 +63,7 @@ y     = p.Results.y;
 order = p.Results.order;
 
 % ---------------------------------------
-% Validation
+% Validate
 % ---------------------------------------
 if ~isempty(x)
     y = p.Results.x;
