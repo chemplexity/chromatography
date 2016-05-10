@@ -1,32 +1,42 @@
-% Method: ExponentialGaussian
-%  -Curve fitting with the exponentially modified gaussian hybrid
+% ------------------------------------------------------------------------
+% Method      : ExponentialGaussian
+% Description : Curve fitting analysis of chromatographic peaks
+% ------------------------------------------------------------------------
 %
+% ------------------------------------------------------------------------
 % Syntax
-%   peaks = ExponentialGaussian(y)
+% ------------------------------------------------------------------------
 %   peaks = ExponentialGaussian(x, y)
-%   peaks = ExponentialGaussian(x, y, 'OptionName', optionvalue...)
+%   peaks = ExponentialGaussian( __ , Name, Value)
 %
-% Input
-%   x        : array
-%   y        : array or matrix
+% ------------------------------------------------------------------------
+% Input (Required)
+% ------------------------------------------------------------------------
+%   x -- time values
+%       array
 %
-% Options
-%   'center' : value or array
-%   'width'  : value or array
+%   y -- intensity values
+%       array | matrix
 %
-% Description
-%   x        : time values
-%   y        : intensity values
-%   'center' : window center (default = x at max(y))
-%   'width'  : window width (default = %5 of length(x))
+% ------------------------------------------------------------------------
+% Input (Name, Value)
+% ------------------------------------------------------------------------
+%   'center' -- search window center
+%       x at max(y) (default) | number
 %
+%   'width' -- search window width
+%       1 (default) | number
+%
+% ------------------------------------------------------------------------
 % Examples
-%   peaks = ExponentialGaussian(y)
-%   peaks = ExponentialGaussian(y, 'width', 1.5)
+% ------------------------------------------------------------------------
+%   peaks = ExponentialGaussian(x, y)
 %   peaks = ExponentialGaussian(x, y, 'center', 22.10)
 %   peaks = ExponentialGaussian(x, y, 'center', 12.44, 'width', 0.24)
 %
+% ------------------------------------------------------------------------
 % References
+% ------------------------------------------------------------------------
 %   K. Lan, et. al. Journal of Chromatography A, 915 (2001) 1-13
 
 function varargout = ExponentialGaussian(varargin)
@@ -105,7 +115,6 @@ for i = 1:length(y(1,:))
     % Calculate residuals
     r = repmat(y(:,i), [1,4]) - yfit;
     
-    % Determine bounds for error calculation
     lim(:,1) = x >= c(1)-w(1) & x <= c(1)+w(1);
     lim(:,2) = x >= c(2)-w(2) & x <= c(2)+w(2);
     

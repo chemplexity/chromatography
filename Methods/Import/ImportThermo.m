@@ -7,19 +7,19 @@
 % Syntax
 % ------------------------------------------------------------------------
 %   data = ImportThermo(file)
-%   data = ImportThermo(file, Name, Value)
+%   data = ImportThermo( __ , Name, Value)
 %
 % ------------------------------------------------------------------------
-% Parameters
+% Input (Required)
 % ------------------------------------------------------------------------
-%   file (required)
-%       Description : name of Thermo data file
-%       Type        : string
+%   file -- name of Thermo data file
+%       string
 %
-%   'precision' (optional)
-%       Description : maximum decimal places for m/z values
-%       Type        : number
-%       Default     : 3
+% ------------------------------------------------------------------------
+% Input (Name, Value)
+% ------------------------------------------------------------------------
+%   'precision' -- maximum decimal places for m/z values
+%       3 (default) | number
 %
 % ------------------------------------------------------------------------
 % Examples
@@ -38,7 +38,6 @@
 % ------------------------------------------------------------------------
 %   1) Large files > 200 MB
 %   2) Unable to import 'profile' MS/MS data
-%
 
 function varargout = ImportThermo(varargin)
 

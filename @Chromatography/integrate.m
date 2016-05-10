@@ -7,47 +7,31 @@
 % Syntax
 % ------------------------------------------------------------------------
 %   data = obj.integrate(data)
-%   data = obj.integrate(data, Name, Value)
+%   data = obj.integrate( __ , Name, Value)
 %
 % ------------------------------------------------------------------------
-% Parameters
+% Input (Required)
 % ------------------------------------------------------------------------
-%   data (required)
-%       Description : chromatography data
-%       Type        : structure
+%   data -- chromatography data structure
+%       structure
 %
-%   ----------------------------------------------------------------------
-%   Data Selection
-%   ----------------------------------------------------------------------
-%   'samples' (optional)
-%       Description : index of samples in data
-%       Type        : number | 'all'
-%       Default     : 'all'
+% ------------------------------------------------------------------------
+% Input (Name, Value)
+% ------------------------------------------------------------------------
+%   'samples' -- index of samples in data
+%       'all' (default) | integer
 %
-%   'ions' (optional)
-%       Description : index of ions in data
-%       Type        : number | 'all', 'tic'
-%       Default     : 'tic'
+%   'ions' -- index of ions in data
+%       'tic' (default) | 'all' | integer
 %
-%   'results' (optional)
-%       Description : replace, append or reset previous peak results
-%       Type        : 'replace', 'append', 'reset'
-%       Default     : 'replace'
+%   'results' -- replace, append or reset previous peak results
+%       'replace' (default) | 'append' | 'reset'
 %
-%   ----------------------------------------------------------------------
-%   Integration Parameters
-%   ----------------------------------------------------------------------
-%   'center' (optional)
-%       Description : center of window used for peak detection
-%       Type        : number
-%       Default     : x at max(y)
-%       Range       : 0 - max(x)
+%   'center' -- center of window used for peak detection
+%       x at max(y) (default) | number
 %
-%   'width' (optional)
-%       Description : width of window used for peak detection
-%       Type        : number
-%       Default     : 0.05 * max(x)
-%       Range       : 0 - max(x)
+%   'width' -- width of window used for peak detection
+%       1 (default) | number
 %
 % ------------------------------------------------------------------------
 % Examples
@@ -62,8 +46,6 @@
 % References
 % ------------------------------------------------------------------------
 %   K. Lan, et. al. Journal of Chromatography A, 915 (2001) 1-13
-%
-
 
 function varargout = integrate(obj, varargin)
 

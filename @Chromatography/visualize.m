@@ -7,17 +7,20 @@
 % Syntax
 % ------------------------------------------------------------------------
 %   fig = obj.visualize(data)
-%   fig = obj.visualize(data, Name, Value)
+%   fig = obj.visualize( __ , Name, Value)
 %
 % ------------------------------------------------------------------------
-% Parameters
+% Input (Required)
 % ------------------------------------------------------------------------
-%   data (required)
-%       Description : chromatography data
-%       Type        : structure
+%   data -- chromatography data structure
+%       structure
+%
+% ------------------------------------------------------------------------
+% Input (Name, Value)
+% ------------------------------------------------------------------------
 %
 %   ----------------------------------------------------------------------
-%   Plot Options
+%   Overview
 %   ----------------------------------------------------------------------
 %   Data
 %     'samples'   : index | 'all'
@@ -47,96 +50,63 @@
 %   ----------------------------------------------------------------------
 %   Plot Data
 %   ----------------------------------------------------------------------
-%   'samples' (optional)
-%       Description : index of samples in data structure
-%       Type        : number | 'all'
-%       Default     : 'all'
+%   'samples' -- index of samples in data structure
+%       'all' (default) | number
 %
-%   'ions' (optional)
-%       Description : index of ions in data
-%       Type        : number | 'all', 'tic'
-%       Default     : 'tic'
+%   'ions' -- index of ions in data
+%       'tic' (default) | 'all' | number
 %
-%   'baseline' (optional)
-%       Description : show baseline or baseline corrected values
-%       Type        : 'on', 'off', 'corrected'
-%       Default     : 'off'
+%   'baseline' -- show baseline or baseline corrected values
+%       'off' (default) | 'on' | 'corrected'
 %
 %   ----------------------------------------------------------------------
 %   Plot Position
 %   ----------------------------------------------------------------------
-%   'layout' (optional)
-%       Description : arrange plots in stacked or overlaid format
-%       Type        : 'stacked', 'overlaid'
-%       Default     : 'stacked'
+%   'layout' -- arrange plots in stacked or overlaid format
+%       'stacked' (default) | 'overlaid'
 %
-%   'scale' (optional)
-%       Description : plot relative or absolute values
-%       Type        : 'relative', 'absolute'
-%       Default     : 'relative'
+%   'scale' -- plot relative or absolute values
+%       'relative' (default) | 'absolute'
 %
-%   'scope' (optional)
-%       Description : adjust y-values to sample maximum or global maximum
-%       Type        : 'local', 'global'
-%       Default     : 'local'
+%   'scope' -- adjust y-values to sample maximum or global maximum
+%       'local' (default) | 'global'
 %
-%   'offset' (optional)
-%       Description : sequential y-offset applied to each sample
-%       Type        : number
-%       Default     : 0.0
+%   'offset' -- sequential y-offset applied to each sample
+%       0 (default) | number
 %
 %   ----------------------------------------------------------------------
 %   Plot Axes
 %   ----------------------------------------------------------------------
-%   'padding' (optional)
-%       Description : white space between axes and plot lines
-%       Type        : number
-%       Default     : 0.05
-%       Range       : 0.0 to 1.0
+%   'padding' -- white space between axes and plot lines (0 to 1)
+%       0.05 (default) | number
 %
-%   'xlim' (optional)
-%       Description : x-axis limits
-%       Type        : [number, number] | 'auto'
-%       Default     : 'auto'
+%   'xlim' -- x-axis limits
+%       'auto' (default) | [number, number]
 %
-%   'ylim' (optional)
-%       Description : y-axis limits
-%       Type        : [number, number] | 'auto'
-%       Default     : 'auto'
+%   'ylim' -- y-axis limits
+%       'auto' (default) | [number, number]
 %
 %   ----------------------------------------------------------------------
 %   Plot Style
 %   ----------------------------------------------------------------------
-%   'linewidth' (optional)
-%       Description : linewidth of plot line
-%       Type        : number
-%       Default     : 1.0
-%       Range       : > 0.0
+%   'linewidth' -- linewidth of plot lines
+%       1.0 (default) | number
 %
-%   'legend' (optional)
-%       Description : show legend with plot name
-%       Type        : 'on', 'off'
-%       Default     : 'off'
+%   'legend' -- show legend with plot name
+%       'on' (default) | 'off'
 %
-%   'color' (optional)
-%       Description : RGB value of plot line
-%       Type        : [number, number, number]
-%       Default     : use colormap
+%   'color' -- RGB values of plot line
+%       [number, number, number]
 %
-%   'colormap' (optional)
-%       Description : colormap to apply to plot lines
-%       Type        : 'parula', 'jet', 'hsv', 'hot', 'cool', 'spring',...
-%                     'spring', 'summer', 'autumn', 'winter', 'gray',...
-%                     'bone', 'copper', 'pink'
-%       Default     : 'parula'
+%   'colormap' -- colormap to apply to plot lines
+%       'parula' (default) | 'jet' | 'hsv' | 'hot' | 'cool' | 'spring' |
+%       'summer' | 'autumn' | 'winter' | 'gray' | 'bone' | 'copper'
 %
 %   ----------------------------------------------------------------------
 %   Plot Export
 %   ----------------------------------------------------------------------
-%   'export' (optional)
-%       Description : export figure to image (see MATLAB 'print' options)
-%       Type        : cell | 'on', 'off'
-%       Default     : 'off'
+%   'export' -- export figure to image (see MATLAB 'print' options)
+%       'off' (default) | 'on' | cell
 %
 % ------------------------------------------------------------------------
 % Examples
@@ -146,7 +116,6 @@
 %   fig = obj.visualize(data, 'scale', 'normalized', 'legend', 'on')
 %   fig = obj.visualize(data, 'samples', 1, 'xlim', [3, 27])
 %   fig = obj.visualize(data, 'export', {'SampleTIC', '-dtiff', '-r300'}
-%
 
 function varargout = visualize(obj, varargin)
 

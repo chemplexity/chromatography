@@ -7,37 +7,33 @@
 % Syntax
 % ------------------------------------------------------------------------
 %   data = obj.import(filetype)
-%   data = obj.import(filetype, Name, Value)
+%   data = obj.import( __ , Name, Value)
 %
 % ------------------------------------------------------------------------
-% Parameters
+% Input (Required)
 % ------------------------------------------------------------------------
-%   filetype (required)
-%       Description : file extension of data
-%       Type        : '.D', '.CDF', '.RAW', '.MS'
+%   filetype -- file extension of data file
+%       '.D' | '.CDF' | '.RAW' | '.MS'
 %
-%   'append' (optional)
-%       Description : appends import data to existing data
-%       Type        : structure
+% ------------------------------------------------------------------------
+% Input (Name, Value)
+% ------------------------------------------------------------------------
+%   'append' -- append new data to existing data structure
+%       structure
 %
-%   'precision' (optional)
-%       Description : maximum decimal places for m/z values
-%       Type        : number
-%       Default     : 3
+%   'precision' -- maximum decimal places for m/z values
+%       3 (default) | number
 %
-%   'progress' (optional)
-%       Description : display import progress in command window
-%       Type        : 'on', 'off'
-%       Default     : 'on'
+%   'verbose' -- display import progress in command window
+%       'on' (default) | 'off'
 %
 % ------------------------------------------------------------------------
 % Examples
 % ------------------------------------------------------------------------
 %   data = obj.import('.CDF')
 %   data = obj.import('.D', 'append', data)
-%   data = obj.import('.MS', 'progress', 'off', 'precision', 2)
-%   data = obj.import('.RAW', 'append', data, 'progress', 'on')
-%
+%   data = obj.import('.MS', 'verbose', 'off', 'precision', 2)
+%   data = obj.import('.RAW', 'append', data, 'verbose', 'on')
 
 function varargout = import(obj, varargin)
 
@@ -525,7 +521,7 @@ end
 function update(varargin)
 
 % Check user options
-if strcmpi(varargin{4},'off')
+if strcmpi(varargin{4}, 'off')
     return
 end
 
@@ -643,8 +639,8 @@ else
 end
 
 % Progress
-if ~isempty(input('progress'))
-    options.progress = varargin{input('progress')+1};
+if ~isempty(input('verbose'))
+    options.progress = varargin{input('verbose')+1};
     
     % Check for valid input
     if any(strcmpi(options.progress, {'off', 'hide'}))

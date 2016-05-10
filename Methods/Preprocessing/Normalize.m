@@ -7,20 +7,19 @@
 % Syntax
 % ------------------------------------------------------------------------
 %   y = Normalize(y)
-%   y = Normalize(y, Name, Value)
+%   y = Normalize( __ , Name, Value)
 %
 % ------------------------------------------------------------------------
-% Parameters
+% Input (Required)
 % ------------------------------------------------------------------------
-%   y (required)
-%       Description : intensity values
-%       Type        : array or matrix
+%   y -- intensity values
+%       array | matrix
 %
-%   'scope' (optional)
-%       Description : normalize values by row, by column, or by matrix
-%       Type        : string
-%       Options     : 'row', 'column', 'matrix'
-%       Default     : 'column'
+% ------------------------------------------------------------------------
+% Input (Name, Value)
+% ------------------------------------------------------------------------
+%   'scope' -- normalize values by row, by column, or by matrix
+%       'column' (default) | 'row' | 'matrix'
 %
 % ------------------------------------------------------------------------
 % Examples
@@ -30,7 +29,7 @@
 %   y = Normalize(y, 'scope', 'column')
 
 
-function varargout = Normalize(varargin)
+function y = Normalize(varargin)
 
 % ---------------------------------------
 % Defaults
@@ -52,7 +51,7 @@ addParameter(p, 'scope',...
 parse(p, varargin{:});
 
 % ---------------------------------------
-% Variables
+% Parse
 % ---------------------------------------
 y     = p.Results.y;
 scope = p.Results.scope;
@@ -82,10 +81,5 @@ end
 y = bsxfun(@rdivide,...
     bsxfun(@minus, y, ymin),...
     bsxfun(@minus, ymax, ymin));
-
-% ---------------------------------------
-% Output
-% ---------------------------------------
-varargout{1} = y;
 
 end

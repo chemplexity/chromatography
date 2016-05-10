@@ -7,46 +7,36 @@
 % Syntax
 % ------------------------------------------------------------------------
 %   baseline = Baseline(y)
-%   baseline = Baseline(y, Name, Value)
+%   baseline = Baseline( __ , Name, Value)
 %
 % ------------------------------------------------------------------------
-% Parameters
+% Input (Required)
 % ------------------------------------------------------------------------
-%   y (required)
-%       Description : intensity values
-%       Type        : array or matrix
+%   y -- intensity values
+%       array | matrix
 %
-%   'smoothness' (optional)
-%       Description : smoothness parameter used for baseline calculation
-%       Type        : number
-%       Default     : 1E6
-%       Range       : 1E3 to 1E9
+% ------------------------------------------------------------------------
+% Input (Name, Value)
+% ------------------------------------------------------------------------
+%   'smoothness' -- smoothing parameter (1E3 to 1E9)
+%       1E6 (default) | number
 %
-%   'asymmetry' (optional)
-%       Description : asymmetry parameter used for baseline calculation
-%       Type        : number
-%       Default     : 1E-4
-%       Range       : 1E-2 to 1E-9
+%   'asymmetry' -- asymmetry parameter (1E-1 to 1E-6)
+%       1E-4 (default) | number
 %
-%   'iterations' (optional)
-%       Description : total iterations used for baseline calculation
-%       Type        : number
-%       Default     : 10
-%       Range       : >0
-%
-%   'convergence' (optional)
-%       Description : stopping criteria
-%       Type        : number
-%       Default     : 1E-4
-%       Range       : >0
+%   'iterations' -- maximum number of baseline iterations
+%       10 (default) | number
+%       
+%   'gradient' -- minimum change required for continued iterations
+%       1E-4 (default) | number
 %
 % ------------------------------------------------------------------------
 % Examples
 % ------------------------------------------------------------------------
-%   baseline = Baseline(y)
-%   baseline = Baseline(y, 'asymmetry', 1E-2)
-%   baseline = Baseline(y, 'smoothness', 1E5)
-%   baseline = Baseline(y, 'smoothness', 1E7, 'asymmetry', 1E-3)
+%   b = Baseline(y)
+%   b = Baseline(y, 'asymmetry', 1E-6)
+%   b = Baseline(y, 'smoothness', 1E5, 'iterations', 50)
+%   b = Baseline(y, 'smoothness', 1E7, 'asymmetry', 1E-2)
 %
 % ------------------------------------------------------------------------
 % References
@@ -58,10 +48,10 @@ function b = Baseline(varargin)
 % ---------------------------------------
 % Default
 % ---------------------------------------
-default.smoothness  = 1E6;
-default.asymmetry   = 1E-4;
-default.iterations  = 10;
-default.convergence = 1E-4;
+default.smoothness = 1E6;
+default.asymmetry  = 1E-4;
+default.iterations = 10;
+default.gradient   = 1E-4;
 
 % ---------------------------------------
 % Input
@@ -73,7 +63,7 @@ addRequired(p, 'y',...
 
 addParameter(p, 'smoothness',...
     default.smoothness,...
-    @(x) validateattributes(x, {'numeric'}, {'scalar'}));
+    @(x) validateattributes(x, {'numeric'}, {'scalar', 'positive'}));
 
 addParameter(p, 'asymmetry',...
     default.asymmetry,...
@@ -81,10 +71,10 @@ addParameter(p, 'asymmetry',...
 
 addParameter(p, 'iterations',...
     default.iterations,...
-    @(x) validateattributes(x, {'numeric'}, {'scalar'}));
+    @(x) validateattributes(x, {'numeric'}, {'scalar', 'positive'}));
 
-addParameter(p, 'convergence',...
-    default.convergence,...
+addParameter(p, 'gradient',...
+    default.gradient,...
     @(x) validateattributes(x, {'numeric'}, {'scalar'}));
 
 parse(p, varargin{:});
@@ -92,21 +82,17 @@ parse(p, varargin{:});
 % ---------------------------------------
 % Parse
 % ---------------------------------------
-y           = p.Results.y;
-s           = p.Results.smoothness;
-a           = p.Results.asymmetry;
-iterations  = p.Results.iterations;
-convergence = p.Results.convergence;
+y          = p.Results.y;
+s          = p.Results.smoothness;
+a          = p.Results.asymmetry;
+iterations = p.Results.iterations;
+gradient   = p.Results.gradient;
 
 % ---------------------------------------
 % Validate
 % ---------------------------------------
 if ~isa(y, 'double')
     y = double(y);
-end
-
-if s <= 0
-    s = 1E-9;
 end
 
 if a <= 0
@@ -161,7 +147,7 @@ for i = 1:n
         w(:,1) = a * (y(:,i) > z) + (1 - a) * (y(:,i) < z);
         
         % Check convergence
-        if mean(abs(diff(w,[],2))) <= convergence
+        if mean(abs(diff(w,[],2))) <= gradient
             break
         end
         
@@ -181,6 +167,7 @@ for i = 1:n
     
     % Update baseline
     b(:,i) = z;
+    
 end
 
 end

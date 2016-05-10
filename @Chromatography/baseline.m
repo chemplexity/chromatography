@@ -7,42 +7,28 @@
 % Syntax
 % ------------------------------------------------------------------------
 %   data = obj.baseline(data)
-%   data = obj.baseline(data, Name, Value)
+%   data = obj.baseline( __ , Name, Value)
 %
 % ------------------------------------------------------------------------
-% Parameters
+% Input (Required)
 % ------------------------------------------------------------------------
-%   data (required)
-%       Description : chromatography data
-%       Type        : structure
+%   data -- chromatography data structure
+%       structure
 %
-%   ----------------------------------------------------------------------
-%   Data Selection
-%   ----------------------------------------------------------------------
-%   'samples' (optional)
-%       Description : index of samples in data
-%       Type        : number | 'all'
-%       Default     : 'all'
+% ------------------------------------------------------------------------
+% Input (Name, Value)
+% ------------------------------------------------------------------------
+%   'samples' -- index of samples in data
+%       'all' (default) | number
 %
-%   'ions' (optional)
-%       Description : index of ions in data
-%       Type        : number | 'all', 'tic'
-%       Default     : 'tic'
+%   'ions' -- index of ions in data
+%       'tic' (default) | 'all' | number
 %
-%   ----------------------------------------------------------------------
-%   Baseline Parameters
-%   ----------------------------------------------------------------------
-%   'smoothness' (optional)
-%       Description : smoothness parameter used for baseline calculation
-%       Type        : number
-%       Default     : 1E6
-%       Range       : 1E3 to 1E9
+%   'smoothness' -- smoothness parameter (1E3 to 1E9)
+%       1E6 (default) | number
 %
-%   'asymmetry' (optional)
-%       Description : asymmetry parameter used for baseline calculation
-%       Type        : number
-%       Default     : 1E-4
-%       Range       : 1E-3 to 1E-9
+%   'asymmetry' -- asymmetry parameter (1E-1 to 1E-6)
+%       1E-4 (default) | number
 %
 % ------------------------------------------------------------------------
 % Examples
@@ -57,7 +43,6 @@
 % References
 % ------------------------------------------------------------------------
 %   P.H.C. Eilers, Analytical Chemistry, 75 (2003) 3631
-%
 
 function varargout = baseline(obj, varargin)
 

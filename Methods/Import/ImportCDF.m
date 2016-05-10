@@ -7,26 +7,25 @@
 % Syntax
 % ------------------------------------------------------------------------
 %   data = ImportCDF(file)
-%   data = ImportCDF(file, Name, Value)
+%   data = ImportCDF( __ , Name, Value)
 %
 % ------------------------------------------------------------------------
-% Parameters
+% Input (Required)
 % ------------------------------------------------------------------------
-%   file (required)
-%       Description : name of netCDF file
-%       Type        : string
+%   file -- name of netCDF file
+%       string
 %
-%   'precision' (optional)
-%       Description : maximum decimal places for m/z values
-%       Type        : number
-%       Default     : 3
+% ------------------------------------------------------------------------
+% Input (Name, Value)
+% ------------------------------------------------------------------------
+%   'precision' -- maximum decimal places for m/z values
+%       3 (default) | number
 %
 % ------------------------------------------------------------------------
 % Examples
 % ------------------------------------------------------------------------
 %   data = ImportCDF('001-0510.CDF')
 %   data = ImportCDF('002-23.CDF', 'precision', 2)
-%
 
 function varargout = ImportCDF(varargin)
 

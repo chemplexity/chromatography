@@ -7,29 +7,25 @@
 % Syntax
 % ------------------------------------------------------------------------
 %   data = obj.centroid(data)
-%   data = obj.centroid(data, Name, Value)
+%   data = obj.centroid( __ , Name, Value)
 %
 % ------------------------------------------------------------------------
-% Parameters
+% Input (Required)
 % ------------------------------------------------------------------------
-%   data (required)
-%       Description : chromatography data
-%       Type        : structure
+%   data -- chromatography data structure
+%       structure
 %
-%   ----------------------------------------------------------------------
-%   Data Selection
-%   ----------------------------------------------------------------------
-%   'samples' (optional)
-%       Description : index of samples in data
-%       Type        : number | 'all'
-%       Default     : 'all'
+% ------------------------------------------------------------------------
+% Input (Name, Value)
+% ------------------------------------------------------------------------
+%   'samples' -- index of samples in data
+%       'all' | number
 %
 % ------------------------------------------------------------------------
 % Examples
 % ------------------------------------------------------------------------
 %   data = obj.centroid(data)
 %   data = obj.centroid(data, 'samples', [2:5, 8, 10])
-%
 
 function varargout = centroid(obj, varargin)
 

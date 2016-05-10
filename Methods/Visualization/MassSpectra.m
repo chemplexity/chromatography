@@ -7,85 +7,62 @@
 % Syntax
 % ------------------------------------------------------------------------
 %   fig = MassSpectra(mz, y)
-%   fig = MassSpectra(mz, y, Name, Value)
+%   fig = MassSpectra( __ , Name, Value)
 %
 % ------------------------------------------------------------------------
-% Parameters
+% Input (Required)
 % ------------------------------------------------------------------------
-%   mz (required)
-%       Description : mass values
-%       Type        : array
+%   mz -- mass values (size = 1 x n)
+%       array
 %
-%   y (required)
-%       Description : intensity values
-%       Type        : matrix
+%   y -- intensity values (size = m x n)
+%       array | matrix
 %
+% ------------------------------------------------------------------------
+% Input (Name, Value)
+% ------------------------------------------------------------------------
+%   
 %   ----------------------------------------------------------------------
 %   Plot Layout
 %   ----------------------------------------------------------------------
-%   'scale' (optional)
-%       Description : plot relative or absolute values
-%       Type        : 'relative', 'absolute'
-%       Default     : 'relative'
+%   'scale' -- plot relative or absolute values
+%       'relative' (default) | 'absolute'
 %
-%   'height' (optional)
-%       Description : figure height relative to screen
-%       Type        : number
-%       Default     : 0.44
-%       Range       : 0.0 to 1.0
+%   'height' -- figure height relative to screen (0 to 1)
+%       0.44 (default) | number
 %
-%   'width' (optional)
-%       Description : figure width relative to screen
-%       Type        : number
-%       Default     : 0.42
-%       Range       : 0.0 to 1.0
+%   'width' -- figure width relative to screen (0 to 1)
+%       0.42 (default) | number
 %
-%   'xlim' (optional)
-%       Description : x-axis limits
-%       Type        : [number, number] | 'auto'
-%       Default     : 'auto'
+%   'xlim' -- x-axis limits
+%       'auto' (default) | [number, number]
 %
-%   'ylim' (optional)
-%       Description : y-axis limits
-%       Type        : [number, number] | 'auto'
-%       Default     : 'auto'
+%   'ylim' -- y-axis limits
+%       'auto' (default) | [number, number]
 %
 %   ----------------------------------------------------------------------
 %   Plot Style
 %   ----------------------------------------------------------------------
-%   'labels' (optional)
-%       Description : show labels above abundant ions
-%       Type        : 'on', 'off'
-%       Default     : 'off'
+%   'labels' -- show labels above abundant ions
+%       'on' (default) | 'off'
 %
-%   'fontname' (optional)
-%       Description : font name used to axes and ion labels
-%       Type        : string
-%       Default     : 'Avenir'
+%   'fontname' -- font name used to axes and ion labels
+%       'Avenir' (default) | string
 %
-%   'fontsize' (optional)
-%       Description : font size of text labels
-%       Type        : number
-%       Default     : 7.5
+%   'fontsize' -- font size of text labels
+%       7.5 (default) | number
 %
-%   'barwidth' (optional)
-%       Description : width of individual bars
-%       Type        : number
-%       Default     : 7
-%       Range       : > 0.0
+%   'barwidth' -- width of individual bars
+%       7 (default) | number
 %
 %   ----------------------------------------------------------------------
 %   Plot Export
 %   ----------------------------------------------------------------------
-%   'filename' (optional)
-%       Description : name used for file export
-%       Type        : string
-%       Default     : 'mass_spectra'
-%
-%   'export' (optional)
-%       Description : export figure to image (see MATLAB 'print' options)
-%       Type        : cell | 'on', 'off'
-%       Default     : 'off'
+%   'filename' -- output file name
+%       string
+%       
+%   'export' -- export figure to image (see MATLAB 'print' options)
+%       'off' (default) | 'on' | cell
 %
 % ------------------------------------------------------------------------
 % Examples

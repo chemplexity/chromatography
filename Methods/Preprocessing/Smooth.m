@@ -7,45 +7,35 @@
 % Syntax
 % ------------------------------------------------------------------------
 %   y = Smooth(y)
-%   y = Smooth(y, Name, Value)
+%   y = Smooth( __ , Name, Value)
 %
 % ------------------------------------------------------------------------
-% Parameters
+% Input (Required)
 % ------------------------------------------------------------------------
-%   y (required)
-%       Description : intensity values
-%       Type        : array or matrix
+%   y -- intensity values
+%       array | matrix
 %
-%   'smoothness' (optional)
-%       Description : smoothness parameter used for smoothing calculation
-%       Type        : number
-%       Default     : 0.5
-%       Range       : 0 to 10000
+% ------------------------------------------------------------------------
+% Input (Name, Value)
+% ------------------------------------------------------------------------
+%   'smoothness' -- smoothing parameter (1E-1 to 1E4)
+%       0.5 (default) | number
 %
-%   'asymmetry' (optional)
-%       Description : asymmetry parameter used for smoothing calculation
-%       Type        : number
-%       Default     : 0.5
-%       Range       : 0.0 to 1.0
+%   'asymmetry' -- asymmetry parameter (0 to 1)
+%       0.5 (default) | number
 %
-%   'iterations' (optional)
-%       Description : total iterations used for smoothing calculation
-%       Type        : number
-%       Default     : 5
-%       Range       : >0
-%
-%   'convergence' (optional)
-%       Description : stopping criteria
-%       Type        : number
-%       Default     : 1E-4
-%       Range       : >0
+%   'iterations' -- maximum number of smoothing iterations
+%       5 (default) | number
+%       
+%   'gradient' -- minimum change required for continued iterations
+%       1E-4 (default) | number
 %
 % ------------------------------------------------------------------------
 % Examples
 % ------------------------------------------------------------------------
 %   y = Smooth(y)
 %   y = Smooth(y, 'asymmetry', 0.4)
-%   y = Smooth(y, 'smoothness', 500, 'iterations', 2)
+%   y = Smooth(y, 'smoothness', 500, 'iterations', 20)
 %   y = Smooth(y, 'smoothness', 10, 'asymmetry', 0.45)
 %
 % ------------------------------------------------------------------------
@@ -61,7 +51,7 @@ function y = Smooth(varargin)
 default.smoothness  = 0.5;
 default.asymmetry   = 0.5;
 default.iterations  = 5;
-default.convergence = 1E-4;
+default.gradient    = 1E-4;
 
 % ---------------------------------------
 % Input
@@ -73,7 +63,7 @@ addRequired(p, 'y',...
 
 addParameter(p, 'smoothness',...
     default.smoothness,...
-    @(x) validateattributes(x, {'numeric'}, {'scalar'}));
+    @(x) validateattributes(x, {'numeric'}, {'scalar', 'positive'}));
 
 addParameter(p, 'asymmetry',...
     default.asymmetry,...
@@ -81,10 +71,10 @@ addParameter(p, 'asymmetry',...
 
 addParameter(p, 'iterations',...
     default.iterations,...
-    @(x) validateattributes(x, {'numeric'}, {'scalar'}));
+    @(x) validateattributes(x, {'numeric'}, {'scalar', 'positive'}));
 
-addParameter(p, 'convergence',...
-    default.convergence,...
+addParameter(p, 'gradient',...
+    default.gradient,...
     @(x) validateattributes(x, {'numeric'}, {'scalar'}));
 
 parse(p, varargin{:});
@@ -92,21 +82,17 @@ parse(p, varargin{:});
 % ---------------------------------------
 % Parse
 % ---------------------------------------
-y           = p.Results.y;
-s           = p.Results.smoothness;
-a           = p.Results.asymmetry;
-iterations  = p.Results.iterations;
-convergence = p.Results.convergence;
+y          = p.Results.y;
+s          = p.Results.smoothness;
+a          = p.Results.asymmetry;
+iterations = p.Results.iterations;
+gradient   = p.Results.gradient;
 
 % ---------------------------------------
 % Validate
 % ---------------------------------------
 if ~isa(y, 'double')
     y = double(y);
-end
-
-if s <= 0
-    s = 1E-9;
 end
 
 if a <= 0
@@ -147,7 +133,6 @@ for i = 1:n
         
         % Check errors
         if error
-            disp(j);
             break
         end
         
@@ -158,8 +143,8 @@ for i = 1:n
         w(:,2) = w(:,1);
         w(:,1) = a * (y(:,i) > z) + (1 - a) * (y(:,i) < z);
         
-        % Check convergence
-        if mean(abs(diff(w,[],2))) <= convergence
+        % Check gradient
+        if mean(abs(diff(w,[],2))) <= gradient
             break
         end
         

@@ -7,25 +7,26 @@
 % Syntax
 % ------------------------------------------------------------------------
 %   dy = Derivative(y)
-%   dy = Derivative(x, y, Name, Value)
+%   dy = Derivative(x, y)
+%   dy = Derivative( __ , Name, Value)
 %
 % ------------------------------------------------------------------------
-% Parameters
+% Input (Required)
 % ------------------------------------------------------------------------
-%   x (optional)
-%       Description : time values
-%       Type        : array
-%       Default     : 1:length(y)
+%   y -- intensity values
+%       array | matrix
 %
-%   y (required)
-%       Description : intensity values
-%       Type        : array or matrix
-%
-%   'order' (optional)
-%       Description : calculate nth order derivative
-%       Type        : integer
-%       Options     : >=1
-%       Default     : 1
+% ------------------------------------------------------------------------
+% Input (Optional)
+% ------------------------------------------------------------------------
+%   x -- time values
+%       array
+%       
+% ------------------------------------------------------------------------
+% Input (Name, Value)
+% ------------------------------------------------------------------------
+%   'order' -- nth order derivative
+%       1 (default) | integer
 %
 % ------------------------------------------------------------------------
 % Examples
@@ -35,7 +36,7 @@
 %   dy = Derivative(x, y, 'order', 1)
 %   dy = Derivative(y, 'order', 4)
 
-function varargout = Derivative(varargin)
+function dy = Derivative(varargin)
 
 % ---------------------------------------
 % Input
@@ -104,10 +105,5 @@ for i = 1:n
 end
 
 dy(isnan(dy)|isinf(dy)) = 0;
-
-% ---------------------------------------
-% Output
-% ---------------------------------------
-varargout{1} = dy;
 
 end

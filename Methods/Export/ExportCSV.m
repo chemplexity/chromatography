@@ -7,35 +7,37 @@
 % Syntax
 % ------------------------------------------------------------------------
 %   data = ExportCSV(y)
-%   data = ExportCSV(x, y, Name, Value)
-%   data = ExportCSV(x, y, z, Name, Value)
+%   data = ExportCSV(x, y)
+%   data = ExportCSV(x, y, z)
+%   data = ExportCSV( __ , Name, Value)
 %
 % ------------------------------------------------------------------------
-% Parameters
+% Input (Required)
 % ------------------------------------------------------------------------
-%   x (optional)
-%       Description : time values (row vector)
-%       Type        : array
+%   y -- intensity values (size = m x n)
+%       array | matrix
 %
-%   y (required)
-%       Description : intensity values
-%       Type        : array or matrix
+% ------------------------------------------------------------------------
+% Input (Optional)
+% ------------------------------------------------------------------------
+%   x -- time values (size = m x 1)
+%       array
 %
-%   z (optional)
-%       Description : mass values (column vector) 
-%       Type        : array
+%   z -- mass values (size = 1 x n) 
+%       array
 %
-%   'file' (optional)
-%       Description : name of file
-%       Type        : string
+% ------------------------------------------------------------------------
+% Input (Name, Value)
+% ------------------------------------------------------------------------
+%   'filename' -- name of output file
+%       string
 %
 % ------------------------------------------------------------------------
 % Examples
 % ------------------------------------------------------------------------
 %   ExportCSV(y)
-%   ExportCSV(x, y, 'file', '001-03.csv')
-%   ExportCSV(x, y, z, 'file', '004-01.csv')
-%
+%   ExportCSV(x, y, 'filename', '001-03.csv')
+%   ExportCSV(x, y, z, 'filename', '004-01.csv')
 
 function ExportCSV(varargin)
 
@@ -162,7 +164,7 @@ if ~isempty(input('filename'))
         end
         
     else
-        options.file = 'data.CSV';
+        options.file = [datestr(datetime, 'YYYYmmDD_HHMM'), '_DATA.CSV'];
     end
     
     % Remove file extension
@@ -171,7 +173,7 @@ if ~isempty(input('filename'))
     % Add '.CSV' extension
     options.file = strcat(options.file, '.CSV');
 else
-    options.file = 'data.CSV';
+    options.file = [datestr(datetime, 'YYYYmmDD_HHMM'), '_DATA.CSV'];
 end
 
 

@@ -7,42 +7,28 @@
 % Syntax
 % ------------------------------------------------------------------------
 %   data = obj.smooth(data)
-%   data = obj.smooth(data, Name, Value)
+%   data = obj.smooth( __ , Name, Value)
 %
 % ------------------------------------------------------------------------
-% Parameters
+% Input (Required)
 % ------------------------------------------------------------------------
-%   data (required)
-%       Description : chromatography data
-%       Type        : structure
+%   data -- chromatography data structure
+%       structure
 %
-%   ----------------------------------------------------------------------
-%   Data Selection
-%   ----------------------------------------------------------------------
-%   'samples' (optional)
-%       Description : index of samples in data
-%       Type        : number | 'all'
-%       Default     : 'all'
+% ------------------------------------------------------------------------
+% Input (Name, Value)
+% ------------------------------------------------------------------------
+%   'samples' -- index of samples in data
+%       'all' (default) | number
 %
-%   'ions' (optional)
-%       Description : index of ions in data
-%       Type        : number | 'all', 'tic'
-%       Default     : 'tic'
+%   'ions' -- index of ions in data
+%       'tic' (default) | 'all' | number
 %
-%   ----------------------------------------------------------------------
-%   Smoothing Parameters
-%   ----------------------------------------------------------------------
-%   'smoothness' (optional)
-%       Description : smoothness parameter used for smoothing calculation
-%       Type        : number
-%       Default     : 0.5
-%       Range       : 0 to 10000
+%   'smoothness' -- smoothness parameter (1E-1 to 1E4)
+%       0.5 (default) | number
 %
-%   'asymmetry' (optional)
-%       Description : asymmetry parameter used for smoothing calculation
-%       Type        : number
-%       Default     : 0.5
-%       Range       : 0.0 to 1.0
+%   'asymmetry' -- asymmetry parameter (0 to 1)
+%       0.5 (default) | number
 %
 % ------------------------------------------------------------------------
 % Examples
@@ -57,7 +43,6 @@
 % References
 % ------------------------------------------------------------------------
 %   P.H.C. Eilers, Analytical Chemistry, 75 (2003) 3631
-%
 
 function varargout = smooth(obj, varargin)
 

@@ -9,15 +9,13 @@
 %   [mz, y] = Centroid(mz, y)
 %
 % ------------------------------------------------------------------------
-% Parameters
+% Input (Required)
 % ------------------------------------------------------------------------
-%   mz (required)
-%       Description : mass values
-%       Type        : array
+%   mz -- mass values
+%       array
 %
-%   y (required)
-%       Description : intensity values
-%       Type        : matrix
+%   y -- intensity values
+%       matrix
 %
 % ------------------------------------------------------------------------
 % Examples
