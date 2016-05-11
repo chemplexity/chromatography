@@ -57,7 +57,7 @@ addParameter(p, 'iterations',...
 
 addParameter(p, 'convergence',...
     default.convergence,...
-    @(x) validateattributes(x, {'numeric'}, {'scalar'}));
+    @(x) validateattributes(x, {'numeric'}, {'scalar', 'positive'}));
 
 parse(p, varargin{:});
 
@@ -68,13 +68,6 @@ y           = p.Results.y;
 yref        = p.Results.yref;
 iterations  = p.Results.iterations;
 convergence = p.Results.convergence;
-
-% ---------------------------------------
-% Validate
-% ---------------------------------------
-if convergence <= 0
-    convergence = 0;
-end
 
 % ---------------------------------------
 % Variables

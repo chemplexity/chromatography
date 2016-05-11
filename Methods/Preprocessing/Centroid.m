@@ -1,6 +1,6 @@
 % ------------------------------------------------------------------------
 % Method      : Centroid
-% Description : Centroid mass values
+% Description : Centroid mass spectrometer data
 % ------------------------------------------------------------------------
 %
 % ------------------------------------------------------------------------
@@ -12,10 +12,19 @@
 % Input (Required)
 % ------------------------------------------------------------------------
 %   mz -- mass values
-%       array
+%       array (size = 1 x n)
 %
 %   y -- intensity values
-%       matrix
+%       array | matrix (size = m x n)
+%
+% ------------------------------------------------------------------------
+% Input (Name, Value)
+% ------------------------------------------------------------------------
+%   'iterations' -- number of iterations to perform centroiding
+%       50 (default) | number
+%
+%   'blocksize' -- maximum number of bytes to process at a single time
+%       5E6 (default) | number
 %
 % ------------------------------------------------------------------------
 % Examples
@@ -24,63 +33,99 @@
 
 function varargout = Centroid(varargin)
 
-varargout{1} = [];
 varargout{2} = [];
 
-% Check input
-[mz, y] = parse(varargin);
+% ---------------------------------------
+% Default
+% ---------------------------------------
+default.iterations = 10;
+default.blocksize  = 5E6;
 
-% Process large input in segments
-blocksize = 5000;
+% ---------------------------------------
+% Input
+% ---------------------------------------
+p = inputParser;
 
-if length(mz) > blocksize
+addRequired(p, 'mz',...
+    @(x) validateattributes(x, {'numeric'}, {'nonnan', 'nonempty'}));
+
+addRequired(p, 'y',...
+    @(x) validateattributes(x, {'numeric'}, {'nonnan', 'nonempty'}));
+
+addParameter(p, 'iterations',...
+    default.iterations,...
+    @(x) validateattributes(x, {'numeric'}, {'scalar', 'positive'}));
+
+addParameter(p, 'blocksize',...
+    default.blocksize,...
+    @(x) validateattributes(x, {'numeric'}, {'scalar', 'positive'}));
+
+parse(p, varargin{:});
+
+% ---------------------------------------
+% Parse
+% ---------------------------------------
+mz = p.Results.mz;
+y  = p.Results.y;
+
+iterations = p.Results.iterations;
+blocksize  = p.Results.blocksize;
+
+% ---------------------------------------
+% Validate
+% ---------------------------------------
+if length(mz(1,:)) ~= length(y(1,:))
+    return
+end
+
+% ---------------------------------------
+% Variables
+% ---------------------------------------
+[m, n] = size(y);
+
+index = 1:floor(blocksize/(m*8)):n;
     
-    % Calculate block index
-    n(:,2) = (1:floor(length(mz)/blocksize)) * blocksize;
-    n(:,1) = circshift(n(:,2), [1,0]) + 1;
-    n(1,1) = 1;
+if index(end) ~= n
+    index(end+1) = n + 1;
+end
     
-    for i = 1:length(n(:,1))
-        
-        if i == length(n(:,1))
-            index = n(i,1):length(mz);
-        else
-            index = n(i,1):n(i,2);
-        end
-        
-        % Centroid data block
-        [mz_segment, y_segment] = centroid(mz(index), full(y(:,index)));
-        
-        % Reassemble data
-        varargout{1} = [varargout{1}, mz_segment];
-        
-        if issparse(y)
-            varargout{2} = [varargout{2}, sparse(y_segment)];
-        else
-            varargout{2} = [varargout{2}, y_segment];
-        end
+% ---------------------------------------
+% Centroid
+% ---------------------------------------
+for i = 1:length(index)-1
+
+    block.mz = mz(index(i):index(i+1)-1);
+    block.y  = y(:, index(i):index(i+1)-1);
+    
+    if issparse(y)
+        [block.mz, block.y] = centroid(block.mz, full(block.y), iterations);
+        varargout{1} = [varargout{1}, block.mz];
+        varargout{2} = [varargout{2}, sparse(block.y)];
+    else
+        [block.mz, block.y] = centroid(block.mz, block.y, iterations);
+        varargout{1} = [varargout{1}, block.mz];
+        varargout{2} = [varargout{2}, block.y];
     end
-    
-else
-    
-    % Centroid data
-    [varargout{1}, varargout{2}] = centroid(mz, y);
+
 end
 
 end
 
-function [mz,y] = centroid(mz,y)
+function [mz, y] = centroid(mz, y, rounds)
 
-% Initialize variables
-counter = 1;
+% ---------------------------------------
+% Variables
+% ---------------------------------------
+counter    = 1;
 iterations = 0;
 
-while counter ~= 0 && iterations <= 10
+% ---------------------------------------
+% Centroid
+% ---------------------------------------
+while counter ~= 0 && iterations <= rounds
     
-    % Centroid data
     for i = 2:length(y(1,:))-1
         
-        % Check data
         if all(~y(:,i))
             continue
         end
@@ -110,75 +155,23 @@ while counter ~= 0 && iterations <= 10
             index = xor(middle, lower);
             
             % Shift nonzeros in adjacent column to middle column
-            y(index,i) = y(index,i) + y(index,i-1);
-            y(index,i-1) = 0;
+            y(index, i) = y(index, i) + y(index, i-1);
+            y(index, i-1) = 0;
+            
         end
     end
     
-    % Update counter with number of columns
     counter = length(y(1,:));
     
     % Remove columns with all zeros
     remove = all(~y);
     
-    mz(:,remove) = [];
-    y(:,remove) = [];
+    mz(:, remove) = [];
+    y(:, remove)  = [];
     
-    % Update counter with number of columns removed
     counter = counter - length(y(1,:));
-    
-    % Update number of iterations
     iterations = iterations + 1;
+    
 end
-
-end
-
-% Parse user input
-function varargout = parse(varargin)
-
-varargin = varargin{1};
-nargin = length(varargin);
-
-% Check input
-if nargin <= 1
-    error('Not enough input arguments.');
-end
-
-% Check data
-if isnumeric(varargin{1})
-    mz = varargin{1};
-else
-    error('Undefined input arguments of type ''mz''.');
-end
-
-if isnumeric(varargin{2})
-    y = varargin{2};
-else
-    error('Undefined input arguments of type ''y''.');
-end
-
-% Incorrect 'mz' orientation
-if length(mz(:,1)) == length(y(1,:))
-    mz = mz(:,1)';
-end
-
-% Incorrect 'mz' and 'y' orientation
-if length(mz(:,1)) == length(y(:,1)) && length(y(:,1)) ~= length(y(1,:))
-    mz = mz(:,1)';
-    y = y';
-end
-
-% Incorrect 'y' orientation
-if length(mz(1,:)) == length(y(:,1)) && length(y(:,1)) ~= length(y(1,:))
-    y = y';
-end
-
-if length(mz(1,:)) ~= length(y(1,:))
-    error('Input dimensions must aggree.');
-end
-
-% Return input
-varargout{1} = mz;
-varargout{2} = y;
 
 end
