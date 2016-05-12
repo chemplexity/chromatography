@@ -39,7 +39,7 @@ varargout{2} = [];
 % Default
 % ---------------------------------------
 default.iterations = 10;
-default.blocksize  = 5E6;
+default.blocksize  = 10E6;
 
 % ---------------------------------------
 % Input
@@ -111,31 +111,29 @@ end
 
 end
 
-function [mz, y] = centroid(mz, y, rounds)
+function [x, y] = centroid(x, y, iterations)
 
 % ---------------------------------------
 % Variables
 % ---------------------------------------
-counter    = 1;
-iterations = 0;
+gradient = 1;
+counter  = 0;
 
 % ---------------------------------------
 % Centroid
 % ---------------------------------------
-while counter ~= 0 && iterations <= rounds
+while gradient ~= 0 && counter < iterations
     
-    for i = 2:length(y(1,:))-1
-        
-        if all(~y(:,i))
-            continue
-        end
+    n = length(y(1,:));
+    
+    for i = 2:n-1
         
         % Find zeros in column
-        middle = ~y(:,i);
+        middle = ~y(:, i);
         
         % Find zeros in adjacent columns
-        upper = ~y(:,i+1);
-        lower = ~y(:,i-1);
+        upper = ~y(:, i+1);
+        lower = ~y(:, i-1);
         
         % Consolidate if next column has more zeros
         if nnz(middle) < nnz(upper)
@@ -144,8 +142,9 @@ while counter ~= 0 && iterations <= rounds
             index = xor(middle, upper);
             
             % Shift nonzeros in adjacent column to middle column
-            y(index,i) = y(index,i) + y(index,i+1);
-            y(index,i+1) = 0;
+            y(index, i) = y(index, i) + y(index, i+1);
+            y(index, i+1) = 0;
+            
         end
         
         % Consolidate if previous column has more zero elements
@@ -161,16 +160,15 @@ while counter ~= 0 && iterations <= rounds
         end
     end
     
-    counter = length(y(1,:));
-    
     % Remove columns with all zeros
-    remove = all(~y);
+    ii = all(~y);
     
-    mz(:, remove) = [];
-    y(:, remove)  = [];
+    x(:, ii) = [];
+    y(:, ii) = [];
     
-    counter = counter - length(y(1,:));
-    iterations = iterations + 1;
+    % Update values
+    gradient = n - length(y(1,:));
+    counter  = counter + 1;
     
 end
 
