@@ -6,17 +6,17 @@
 % ------------------------------------------------------------------------
 % Syntax
 % ------------------------------------------------------------------------
-%   index = Align(y, yref)
+%   index = Align(y, reference)
 %   index = Align( __ , Name, Value)
 %
 % ------------------------------------------------------------------------
 % Input (Required)
 % ------------------------------------------------------------------------
 %   y -- intensity values
-%       array | matrix
+%       array | matrix | cell array
 %
-%   yref -- reference signal for alignment
-%       array
+%   reference -- reference signal for alignment
+%       array | cell
 %
 % ------------------------------------------------------------------------
 % Input (Name, Value)
@@ -38,7 +38,7 @@ function varargout = Align(varargin)
 % Default
 % ---------------------------------------
 default.iterations  = 50;
-default.convergence = 1E-4;
+default.convergence = 1E-5;
 
 % ---------------------------------------
 % Input
@@ -46,10 +46,10 @@ default.convergence = 1E-4;
 p = inputParser;
 
 addRequired(p, 'y',...
-    @(x) validateattributes(x, {'numeric'}, {'nonnan', 'nonempty'}));
+    @(x) validateattributes(x, {'cell', 'numeric'}, {'nonempty'}));
 
-addRequired(p, 'yref',...
-    @(x) validateattributes(x, {'numeric'}, {'nonnan', 'nonempty'}));
+addRequired(p, 'reference',...
+    @(x) validateattributes(x, {'cell', 'numeric'}, {'nonempty'}));
 
 addParameter(p, 'iterations',...
     default.iterations,...
@@ -57,66 +57,81 @@ addParameter(p, 'iterations',...
 
 addParameter(p, 'convergence',...
     default.convergence,...
-    @(x) validateattributes(x, {'numeric'}, {'scalar', 'positive'}));
+    @(x) validateattributes(x, {'numeric'}, {'scalar', 'nonnegative'}));
 
 parse(p, varargin{:});
 
 % ---------------------------------------
 % Parse
 % ---------------------------------------
-y           = p.Results.y;
-yref        = p.Results.yref;
+y = p.Results.y;
+z = p.Results.reference;
+
 iterations  = p.Results.iterations;
 convergence = p.Results.convergence;
 
 % ---------------------------------------
+% Validate
+% ---------------------------------------
+if ~iscell(y)
+    y = mat2cell(y, length(y(:,1)), ones(length(y(1,:)), 1));
+end
+
+if ~iscell(z)
+    z = {z};
+end
+
+% ---------------------------------------
 % Variables
 % ---------------------------------------
-m = max([length(yref(:,1)), length(y(:,1))]);
-n = length(y(1,:));
+m = max([cellfun(@length, y), length(z{1})]);
+n = length(y);
 
 % ---------------------------------------
 % Alignment
 % ---------------------------------------
 for i = 1:n
 
+    c = [0; 1; 0];
+    e = [0; 0; 0];
+    
     B = [ones(m,1), (1:m)', ((1:m)'/m).^2];
-
-    coeff = [0; 1; 0];
-    rmse  = [0, 0, 0, 0];
 
     for j = 1:iterations
     
-        w = B * coeff;
+        w = B * c;
         
-        index = find(1 < w & w < length(yref(:,1)));
+        yi = find(1 < w & w < length(z{1}));
+        xi = floor(w(yi));
         
-        yi = floor(w(index));
+        dy = z{1}(xi+1,1) - z{1}(xi,1);
+        yy = z{1}(xi,1) + (w(yi) - xi) .* dy;
         
-        dy = yref(yi+1,1) - yref(yi,1);
+        yi = yi(yi <= length(y{i})); 
+        xi = xi(xi <= length(y{i}));
         
-        yy = yref(yi,1) + (w(index) - yi) .* dy;
-        
-        % Calculate residuals
-        residuals = y(index,i) - yy;
+        r = y{i}(yi) - yy(1:length(y{i}(yi)));
     
-        % Determine RMSE
-        rmse(1) = sqrt(residuals' * residuals / m);
-        rmse(3) = abs((rmse(1) - rmse(2)) / (rmse(1) + 1E-10));
-        rmse(2) = rmse(1);
+        e(1) = sqrt(r' * r / m);
+        e(3) = abs((e(1) - e(2)) / (e(1) + 1E-10));
         
-        % Check convergence
-        if rmse(3) < convergence
+        if e(3) < convergence
             break
+        else
+            e(2) = e(1);
         end
-
-        % Update coefficients
-        coeff = coeff + (repmat(dy, 1, 3) .* B(index,:)) \ residuals;
         
+        c = c + repmat(dy(1:length(r)),1,3) .* B(yi,:) \ r;
+
     end
     
-    varargout{1}{i} = yi;
-    varargout{2}{i} = index;
+    if length(xi) > length(yi)
+        varargout{1}{i} = xi(1:length(yi));
+        varargout{2}{i} = yi;
+    else
+        varargout{1}{i} = xi;
+        varargout{2}{i} = yi(1:length(xi));
+    end
     
 end
 

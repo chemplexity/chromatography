@@ -69,7 +69,6 @@ addParameter(p, 'xmax',...
     default.xmax,...
     @(x) validateattributes(x, {'numeric'}, {'scalar'}));
 
-
 parse(p, varargin{:});
 
 % ---------------------------------------
@@ -89,7 +88,7 @@ if length(x(:,1)) ~= length(y(:,1))
     return
 end
 
-if length(xrange) <= 1 && isempty(xmin) && isempty(xmax)
+if isempty(xrange) && isempty(xmin) && isempty(xmax)
     return
 end
 
