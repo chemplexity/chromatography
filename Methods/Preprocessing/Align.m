@@ -15,7 +15,7 @@
 %   y -- intensity values
 %       array | matrix | cell array
 %
-%   reference -- reference signal for alignment
+%   reference -- reference signal used for alignment
 %       array | cell
 %
 % ------------------------------------------------------------------------
@@ -25,7 +25,7 @@
 %       50 (default) | number
 %
 %   'convergence' -- stopping criteria
-%       1E-4 (default) | number
+%       1E-5 (default) | number
 %
 % ------------------------------------------------------------------------
 % References
