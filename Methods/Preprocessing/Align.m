@@ -6,8 +6,8 @@
 % ------------------------------------------------------------------------
 % Syntax
 % ------------------------------------------------------------------------
-%   index = Align(y, reference)
-%   index = Align( __ , Name, Value)
+%   [xindex, yindex] = Align(y, reference)
+%   [xindex, yindex] = Align( __ , Name, Value)
 %
 % ------------------------------------------------------------------------
 % Input (Required)
@@ -15,7 +15,7 @@
 %   y -- intensity values
 %       array | matrix | cell array
 %
-%   reference -- reference signal used for alignment
+%   reference -- calibration signal used for alignment
 %       array | cell
 %
 % ------------------------------------------------------------------------
@@ -92,8 +92,8 @@ n = length(y);
 % ---------------------------------------
 for i = 1:n
 
+    e = [0; 0];
     c = [0; 1; 0];
-    e = [0; 0; 0];
     
     B = [ones(m,1), (1:m)', ((1:m)'/m).^2];
 
@@ -113,9 +113,8 @@ for i = 1:n
         r = y{i}(yi) - yy(1:length(y{i}(yi)));
     
         e(1) = sqrt(r' * r / m);
-        e(3) = abs((e(1) - e(2)) / (e(1) + 1E-10));
-        
-        if e(3) < convergence
+
+        if abs((e(1) - e(2)) / (e(1) + 1E-10)) < convergence
             break
         else
             e(2) = e(1);
