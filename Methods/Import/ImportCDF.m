@@ -1,187 +1,425 @@
 % ------------------------------------------------------------------------
 % Method      : ImportCDF
-% Description : Import data stored in netCDF (.CDF) files
+% Description : Read netCDF data files (.CDF)
 % ------------------------------------------------------------------------
 %
 % ------------------------------------------------------------------------
 % Syntax
 % ------------------------------------------------------------------------
-%   data = ImportCDF(file)
+%   data = ImportCDF()
 %   data = ImportCDF( __ , Name, Value)
-%
-% ------------------------------------------------------------------------
-% Input (Required)
-% ------------------------------------------------------------------------
-%   file -- name of netCDF file
-%       string
 %
 % ------------------------------------------------------------------------
 % Input (Name, Value)
 % ------------------------------------------------------------------------
-%   'precision' -- maximum decimal places for m/z values
-%       3 (default) | number
+%   'file' -- name of file or folder path
+%       empty (default) | string | cell array
+%
+%   'depth' -- subfolder search depth
+%       1 (default) | integer
+%
+%   'content' -- read file header, signal data, or both
+%       'all' (default) | 'header'
+%
+%   'verbose' -- show progress in command window
+%       'on' (default) | 'off'
 %
 % ------------------------------------------------------------------------
 % Examples
 % ------------------------------------------------------------------------
-%   data = ImportCDF('001-0510.CDF')
-%   data = ImportCDF('002-23.CDF', 'precision', 2)
+%   data = ImportCDF()
+%   data = ImportCDF('file', '001-0510.CDF')
+%   data = ImportCDF('file', {'092-05.CDF, '002-06.CDF'}, 'verbose', 'off')
+%   data = ImportCDF('file', '/Data/2015/06/', 'depth', 3)
 
-function varargout = ImportCDF(varargin)
+function data = ImportCDF(varargin)
 
-% Check input
-[file, options] = parse(varargin);
+% ---------------------------------------
+% Initialize
+% ---------------------------------------
+file = [];
 
-% Check file name
+data.file_path       = [];
+data.file_name       = [];
+data.file_info       = [];
+data.file_version    = [];
+data.sample_name     = [];
+data.sample_info     = [];
+data.operator        = [];
+data.datetime        = [];
+data.instrument      = [];
+data.inlet           = [];
+data.detector        = [];
+data.method          = [];
+data.seqindex        = [];
+data.vial            = [];
+data.replicate       = [];
+data.time            = [];
+data.intensity       = [];
+data.channel         = [];
+data.time_units      = [];
+data.intensity_units = [];
+data.channel_units   = [];
+
+% ---------------------------------------
+% Defaults
+% ---------------------------------------
+default.file    = [];
+default.depth   = 1;
+default.content = 'all';
+default.verbose = 'on';
+default.formats = {'.CDF'};
+
+% ---------------------------------------
+% Input
+% ---------------------------------------
+p = inputParser;
+
+addParameter(p,...
+    'file',...
+    default.file,...
+    @(x) validateattributes(x, {'cell', 'char'}, {'nonempty'}));
+
+addParameter(p,...
+    'depth',...
+    default.depth,...
+    @(x) validateattributes(x, {'numeric'}, {'scalar', 'nonnegative'}));
+
+addParameter(p,...
+    'content',...
+    default.content,...
+    @(x) validateattributes(x, {'char'}, {'nonempty'}));
+
+addParameter(p,...
+    'verbose',...
+    default.verbose,...
+    @(x) validateattributes(x, {'char'}, {'nonempty'}));
+
+parse(p, varargin{:});
+
+% ---------------------------------------
+% Options
+% ---------------------------------------
+option.file    = p.Results.file;
+option.depth   = p.Results.depth;
+option.content = p.Results.content;
+option.verbose = p.Results.verbose;
+
+% ---------------------------------------
+% Validate
+% ---------------------------------------
+if ~isempty(option.file)
+    
+    if iscell(option.file)
+        option.file(~cellfun(@ischar, option.file)) = [];
+        
+    elseif ischar(option.file)
+        option.file = {option.file};
+    end
+    
+end
+
+if ~any(strcmpi(option.content, {'all', 'header'}))
+    option.content, 'all';
+end
+    
+if any(strcmpi(option.verbose, {'off', 'no', 'n'}))
+    option.verbose = false;
+else
+    option.verbose = true;
+    status(option.verbose, 1);
+end
+
+% ---------------------------------------
+% File selection
+% ---------------------------------------
+if isempty(option.file)
+    
+    % Get files from file selection interface
+    file = FileUI();
+    
+else
+    
+    % Get files from user input
+    for i = 1:length(option.file)
+
+        [~, filepath] = fileattrib(option.file{i});
+        
+        if isstruct(filepath)
+            file = [file; filepath];
+        end       
+    end
+    
+end
+
+% Check selection for files
 if isempty(file)
-    
-    varargout{1} = [];
-    
-    disp('[ERROR] Input file invalid....');
+    status(option.verbose, 2);
+    status(option.verbose, 3);
     return
 end
 
-% Read file information
-info = ncinfo(file);
+% Check selection for folders
+if sum([file.directory]) == 0
+    option.depth = 0;
+end
 
-% Check for attributes
-if isfield(info, 'Attributes')
+% ---------------------------------------
+% Search subfolders
+% ---------------------------------------
+n = [1, length(file)];
+l = option.depth;
+
+while l > 0
     
-    % Sample name
-    data.sample.name = '';
-    
-    if any(strcmpi('experiment_title', {info.Attributes.Name}))
-        data.sample.name = strtrim(ncreadatt(file, '/', 'experiment_title'));
-    end
-    
-    % Operator name
-    data.method.operator = '';
-    
-    if any(strcmpi('operator_name', {info.Attributes.Name}))
-        data.method.operator = strtrim(ncreadatt(file, '/', 'operator_name'));
-    end
-    
-    % Method name
-    data.method.name = '';
-    
-    if any(strcmpi('external_file_ref_0', {info.Attributes.Name}))
-        data.method.name = strtrim(ncreadatt(file, '/', 'external_file_ref_0'));
+    for i = n(1):n(2)
         
-        if strcmpi(data.method.name, 'DB5PWF30')
-            data.method.name = '';
-        end
-    end
-    
-    % Date/Time
-    data.method.date = '';
-    data.method.time = '';
-    
-    if any(strcmpi('experiment_date_time_stamp', {info.Attributes.Name}))
-        datetime = ncreadatt(file, '/', 'experiment_date_time_stamp');
+        [~, ~, ext] = fileparts(file(i).Name);
         
-        try
-            date = datenum([str2double(datetime(1:4)), str2double(datetime(5:6)), str2double(datetime(7:8)),...
-                str2double(datetime(9:10)), str2double(datetime(10:11)), str2double(datetime(12:13))]);
+        if any(strcmpi(ext, {'.M', '.D', '.git', '.lnk'}))
+            continue
             
-            data.method.date = strtrim(datestr(date, 'mm/dd/yy'));
-            data.method.time = strtrim(datestr(date, 'HH:MM PM'));
-        catch
+        elseif file(i).directory == 1
+            
+            f = dir(file(i).Name);
+            f(cellfun(@(x) any(strcmpi(x, {'.', '..'})), {f.name})) = [];
+            
+            for j = 1:length(f)
+                
+                filepath = [file(i).Name, filesep, f(j).name];
+                [~, filepath] = fileattrib(filepath);
+                
+                if isstruct(filepath)
+                    
+                    [~, ~, ext] = fileparts(filepath.Name);
+                    
+                    if any(strcmpi(ext, supported)) || filepath.directory
+                        file = [file; filepath];
+                    end
+                end
+            end
         end
     end
     
-    % Instrument type
-    data.method.instrument = '';
+    % Exit subfolder search
+    if length(file) <= n(2)
+        break
+    end
     
-else
-    data.sample.name = '';
-    data.method.name = '';
-    data.method.operator = '';
-    data.method.instrument = '';
-    data.method.date = '';
-    data.method.time = '';
+    % Update values
+    n = [n(2) + 1, length(file)];
+    l = l - 1;
+    
 end
 
-% Check sample name
-if isempty(data.sample.name)
-    [~, name] = fileparts(file);
-else
-    name = data.sample.name;
-end
+% ---------------------------------------
+% Filter unsupported files
+% ---------------------------------------
+[~,~,ext] = cellfun(@(x) fileparts(x), {file.Name}, 'uniformoutput', 0);
 
-% Remove path from sample name
-if any('\' == name)
-    data.sample.name = name(find(name == '\', 1, 'last')+1:end);
-    
-elseif any('/' == name)
-    data.sample.name = name(find(name == '/', 1, 'last')+1:end);
-    
-else
-    data.sample.name = name;
-end
+% Remove unsupported file extensions
+file(cellfun(@(x) ~any(strcmpi(x, {'.CDF'})), ext)) = [];
 
-% Data
-data.time = [];
-data.tic.values = [];
-data.mz = [];
-data.xic.values = [];
-
-% Check for variables
-if isfield(info, 'Variables')
-    
-    % Check for time values
-    if any(strcmpi('scan_acquisition_time', {info.Variables.Name}))
-        data.time = ncread(file, 'scan_acquisition_time') ./ 60;
-    end
-    
-    % Check for total intensity values
-    if any(strcmpi('total_intensity', {info.Variables.Name}))
-        data.tic.values = ncread(file, 'total_intensity');
-    end
-    
-    % Check for total intensity values (legacy)
-    if any(strcmpi('global_intensity_max', {info.Variables.Name})) && isempty(data.tic.values)
-        data.tic.values = ncread(file, 'global_intensity_max');
-    end
-    
-    % Check for mass values
-    if any(strcmpi('mass_values', {info.Variables.Name}))
-        data.mz = ncread(file, 'mass_values');
-    end
-    
-    % Check for intensity values
-    if any(strcmpi('intensity_values', {info.Variables.Name}))
-        data.xic.values = ncread(file, 'intensity_values');
-    end
-end
-
-% Check data
-if isempty(data.xic.values) && isempty(data.tic.values)
-    varargout{1} = [];
+% Check selection for files
+if isempty(file)
+    status(option.verbose, 2);
+    status(option.verbose, 3);
     return
+else
+    status(option.verbose, 5, length(file));
+end
+
+% ---------------------------------------
+% Import
+% ---------------------------------------
+for i = 1:length(file)
     
-elseif isempty(data.xic.values)
-    varargout{1} = data;
+    % Update file infomation
+    [fdir, fname, fext] = fileparts(file(i).Name);
+    
+    data(i,1).file_path = fdir;
+    data(i,1).file_name = upper([fname, fext]);
+    
+     % Update status
+    status(option.verbose, 6, i, length(file), data(i,1).file_name);
+
+    switch option.content
+        
+        case 'all'
+            data(i,1) = parseinfo(f, data(i,1));
+            data(i,1) = parsedata(f, data(i,1));
+            
+        case 'header'
+            data(i,1) = parseinfo(f, data(i,1));
+            
+    end
+    
+end
+
+status(option.verbose, 3);
+
+end
+
+% ---------------------------------------
+% Status
+% ---------------------------------------
+function status(varargin)
+        
+    % Check verbose
+    if ~varargin{1}
+        return
+    end
+
+    % Display status
+    switch varargin{2}
+            
+        % [IMPORT]
+        case 1
+            fprintf(['\n', repmat('-',1,50), '\n']);
+            fprintf('[IMPORT]');
+            fprintf(['\n', repmat('-',1,50), '\n\n']);
+
+        % [ERROR]
+        case 2
+            fprintf(['[ERROR] No files found...', '\n']);
+                
+        % [EXIT]
+        case 3
+            fprintf(['\n', repmat('-',1,50), '\n']);
+            fprintf('[EXIT]');
+            fprintf(['\n', repmat('-',1,50), '\n']);
+    
+        % [STATUS]
+        case 4
+            fprintf(['[STATUS] Depth   : ', num2str(varargin{3}), '\n']);
+            fprintf(['[STATUS] Folders : ', num2str(varargin{4}), '\n']);
+            
+        % [STATUS]
+        case 5
+            fprintf(['[STATUS] Files : ', num2str(varargin{3}), '\n\n']);
+
+        % [LOADING]
+        case 6
+            fprintf(['[', num2str(varargin{3}), '/', num2str(varargin{4}), ']']);
+            fprintf(' %s \n', varargin{5});
+
+    end
+end
+
+% ---------------------------------------
+% FileUI
+% ---------------------------------------
+function file = FileUI()
+
+% ---------------------------------------
+% JFileChooser (Java)
+% ---------------------------------------
+if ~usejava('swing')
     return
 end
 
-% Variables
-precision = options.precision;
+fc = javax.swing.JFileChooser(java.io.File(pwd));
+
+% ---------------------------------------
+% Options
+% ---------------------------------------
+fc.setFileSelectionMode(fc.FILES_AND_DIRECTORIES);
+fc.setMultiSelectionEnabled(true);
+fc.setAcceptAllFileFilterUsed(false);
+
+% ---------------------------------------
+% Filter: Agilent (.D, .MS, .CH, .UV)
+% ---------------------------------------
+netcdf = com.mathworks.hg.util.dFilter;
+
+netcdf.setDescription('netCDF files (*.CDF');
+netcdf.addExtension('cdf');
+
+fc.addChoosableFileFilter(netcdf);
+
+% ---------------------------------------
+% Initialize UI
+% ---------------------------------------
+file   = [];
+status = fc.showOpenDialog(fc);
+
+if status == fc.APPROVE_OPTION
+    
+    % Get file selection
+    fs = fc.getSelectedFiles();
+    
+    for i = 1:size(fs, 1)
+        
+        % Get file information
+        [~, f] = fileattrib(char(fs(i).getAbsolutePath));
+        
+        % Append to file list
+        if isstruct(f)
+            file = [file; f];
+        end
+    end
+end
+
+end
+
+% ---------------------------------------
+% File information
+% ---------------------------------------
+function data = parseinfo(f, data)
+
+% Get file header
+header = ncinfo(f);
+
+% Parse file attributes
+if isfield(header, 'Attributes')
+    attributes = {header.Attributes.Name};
+else
+    return
+end
+    
+% Parse file info
+data.file_version = fstring(f, attributes, 'ms_template_revision');
+data.sample_name  = fstring(f, attributes, 'experiment_title');
+data.operator     = fstring(f, attributes, 'operator_name');
+data.datetime     = fstring(f, attributes, 'experiment_date_time_stamp');
+data.method       = fstring(f, attributes, 'external_file_ref_0');
+
+% if data.method = 'DB5PWF30 then data.method = ''
+
+end
+
+% ---------------------------------------
+% File data
+% ---------------------------------------
+function data = parsedata(f, data)
+
+% Get file header
+header = ncinfo(f);
+
+% Parse file variables
+if isfield(header, 'Variables')
+    variables = {header.Variables.Name};
+else
+    return
+end
+
+% Parse file data
+data.time      = fvalue(f, variables, 'scan_acquisition_time');
+data.intensity = fvalue(f, variables, 'intensity_values');
+data.channel   = fvalue(f, variables, 'mass_values');
+
+% total intensity = total_intensity OR global_intensity_max (LEGACY)
+
+
+    
+
 
 % Determine precision of mass values
-mz = round(data.mz .* 10^precision) ./ 10^precision;
-data.mz = unique(mz, 'sorted');
+%mz = round(data.mz .* 10^precision) ./ 10^precision;
+%data.mz = unique(mz, 'sorted');
 
-% Reshape data (rows = time, columns = m/z)
-if length(data.mz) == length(data.xic.values) / length(data.time)
-    
-    % Reshape intensity values
-    data.xic.values = reshape(data.xic.values, length(data.mz), length(data.time))';
-    data.mz = data.mz';
-    
-else
-    
-    % Determine data index
-    index.start = double(ncread(file, 'scan_index'));
+% Determine data index
+%index.start = double(ncread(file, 'scan_index'));
     index.end = circshift(index.start, [-1,0]);
     index.start(:,1) = index.start(:,1) + 1;
     index.end(end,2) = length(mz);
@@ -207,86 +445,36 @@ else
     data.xic.values = xic;
 end
 
-varargout{1} = data;
-
 end
 
-% Parse user input
-function varargout = parse(varargin)
+% ---------------------------------------
+% Data = string
+% ---------------------------------------
+function str = fstring(file, header, key)
 
-varargin = varargin{1};
-nargin = length(varargin);
-
-% Check number of inputs
-if nargin < 1 || ~ischar(varargin{1})
-    error('Undefined input arguments of type ''file''.');
-    
-elseif ischar(varargin{1})
-    file = varargin{1};
-    
+if any(strcmpi(key, header))
+    str = ncreadatt(file, '/', key);
 else
-    varargout{2} = [];
-    return
+    str = '';
 end
 
-% Check file extension
-[~, ~, extension] = fileparts(file);
-
-if ~strcmpi(extension, '.CDF')
-    varargout{2} = [];
-    return
-end
-
-% Check user input
-input = @(x) find(strcmpi(varargin, x),1);
-
-% Precision
-if ~isempty(input('precision'))
-    precision = varargin{input('precision')+1};
-    
-    % Check for valid input
-    if ~isnumeric(precision)
-        options.precision = 3;
-        
-    elseif precision < 0
-        
-        % Check for case: -x
-        if precision >= -9 && precision <= 0
-            options.precision = abs(precision);
-        else
-            options.precision = 3;
-            disp('Input arguments of type ''precision'' invalid. Value set to: ''3''.');
-        end
-        
-    elseif precision > 0 && log10(precision) < 0
-        
-        % Check for case: 10^-x
-        if log10(precision) >= -9 && log10(precision) <= 0
-            options.precision = abs(log10(precision));
-        else
-            options.precision = 3;
-            disp('Input arguments of type ''precision'' invalid. Value set to: ''3''.');
-        end
-        
-    elseif precision > 9
-        
-        % Check for case: 10^x
-        if log10(precision) <= 9 && log10(precision) >= 0
-            options.precision = log10(precision);
-        else
-            options.precision = 3;
-            disp('Input arguments of type ''precision'' invalid. Value set to: ''3''.');
-        end
-        
-    else
-        options.precision = precision;
-    end
-    
+if length(str) > 255
+    str = '';
 else
-    options.precision = 3;
+    str = strtrim(deblank(str));
 end
 
-varargout{1} = file;
-varargout{2} = options;
+end
+
+% ---------------------------------------
+% Data = value
+% ---------------------------------------
+function value = fvalue(file, header, key)
+
+if any(strcmpi(key, header))
+    value = ncread(file, key);
+else
+    value = [];
+end
 
 end

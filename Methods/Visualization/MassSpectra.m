@@ -74,6 +74,112 @@
 
 function varargout = MassSpectra(varargin)
 
+% ---------------------------------------
+% Default
+% ---------------------------------------
+default.scale    = 'relative';
+default.height   = 0.44;
+default.width    = 0.42;
+default.xlim     = 'auto';
+default.ylim     = 'auto';
+default.labels   = 'on';
+default.fontname = 'avenir';
+default.fontsize = 7.5;
+default.barwidth = 7.0;
+default.filename = [datestr(date,'YYYYmmdd'), '_MASS_SPECTRA'];
+default.export   = 'off';
+
+% ---------------------------------------
+% Input
+% ---------------------------------------
+p = inputParser;
+
+addRequired(p, 'mz',...
+    @(x) validateattributes(x, {'numeric'}, {'nonempty'}));
+
+addRequired(p, 'y',...
+    @(x) validateattributes(x, {'numeric'}, {'nonempty'}));
+
+addParameter(p, 'scale',...
+    default.scale,...
+    @(x) validateattributes(x, {'char'}, {'nonempty'}));
+
+addParameter(p, 'height',...
+    default.height,...
+    @(x) validateattributes(x, {'char'}, {'nonempty'}));
+
+addParameter(p, 'width',...
+    default.width,...
+    @(x) validateattributes(x, {'char'}, {'nonempty'}));
+
+addParameter(p, 'xlim',...
+    default.xlim,...
+    @(x) validateattributes(x, {'numeric'}, {'numel', 2}));
+
+addParameter(p, 'ylim',...
+    default.xlim,...
+    @(x) validateattributes(x, {'numeric'}, {'numel', 2}));
+
+addParameter(p, 'labels',...
+    default.labels,...
+    @(x) validateattributes(x, {'char'}, {'nonempty'}));
+
+addParameter(p, 'fontname',...
+    default.fontname,...
+    @(x) validateattributes(x, {'char'}, {'nonempty'}));
+
+addParameter(p, 'fontsize',...
+    default.fontsize,...
+    @(x) validateattributes(x, {'char'}, {'nonempty'}));
+
+addParameter(p, 'filename',...
+    default.filename,...
+    @(x) validateattributes(x, {'char'}, {'nonempty'}));
+
+addParameter(p, 'export',...
+    default.export,...
+    @(x) validateattributes(x, {'char'}, {'nonempty'}));
+
+% ---------------------------------------
+% Parse
+% ---------------------------------------
+mz = p.Results.mz;
+y  = p.Results.y;
+
+fig = [];
+
+fig.scale    = p.Results.scale;
+fig.height   = p.Results.height;
+fig.width    = p.Results.width; 
+fig.xlim     = p.Results.xlim;
+fig.ylim     = p.Results.ylim;
+fig.labels   = p.Results.labels;
+fig.fontname = p.Results.fontname;
+fig.fontsize = p.Results.fontsize;
+fig.filename = p.Results.filename;
+fig.export   = p.Results.export;
+
+% ---------------------------------------
+% Validate
+% ---------------------------------------
+if ~any(strcmp(fonts, options.font.name))
+    
+    if any(strcmp(fonts, 'Avenir Next'))
+        fig.fontname = 'Avenir Next';
+    elseif any(strcmp(fonts, 'Lucida Sans'))
+        fig.fontname = 'Lucida Sans';
+    elseif any(strcmp(fonts, 'Helvetica Neue'))
+        fig.fontname = 'Helvetica Neue';
+    elseif any(strcmp(fonts, 'Century Gothic'))
+        fig.fontname = 'Century Gothic';
+    else
+        fig.fontname = 'Arial';
+    end
+end
+c
+
+
+
 % Check input
 [mz, y, options] = parse(varargin);
 
@@ -356,7 +462,7 @@ if strcmpi(options.labels, 'on')
                 % Display labels
                 cellfun(@(x) set(x, 'visible', 'on'), options.text);
                 
-                % Check label distance
+            % Check label distance
             elseif counter == 0
                 
                 % Check label overlap from distant columns

@@ -19,7 +19,7 @@
 %       1 (default) | integer
 %
 %   'content' -- read file header, signal data, or both
-%       'all' (default) | 'header' | 'signal'
+%       'all' (default) | 'header'
 %
 %   'verbose' -- show progress in command window
 %       'on' (default) | 'off'
@@ -39,18 +39,39 @@ function data = ImportAgilent(varargin)
 % ---------------------------------------
 % Initialize
 % ---------------------------------------
-data      = [];
-file      = [];
-supported = {'.MS', '.CH', '.UV'};
+file = [];
+
+data.file_path       = [];
+data.file_name       = [];
+data.file_info       = [];
+data.file_version    = [];
+data.sample_name     = [];
+data.sample_info     = [];
+data.operator        = [];
+data.datetime        = [];
+data.instrument      = [];
+data.inlet           = [];
+data.detector        = [];
+data.method          = [];
+data.seqindex        = [];
+data.vial            = [];
+data.replicate       = [];
+data.time            = [];
+data.intensity       = [];
+data.channel         = [];
+data.time_units      = [];
+data.intensity_units = [];
+data.channel_units   = [];
 
 % ---------------------------------------
 % Defaults
 % ---------------------------------------
-default.file    = [];
-default.depth   = 1;
-default.content = 'all';
-default.verbose = 'on';
-default.formats = {'.D', '.MS', '.CH', '.UV'};
+default.file      = [];
+default.depth     = 1;
+default.content   = 'all';
+default.verbose   = 'on';
+default.formats   = {'.D', '.MS', '.CH', '.UV'};
+default.supported = {'.MS', '.CH', '.UV'};
 
 % ---------------------------------------
 % Input
@@ -101,7 +122,7 @@ if ~isempty(option.file)
     
 end
 
-if ~any(strcmpi(option.content, {'all', 'header', 'signal'}))
+if ~any(strcmpi(option.content, {'all', 'header'}))
     option.content, 'all';
 end
     
@@ -175,7 +196,7 @@ while l > 0
                     
                     [~, ~, ext] = fileparts(filepath.Name);
                     
-                    if any(strcmpi(ext, supported)) || filepath.directory
+                    if any(strcmpi(ext, default.supported)) || filepath.directory
                         file = [file; filepath];
                     end
                 end
@@ -195,12 +216,12 @@ while l > 0
 end
 
 % ---------------------------------------
-% Filter 
+% Filter unsupported files
 % ---------------------------------------
 [~,~,ext] = cellfun(@(x) fileparts(x), {file.Name}, 'uniformoutput', 0);
 
 % Remove unsupported file extensions
-file(cellfun(@(x) ~any(strcmpi(x, {'.MS','.CH','.UV'})), ext)) = [];
+file(cellfun(@(x) ~any(strcmpi(x, default.supported)), ext)) = [];
 
 % Check selection for files
 if isempty(file)
@@ -210,31 +231,6 @@ if isempty(file)
 else
     status(option.verbose, 5, length(file));
 end
-
-% ---------------------------------------
-% Data
-% ---------------------------------------
-data.file_path       = [];
-data.file_name       = [];
-data.file_info       = [];
-data.file_version    = [];
-data.sample_name     = [];
-data.sample_info     = [];
-data.operator        = [];
-data.datetime        = [];
-data.instrument      = [];
-data.inlet           = [];
-data.detector        = [];
-data.method          = [];
-data.seqindex        = [];
-data.vial            = [];
-data.replicate       = [];
-data.time            = [];
-data.intensity       = [];
-data.channel         = [];
-data.time_units      = [];
-data.intensity_units = [];
-data.channel_units   = [];
 
 % ---------------------------------------
 % Import
@@ -255,12 +251,13 @@ for i = 1:length(file)
     
     switch option.content
         
-        case {'all', 'signal'}
+        case 'all'
             data(i,1) = parseinfo(f, data(i,1));
             data(i,1) = parsedata(f, data(i,1));
             
         case 'header'
             data(i,1) = parseinfo(f, data(i,1));
+            
     end
     
     % Close data file
@@ -269,7 +266,7 @@ for i = 1:length(file)
 end
 
 % Remove unsupported files
-data(cellfun(@isempty, {data.file_version})) = [];
+%data(cellfun(@isempty, {data.file_version})) = [];
 
 status(option.verbose, 3);
 
