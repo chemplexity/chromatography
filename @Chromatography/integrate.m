@@ -54,14 +54,14 @@ function varargout = integrate(obj, varargin)
 
 % Variables
 samples = options.samples;
-ions = options.ions;
-center = options.center;
-width = options.width;
+ions    = options.ions;
+center  = options.center;
+width   = options.width;
 results = options.results;
 
-timer = 0;
+timer       = 0;
 count.peaks = 0;
-count.time = [];
+count.time  = [];
 count.error = [];
 
 fprintf([...
@@ -428,7 +428,7 @@ if ~isempty(input('center'))
         options.center = center;
     end
 else
-    options.center = [];
+    options.center = 0;
 end
 
 
@@ -445,7 +445,7 @@ if ~isempty(input('width'))
         options.width = width;
     end
 else
-    options.width = [];
+    options.width = 1;
 end
 
 
@@ -454,9 +454,9 @@ if ~isempty(input('results'))
     results = varargin{input('results')+1};
     
     % Set keywords
-    results_append = {'append', 'add'};
+    results_append  = {'append', 'add'};
     results_replace = {'default', 'replace', 'overwrite'};
-    results_reset = {'reset', 'erase'};
+    results_reset   = {'reset', 'erase'};
     
     % Check for valid input
     if any(strcmpi(results, results_append))

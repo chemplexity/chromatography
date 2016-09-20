@@ -86,7 +86,7 @@ default.labels   = 'on';
 default.fontname = 'avenir';
 default.fontsize = 7.5;
 default.barwidth = 7.0;
-default.filename = [datestr(date,'YYYYmmdd'), '_MASS_SPECTRA'];
+default.filename = [datestr(date,'YYYYmmdd'), '_mass_spectra'];
 default.export   = 'off';
 
 % ---------------------------------------
@@ -176,9 +176,6 @@ if ~any(strcmp(fonts, options.font.name))
         fig.fontname = 'Arial';
     end
 end
-c
-
-
 
 % Check input
 [mz, y, options] = parse(varargin);
@@ -847,7 +844,7 @@ if ~isempty(input('barwidth'))
     if ~isnumeric(options.bar.width)
         options.bar.width = 7;
         
-    elseif options.bar.width <= 0 || options.bar.width > 999
+    elseif options.bar.width <= 0 || options.bar.width > 99
         options.bar.width = 7;
         
     else

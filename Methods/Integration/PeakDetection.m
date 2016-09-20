@@ -38,8 +38,8 @@ function peaks = PeakDetection(varargin)
 % ---------------------------------------
 % Defaults
 % ---------------------------------------
-default.center  = 0;
-default.width   = 1;
+default.center = 0;
+default.width  = 1;
 
 % ---------------------------------------
 % Input
@@ -48,7 +48,7 @@ p = inputParser;
 
 addRequired(p,...
     'x',...
-    @(x) validateattributes(x, {'numeric'}, {'increasing', 'nonempty'}));
+    @(x) validateattributes(x, {'numeric'}, {'nonnan'}));
 
 addRequired(p,...
     'y',...
@@ -69,8 +69,8 @@ parse(p, varargin{:});
 % ---------------------------------------
 % Options
 % ---------------------------------------
-x      = p.Results.x;
-y      = p.Results.y;
+x = p.Results.x;
+y = p.Results.y;
 
 options.center = p.Results.center;
 options.width  = p.Results.width;
@@ -80,16 +80,33 @@ p = [];
 % ---------------------------------------
 % Validate
 % ---------------------------------------
-xmin = min(x);
-xmax = max(x);
-[~, ymax] = max(y);
+[yrow, ycol] = size(y);
 
+if yrow == 1 && ycol > 1
+    y = y';
+end
+
+if isempty(x)
+    x = 1:length(y(:,1));
+end
+
+[xrow, xcol] = size(x);
+
+if xrow == 1 && xcol > 1
+    x = x';
+end
+
+if length(x(:,1)) ~= length(y(:,1))
+    x = 1:length(y(:,1));
+end
+    
 if options.center == 0
-    options.center = x(ymax,:);
-elseif options.center < xmin
-    options.center = xmin + options.width / 2;
-elseif options.center > xmax
-    options.center = xmax - options.width / 2;
+    [~,index] = max(y);
+    options.center = x(index,1);
+elseif options.center < min(x(:,1))
+    options.center = min(x(:,1)) + options.width / 2;
+elseif options.center > max(x(:,1))
+    options.center = max(x(:,1)) - options.width / 2;
 end
 
 if options.width < 0

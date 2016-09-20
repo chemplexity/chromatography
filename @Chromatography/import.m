@@ -172,7 +172,8 @@ switch options.filetype
             tic;
             
             % Import data
-            fdata = ImportAgilent(filepath);
+            fdata = ImportAgilent('file', filepath, 'verbose', 'off');
+            %fdata = ImportAgilent(filepath);
             
             % Stop timer
             options.compute_time = options.compute_time + toc;
@@ -182,14 +183,17 @@ switch options.filetype
                 import_data{end+1} = [];
                 
                 % File info
-                import_data{end}.file.path = filepath;
-                import_data{end}.file.name = regexp(filepath, '(?i)\w+[.]MS', 'match');
-                import_data{end}.file.name = import_data{end}.file.name{1};
-                import_data{end}.file.bytes = fileinfo.bytes;
+                import_data{end}.file.path = fdata.file_path;
+                import_data{end}.file.name = fdata.file_name;
+                import_data{end}.file.bytes = 0;
+                %import_data{end}.file.path = filepath;
+                %import_data{end}.file.name = regexp(filepath, '(?i)\w+[.]MS', 'match');
+                %import_data{end}.file.name = import_data{end}.file.name{1};
+                %import_data{end}.file.bytes = fileinfo.bytes;
                 
                 % File header
-                import_data{end}.sample = fdata.sample;
-                import_data{end}.method = fdata.method;
+                import_data{end}.sample.name = fdata.sample_name;
+                import_data{end}.method.name = fdata.method;
                 
                 % File data
                 import_data{end}.time = [];
@@ -199,6 +203,23 @@ switch options.filetype
                 
                 if isfield(fdata, 'time')
                     import_data{end}.time = fdata.time;
+                end
+                
+                if isfield(fdata, 'intensity')
+                    
+                    if length(fdata.intensity(1,:)) > 1
+                        import_data{end}.tic.values = fdata.intensity(:,1);
+                        import_data{end}.xic.values = fdata.intensity(:,2:end);
+                    end
+                    
+                    if length(fdata.intensity(1,:)) == 1
+                        import_data{end}.tic.values = fdata.intensity;
+                    end
+                    
+                end
+                
+                if isfield(fdata, 'channel')
+                    import_data{end}.mz = fdata.channel;
                 end
                 
                 if isfield(fdata, 'tic')
@@ -211,10 +232,6 @@ switch options.filetype
                 
                 if isfield(fdata, 'mz')
                     import_data{end}.mz = fdata.mz;
-                end
-                
-                if isfield(fdata, 'intensity')
-                    import_data{end}.tic.values = fdata.intensity;
                 end
                 
                 rmpath(filepath);
@@ -259,7 +276,7 @@ switch options.filetype
             tic;
             
             % Import file data
-            fdata = ImportAgilent(filepath);
+            fdata = ImportAgilent('file', filepath, 'verbose', 'off');
             
             % Stop timer
             options.compute_time = options.compute_time + toc;
@@ -268,7 +285,7 @@ switch options.filetype
                 
                 for j = 1:length(fdata)
                     
-                    if nnz(fdata(j).tic) == 0 && nnz(fdata(j).xic) == 0
+                    if isfield(fdata, 'tic') && nnz(fdata(j).tic) == 0 && nnz(fdata(j).xic) == 0
                         fprintf([...
                             '[', num2str(i), '/', num2str(length(files(:,1))), ']',...
                             ' No data found ''', '%s', '''\n'], filepath);
@@ -278,14 +295,16 @@ switch options.filetype
                     import_data{end+1} = [];
                     
                     % File info
-                    import_data{end}.file.path = fdata(j).file.path;
-                    import_data{end}.file.name = regexp(filepath, '(?i)\w+[.]D', 'match');
-                    import_data{end}.file.name = import_data{end}.file.name{1};
-                    import_data{end}.file.bytes = fdata(j).file.bytes;
+                    import_data{end}.file.path = fdata(j).file_path;
+                    import_data{end}.file.name = fdata(j).file_name;%regexp(filepath, '(?i)\w+[.]D', 'match');
+                    %import_data{end}.file.name = regexp(filepath, '(?i)\w+[.]D', 'match');
+                    %import_data{end}.file.name = import_data{end}.file.name{1};
+                    %import_data{end}.file.bytes = fdata(j).file.bytes;
+                    import_data{end}.file.bytes = 0;
                     
                     % File header
-                    import_data{end}.sample = fdata(j).sample;
-                    import_data{end}.method = fdata(j).method;
+                    import_data{end}.sample.name = fdata(j).sample_name;
+                    import_data{end}.method.name = fdata(j).method;
                     
                     % File data
                     import_data{end}.time = [];
@@ -295,6 +314,27 @@ switch options.filetype
                     
                     if isfield(fdata, 'time')
                         import_data{end}.time = fdata(j).time;
+                    end
+                    
+                    if isfield(fdata, 'intensity')
+                        
+                        import_data{end}.xic.values = fdata(j).intensity;
+                        
+                        if length(fdata(j).intensity(1,:)) == 1
+                            import_data{end}.tic.values = import_data{end}.xic.values;
+                        else
+                            import_data{end}.tic.values = sum(fdata(j).intensity, 2);
+                        end
+                        
+                    end
+                    
+                    if isfield(fdata, 'channel')
+                        import_data{end}.mz = fdata(j).channel;
+                        
+                        if length(import_data{end}.mz) > 1 && import_data{end}.mz(1) == 0
+                            import_data{end}.xic.values(:,1) = [];
+                            import_data{end}.mz(:,1)= [];
+                        end
                     end
                     
                     if isfield(fdata, 'tic')
@@ -309,8 +349,32 @@ switch options.filetype
                         import_data{end}.mz = fdata(j).mz;
                     end
                     
-                    if isfield(fdata, 'intensity')
-                        import_data{end}.tic.values = fdata(j).intensity;
+                    if isfield(fdata, 'sample_info')
+                        import_data{end}.sample.description = fdata(j).sample_info;
+                    end
+                    
+                    if isfield(fdata, 'seqindex')
+                        import_data{end}.sample.sequence = fdata(j).seqindex;
+                    end
+                    
+                    if isfield(fdata, 'vial')
+                        import_data{end}.sample.vial = fdata(j).vial;
+                    end
+                    
+                    if isfield(fdata, 'replicate')
+                        import_data{end}.sample.replicate = fdata(j).replicate;
+                    end
+                    
+                    if isfield(fdata, 'operator')
+                        import_data{end}.method.operator = fdata(j).operator;
+                    end
+                    
+                    if isfield(fdata, 'instrument')
+                        import_data{end}.method.instrument = fdata(j).instrument;
+                    end
+                    
+                    if isfield(fdata, 'datetime')
+                        import_data{end}.method.date = fdata(j).datetime;
                     end
                     
                     % Update progress
@@ -400,6 +464,7 @@ if isempty(import_data)
     fprintf('Unable to import selection\n');
     
     varargout{1} = data;
+    
     return
 else
     

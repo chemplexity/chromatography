@@ -62,7 +62,7 @@ addRequired(p, 'y',...
 
 addParameter(p, 'center',...
     default.center,...
-    @(x) validateattributes(x, {'numeric'}, {'scalar', 'positive'}));
+    @(x) validateattributes(x, {'numeric'}, {'scalar', 'nonnegative'}));
 
 addParameter(p, 'width',...
     default.width,...
@@ -82,8 +82,24 @@ width  = p.Results.width;
 % ---------------------------------------
 % Validate
 % ---------------------------------------
+[yrow, ycol] = size(y);
+
+if yrow == 1 && ycol > 1
+    y = y';
+end
+
+if isempty(x)
+    x = 1:length(y(:,1));
+end
+
+[xrow, xcol] = size(x);
+
+if xrow == 1 && xcol > 1
+    x = x';
+end
+
 if length(x(:,1)) ~= length(y(:,1))
-    return
+    x = 1:length(y(:,1));
 end
 
 if ~isa(x, 'double')
@@ -95,7 +111,8 @@ if ~isa(y, 'double')
 end
 
 if center == 0
-    center = x(find(y == max(y), 1));
+    [~,index] = max(y);
+    center = x(index,1);
     
 elseif center > max(x)
     center = max(x) - width/2;
@@ -164,7 +181,7 @@ for i = 1:length(y(1,:))
     lim(:,4) = (2 * w(2)^2) + (-e(2) .* (x-c(2))) > 0;
     
     % Calculate fit
-    yfit  = zeros(length(y(:,i)), 4);
+    yfit = zeros(length(y(:,i)), 4);
     
     yfit(lim(:,1),1) = EGH.y(x(lim(:,1)), c(1), h(1), w(1), e(1));
     yfit(lim(:,2),2) = EGH.y(x(lim(:,2)), c(2), h(2), w(2), e(2));
