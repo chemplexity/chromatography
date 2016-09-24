@@ -187,11 +187,22 @@ for i = 1:length(samples)
         switch target
             
             case 'tic'
-                baseline = data(index).tic.baseline;    
+                
+                if ~isempty(data(index).tic.baseline)
+                    baseline = data(index).tic.baseline;
+                end
+                
             case 'all'
-                baseline = data(index).xic.baseline;
+                
+                if ~isempty(data(index).xic.baseline)
+                    baseline = data(index).xic.baseline;
+                end
+                
             case 'xic'
-                baseline = data(index).xic.baseline(:, ions);     
+                
+                if ~isempty(data(index).xic.baseline)
+                    baseline = data(index).xic.baseline(:, ions);
+                end
         end
         
         if nnz(baseline) == 0

@@ -93,6 +93,9 @@ gradient   = p.Results.gradient;
 % ---------------------------------------
 if ~isa(y, 'double')
     y = double(y);
+    isSingle = 1;
+else
+    isSingle = 0;
 end
 
 if a <= 0
@@ -168,6 +171,10 @@ for i = 1:n
     % Update baseline
     b(:,i) = z;
     
+end
+
+if isSingle
+    b = single(b);
 end
 
 end

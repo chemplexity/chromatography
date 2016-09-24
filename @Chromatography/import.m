@@ -494,7 +494,12 @@ for i = 1:length(import_data)
     
     % File information
     import_data(i).id = length(data) + i;
-    import_data(i).name = import_data(i).file.name;
+    
+    if ~isempty(import_data(i).sample.name)
+        import_data(i).name = import_data(i).sample.name;
+    else
+        import_data(i).name = import_data(i).file.name;
+    end
     
     % Backup
     import_data(i).backup.time = import_data(i).time;

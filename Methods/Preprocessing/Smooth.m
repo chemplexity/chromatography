@@ -93,6 +93,9 @@ gradient   = p.Results.gradient;
 % ---------------------------------------
 if ~isa(y, 'double')
     y = double(y);
+    isSingle = 1;
+else
+    isSingle = 0;
 end
 
 if a <= 0
@@ -165,6 +168,10 @@ for i = 1:n
     % Update signal
     y(:,i) = z;
     
+end
+
+if isSingle
+    y = single(y);
 end
 
 end

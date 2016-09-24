@@ -104,7 +104,15 @@ for i = 1:length(samples)
         otherwise
             
             if ~isempty(data(samples(i)).xic.values)
-                y = data(samples(i)).xic.values(:, options.ions);
+                
+                ionIndex = options.ions;
+                ionIndex = ionIndex(ionIndex <= length(data(samples(i)).xic.values(1,:)));
+                
+                if ~isempty(ionIndex)
+                    y = data(samples(i)).xic.values(:, ionIndex);
+                else
+                    y = [];
+                end
                 
                 if isempty(data(samples(i)).xic.baseline)
                     data(samples(i)).xic.baseline = zeros(size(y));
@@ -118,7 +126,9 @@ for i = 1:length(samples)
     end
     
     % Calculate baseline values
-    baseline = Baseline(y, 'smoothness', smoothness, 'asymmetry', asymmetry);
+    if ~isempty(y)
+        baseline = Baseline(y, 'smoothness', smoothness, 'asymmetry', asymmetry);
+    end
     
     % Output values
     switch ions
@@ -127,10 +137,22 @@ for i = 1:length(samples)
             data(samples(i)).tic.baseline = baseline;
             
         case 'all'
-            data(samples(i)).xic.baseline = baseline;
+            
+            if ~isempty(y)
+                data(samples(i)).xic.baseline = baseline;
+            end
             
         otherwise
-            data(samples(i)).xic.baseline(:, options.ions) = baseline;
+            
+            if ~isempty(y)
+                
+                ionIndex = options.ions;
+                ionIndex(ionIndex > length(data(samples(i)).xic.values(1,:))) = [];
+                
+                if ~isempty(ionIndex)
+                    data(samples(i)).xic.baseline(:, ionIndex) = baseline;
+                end
+            end
     end
     
     % Elapsed time
@@ -138,30 +160,41 @@ for i = 1:length(samples)
     fprintf([' in ', num2str(timer,'%.1f'), ' sec']);
     
     % Data processed (type|vectors)
-    count = count + length(y(1,:));
+    if isempty(y)
+        vectors = 0;
+    else
+        vectors = length(y(1,:));
+    end
+    
+    count = count + vectors;
     
     if strcmpi(ions, 'tic')
-        fprintf([' (TIC|', num2str(length(y(1,:))), ')\n']);
+        fprintf([' (TIC|', num2str(vectors), ')\n']);
     else
-        fprintf([' (XIC|', num2str(length(y(1,:))), ')\n']);
+        fprintf([' (XIC|', num2str(vectors), ')\n']);
     end
     
     % Update status
     if strcmpi(ions, 'tic')
+        
         switch data(samples(i)).status.baseline
             case 'N'
                 data(samples(i)).status.baseline = 'TIC';
             case 'XIC'
                 data(samples(i)).status.baseline = 'Y';
         end
+        
     else
+        
         switch data(samples(i)).status.baseline
             case 'N'
                 data(samples(i)).status.baseline = 'XIC';
             case 'TIC'
                 data(samples(i)).status.baseline = 'Y';
         end
+        
     end
+    
 end
 
 % Return data
@@ -180,6 +213,7 @@ fprintf(['\n',...
     'Baselines : ', num2str(count), '\n']);
 
 fprintf('\n[COMPLETE]\n\n');
+
 end
 
 
@@ -269,7 +303,7 @@ if ~isempty(input('ions'))
         
         % Check maximum input value
         if any(max(options.ions) > cellfun(@length, {data(options.samples).mz}))
-            options.ions = options.ions(options.ions <= min(cellfun(@length, {data(options.samples).mz})));
+            %options.ions = options.ions(options.ions <= min(cellfun(@length, {data(options.samples).mz})));
         end
         
         % Check minimum input value
