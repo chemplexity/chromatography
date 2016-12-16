@@ -58,26 +58,14 @@ default.gradient   = 1E-4;
 % ---------------------------------------
 p = inputParser;
 
-addRequired(p, 'y',...
-    @(x) validateattributes(x, {'numeric'}, {'nonnan', 'nonempty'}));
+p.addRequired('y', @ismatrix);
 
-addParameter(p, 'smoothness',...
-    default.smoothness,...
-    @(x) validateattributes(x, {'numeric'}, {'scalar', 'positive'}));
+p.addParameter('smoothness', default.smoothness, @isscalar);
+p.addParameter('asymmetry',  default.asymmetry,  @isscalar);
+p.addParameter('iterations', default.iterations, @isscalar);
+p.addParameter('gradient',   default.gradient,   @isscalar);
 
-addParameter(p, 'asymmetry',...
-    default.asymmetry,...
-    @(x) validateattributes(x, {'numeric'}, {'scalar'}));
-
-addParameter(p, 'iterations',...
-    default.iterations,...
-    @(x) validateattributes(x, {'numeric'}, {'scalar', 'positive'}));
-
-addParameter(p, 'gradient',...
-    default.gradient,...
-    @(x) validateattributes(x, {'numeric'}, {'scalar'}));
-
-parse(p, varargin{:});
+p.parse(varargin{:});
 
 % ---------------------------------------
 % Parse
@@ -102,6 +90,14 @@ if a <= 0
     a = 1E-9;
 elseif a >= 1
     a = 1 - 1E-9;
+end
+
+if iterations <= 0
+    iterations = 1;
+end
+
+if gradient < 0
+    gradient = 0;
 end
 
 % ---------------------------------------
