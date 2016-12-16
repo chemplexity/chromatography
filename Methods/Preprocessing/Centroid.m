@@ -21,10 +21,10 @@
 % Input (Name, Value)
 % ------------------------------------------------------------------------
 %   'iterations' -- number of iterations to perform centroiding
-%       50 (default) | number
+%       10 (default) | number
 %
 %   'blocksize' -- maximum number of bytes to process at a single time
-%       5E6 (default) | number
+%       10E6 (default) | number
 %
 % ------------------------------------------------------------------------
 % Examples

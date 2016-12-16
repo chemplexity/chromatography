@@ -48,10 +48,10 @@ function y = Smooth(varargin)
 % ---------------------------------------
 % Default
 % ---------------------------------------
-default.smoothness  = 0.5;
-default.asymmetry   = 0.5;
-default.iterations  = 5;
-default.gradient    = 1E-4;
+default.smoothness = 0.5;
+default.asymmetry  = 0.5;
+default.iterations = 5;
+default.gradient   = 1E-4;
 
 % ---------------------------------------
 % Input

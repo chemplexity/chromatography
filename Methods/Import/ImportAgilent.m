@@ -76,29 +76,58 @@ default.supported = {'.MS', '.CH', '.UV'};
 % ---------------------------------------
 % Input
 % ---------------------------------------
-p = inputParser;
+try
+    p = inputParser;
+    
+    addParameter(p,...
+        'file',...
+        default.file,...
+        @(x) validateattributes(x, {'cell', 'char'}, {'nonempty'}));
+    
+    addParameter(p,...
+        'depth',...
+        default.depth,...
+        @(x) validateattributes(x, {'numeric'}, {'scalar', 'nonnegative'}));
+    
+    addParameter(p,...
+        'content',...
+        default.content,...
+        @(x) validateattributes(x, {'char'}, {'nonempty'}));
+    
+    addParameter(p,...
+        'verbose',...
+        default.verbose,...
+        @(x) validateattributes(x, {'char'}, {'nonempty'}));
+    
+    parse(p, varargin{:});
 
-addParameter(p,...
-    'file',...
-    default.file,...
-    @(x) validateattributes(x, {'cell', 'char'}, {'nonempty'}));
+catch
+    p = [];
+    
+    vararginParser = @(x) find(strcmpi(varargin, x),1);
 
-addParameter(p,...
-    'depth',...
-    default.depth,...
-    @(x) validateattributes(x, {'numeric'}, {'scalar', 'nonnegative'}));
+    p.Results.file    = default.file;
+    p.Results.depth   = default.depth;
+    p.Results.content = default.content;
+    p.Results.verbose = default.verbose;
 
-addParameter(p,...
-    'content',...
-    default.content,...
-    @(x) validateattributes(x, {'char'}, {'nonempty'}));
-
-addParameter(p,...
-    'verbose',...
-    default.verbose,...
-    @(x) validateattributes(x, {'char'}, {'nonempty'}));
-
-parse(p, varargin{:});
+    if ~isempty(vararginParser('file'))
+        p.Results.file = varargin{vararginParser('file')+1};
+    end
+    
+    if ~isempty(vararginParser('depth'))
+        p.Results.depth = varargin{vararginParser('depth')+1};
+    end
+    
+    if ~isempty(vararginParser('content'))
+        p.Results.content = varargin{vararginParser('content')+1};
+    end
+    
+    if ~isempty(vararginParser('verbose'))
+        p.Results.verbose = varargin{vararginParser('verbose')+1};
+    end 
+    
+end
 
 % ---------------------------------------
 % Options
@@ -111,22 +140,32 @@ option.verbose = p.Results.verbose;
 % ---------------------------------------
 % Validate
 % ---------------------------------------
+
+% 'file'
 if ~isempty(option.file)
-    
     if iscell(option.file)
         option.file(~cellfun(@ischar, option.file)) = [];
-        
     elseif ischar(option.file)
         option.file = {option.file};
     end
+end
     
+% 'depth'
+if ~isnumeric(option.depth)
+    option.depth = default.depth;
+elseif option.depth < 0 || isnan(option.depth) || isinf(option.depth)
+    option.depth = default.depth;
+else
+    option.depth = round(option.depth);
 end
 
-if ~any(strcmpi(option.content, {'all', 'header'}))
+% 'content'
+if ~any(strcmpi(option.content, {'default', 'all', 'header'}))
     option.content, 'all';
 end
-    
-if any(strcmpi(option.verbose, {'off', 'no', 'n'}))
+
+% 'verbose'
+if any(strcmpi(option.verbose, {'off', 'no', 'n', 'false', '0'}))
     option.verbose = false;
 else
     option.verbose = true;
@@ -173,7 +212,7 @@ end
 n = [1, length(file)];
 l = option.depth;
 
-while l > 0
+while l >= 0
     
     for i = n(1):n(2)
         
@@ -237,21 +276,28 @@ end
 % ---------------------------------------
 for i = 1:length(file)
     
-    % Update file infomation
+    % File info
     [fdir, fname, fext] = fileparts(file(i).Name);
+    
+    if strcmpi(fdir(end-1:end), '.D')
+        [fdir, fname, fext] = fileparts(fdir);
+    end
     
     data(i,1).file_path = fdir;
     data(i,1).file_name = upper([fname, fext]);
+        
+    % Status
+    [~, statusPath] = fileparts(data(i,1).file_path); 
+    statusPath = [filesep, statusPath, filesep, data(i,1).file_name]; 
     
-     % Update status
-    status(option.verbose, 6, i, length(file), data(i,1).file_name);
+    status(option.verbose, 6, i, length(file), statusPath);
 
-    % Open data file
+    % Read File
     f = fopen(file(i).Name, 'r');
     
     switch option.content
         
-        case 'all'
+        case {'all', 'default'}
             data(i,1) = parseinfo(f, data(i,1));
             data(i,1) = parsedata(f, data(i,1));
             
@@ -260,13 +306,9 @@ for i = 1:length(file)
             
     end
     
-    % Close data file
     fclose(f);
     
 end
-
-% Remove unsupported files
-%data(cellfun(@isempty, {data.file_version})) = [];
 
 status(option.verbose, 3);
 
@@ -314,14 +356,18 @@ function status(varargin)
         case 6
             fprintf(['[', num2str(varargin{3}), '/', num2str(varargin{4}), ']']);
             fprintf(' %s \n', varargin{5});
-
     end
 end
 
 % ---------------------------------------
-% FileUI
+% FileUI 
 % ---------------------------------------
-function file = FileUI()
+function [file, status] = FileUI()
+
+% ---------------------------------------
+% Variables
+% ---------------------------------------
+file  = [];
 
 % ---------------------------------------
 % JFileChooser (Java)
@@ -355,7 +401,6 @@ fc.addChoosableFileFilter(agilent);
 % ---------------------------------------
 % Initialize UI
 % ---------------------------------------
-file   = [];
 status = fc.showOpenDialog(fc);
 
 if status == fc.APPROVE_OPTION
@@ -383,6 +428,10 @@ end
 function data = parseinfo(f, data)
 
 data.file_version = fpascal(f, 0, 'uint8');
+
+if isnan(str2double(data.file_version))
+    data.file_version = [];
+end
 
 if isempty(data.file_version)
     return
@@ -426,7 +475,7 @@ if ~isempty(data.datetime)
 end
 
 % Parse method name
-if ~isempty(data.method) && any(strfind(data.method, '.M'));
+if ~isempty(data.method) && any(strfind(data.method, '.M'))
     [~, data.method] = fileparts(data.method);
 end
 
@@ -622,6 +671,11 @@ end
 % ---------------------------------------
 function dateStr = parsedate(dateStr)
 
+% Octave Unsupported
+if isempty(ver('matlab'))
+  return
+end
+
 formatOut = 'yyyy/mm/dd HH:MM:SS';
 
 dateFormat = {...
@@ -655,6 +709,7 @@ if ~isempty(dateStr)
         dateNum = datenum(dateStr, dateFormat{dateIndex});
         dateStr = datestr(dateNum, formatOut);
     end
+    
 end
 
 end
@@ -689,7 +744,7 @@ switch data.file_version
         else
             instrStr = 'MS';
         end
-        
+            
     case {'8', '81', '179', '181'}
         
         if instrMatch(instrStr, {'GC'})
@@ -764,9 +819,9 @@ end
 % ---------------------------------------
 function data = fpacket(f, data, offset)
 
+n = [];
 y = [];
 
-% Read data
 for i = 1:length(offset)
     
     fseek(f, offset(i)+12, 'bof');
@@ -777,10 +832,10 @@ for i = 1:length(offset)
     
 end
 
+% Mass values
 y(1,:) = y(1,:) ./ 20;
 
-% Channel values
-data.channel = unique(y(1,:), 'sorted');
+data.channel = unique(y(1,:));
 
 [~, index] = ismember(y(1,:), data.channel);
 
@@ -792,14 +847,14 @@ data.intensity(numel(data.time), numel(data.channel)) = 0;
 n(:,2) = cumsum(n);
 n(:,3) = n(:,2) - n(:,1) + 1;
 
-e = bitand(y(2,:), 49152, 'int32');
-y = bitand(y(2,:), 16383, 'int32');
+e = bitand(int32(y(2,:)), int32(49152));
+y = bitand(int32(y(2,:)), int32(16383));
 
 while any(e) ~= 0
-    y(e~=0) = bitshift(y(e~=0), 3, 'int32');
+    y(e~=0) = bitshift(int32(y(e~=0)), 3);
     e(e~=0) = e(e~=0) - 16384;
 end
-
+    
 for i = 1:numel(data.time)
     data.intensity(i, index(n(i,3):n(i,2))+1) = y(n(i,3):n(i,2));
 end
@@ -837,9 +892,9 @@ while ftell(f) < n
     buffer(1) = fread(f, 1, 'int16', 'b');
     buffer(2) = buffer(4);
     
-    if bitshift(buffer(1), -12, 'int16') ~= 0
+    if bitshift(int16(buffer(1)), -12) ~= 0
         
-        for j = 1:bitand(buffer(1), 4095, 'int16');
+        for j = 1:bitand(int16(buffer(1)), int16(4095))
             
             buffer(3) = fread(f, 1, 'int16', 'b');
             buffer(5) = buffer(5) + 1;
@@ -859,6 +914,7 @@ while ftell(f) < n
     else
         break
     end
+    
 end
 
 if buffer(5)+1 < length(y)

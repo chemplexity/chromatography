@@ -28,7 +28,6 @@
 %   y = Normalize(y, 'scope', 'matrix')
 %   y = Normalize(y, 'scope', 'column')
 
-
 function y = Normalize(varargin)
 
 % ---------------------------------------

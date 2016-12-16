@@ -73,7 +73,7 @@ classdef Chromatography
             
             source = fileparts(which('Chromatography'));
             source = regexp(source, '.+(?=[@])', 'match');
-            
+
             % ---------------------------------------
             % Path
             % ---------------------------------------
@@ -81,7 +81,7 @@ classdef Chromatography
             addpath(genpath([source{1}, 'Methods']));
             addpath(genpath([source{1}, 'Development']));
             addpath(genpath([source{1}, 'Examples']));
-            
+                
             % ---------------------------------------
             % Defaults
             % ---------------------------------------
@@ -105,6 +105,7 @@ classdef Chromatography
                 '.CDF', 'netCDF (*.CDF)';
                 '.D',   'Agilent (*.D)';
                 '.MS',  'Agilent (*.MS)';
+                '.CH',  'Agilent (*.CH)';
                 '.RAW', 'Thermo (*.RAW)'};
             
             obj.options.export = {...
