@@ -51,23 +51,12 @@ default.xmax   = [];
 % ---------------------------------------
 p = inputParser;
 
-addRequired(p, 'x',...
-    @(x) validateattributes(x, {'numeric'}, {'nonempty'}));
+addRequired(p, 'x', @ismatrix);
+addRequired(p, 'y', @ismatrix);
 
-addRequired(p, 'y',...
-    @(x) validateattributes(x, {'numeric'}, {'nonempty'}));
-
-addParameter(p, 'xrange',...
-    default.xrange,...
-    @(x) validateattributes(x, {'numeric'}, {'numel', 2}));
-
-addParameter(p, 'xmin',...
-    default.xmin,...
-    @(x) validateattributes(x, {'numeric'}, {'scalar'}));
-
-addParameter(p, 'xmax',...
-    default.xmax,...
-    @(x) validateattributes(x, {'numeric'}, {'scalar'}));
+addParameter(p, 'xrange', default.xrange, @isvector);
+addParameter(p, 'xmin',   default.xmin,   @isscalar);
+addParameter(p, 'xmax',   default.xmax,   @isscalar);
 
 parse(p, varargin{:});
 
@@ -93,26 +82,26 @@ if isempty(xrange) && isempty(xmin) && isempty(xmax)
 end
 
 if ~isempty(xmin) && ~isempty(xmax)
-    filter = x >= xmin(1) & x <= xmax(1);
+    xfilter = x >= xmin(1) & x <= xmax(1);
     
 elseif ~isempty(xmin)
-    filter = x >= xmin(1); 
+    xfilter = x >= xmin(1); 
     
 elseif ~isempty(xmax)
-    filter = x <= xmax(1);
+    xfilter = x <= xmax(1);
 
 else
-    filter(1:length(x)) = false;
+    xfilter(1:length(x)) = false;
 end
 
 if length(xrange) >= 2
-    filter = x >= xrange(1) & x <= xrange(2);
+    xfilter = x >= xrange(1) & x <= xrange(2);
 end
 
 % ---------------------------------------
 % Filter
 % ---------------------------------------
-x = x(filter);
-y = y(filter, :);
+x = x(xfilter);
+y = y(xfilter, :);
 
 end

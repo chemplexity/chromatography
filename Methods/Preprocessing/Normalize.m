@@ -40,12 +40,9 @@ default.scope = 'column';
 % ---------------------------------------
 p = inputParser;
 
-addRequired(p, 'y',...
-    @(x) validateattributes(x, {'numeric'}, {'nonnan', 'nonempty'}));
+addRequired(p, 'y', @ismatrix);
 
-addParameter(p, 'scope',...
-    default.scope,...
-    @(x) validateattributes(x, {'char'}, {'nonempty'}));
+addParameter(p, 'scope', default.scope, @ischar);
 
 parse(p, varargin{:});
 
@@ -74,6 +71,11 @@ switch scope
         
         ymin = min(y,[],2);
         ymax = max(y,[],2);
+        
+    otherwise
+        
+        ymin = min(y);
+        ymax = max(y);
         
 end
 
