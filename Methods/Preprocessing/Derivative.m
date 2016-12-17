@@ -43,16 +43,11 @@ function dy = Derivative(varargin)
 % ---------------------------------------
 p = inputParser;
 
-addRequired(p, 'y',...
-    @(x) validateattributes(x, {'numeric'}, {'nonnan', 'nonempty'}));
+addRequired(p, 'y', @ismatrix);
 
-addOptional(p, 'x',...
-    [],...
-    @(x) validateattributes(x, {'numeric'}, {'nonnan'}));
+addOptional(p, 'x', [], @isnumeric);
 
-addParameter(p, 'order',...
-    1,...
-    @(x) validateattributes(x, {'numeric'}, {'positive', 'scalar'}));
+addParameter(p, 'order', 1, @isscalar);
 
 parse(p, varargin{:});
 
@@ -81,6 +76,10 @@ if size(x,1) == 1 && size(x,2) == size(y,1)
     x = x';
 elseif size(x,1) ~= size(y,1)
     x = (1:size(y,1))';
+end
+
+if order < 0
+    order = 0;
 end
 
 % ---------------------------------------

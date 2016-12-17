@@ -46,19 +46,11 @@ default.blocksize  = 10E6;
 % ---------------------------------------
 p = inputParser;
 
-addRequired(p, 'mz',...
-    @(x) validateattributes(x, {'numeric'}, {'nonnan', 'nonempty'}));
+addRequired(p, 'mz', @ismatrix);
+addRequired(p, 'y',  @ismatrix);
 
-addRequired(p, 'y',...
-    @(x) validateattributes(x, {'numeric'}, {'nonnan', 'nonempty'}));
-
-addParameter(p, 'iterations',...
-    default.iterations,...
-    @(x) validateattributes(x, {'numeric'}, {'scalar', 'positive'}));
-
-addParameter(p, 'blocksize',...
-    default.blocksize,...
-    @(x) validateattributes(x, {'numeric'}, {'scalar', 'positive'}));
+addParameter(p, 'iterations', default.iterations, @isscalar);
+addParameter(p, 'blocksize',  default.blocksize,  @isscalar);
 
 parse(p, varargin{:});
 
@@ -78,12 +70,24 @@ if length(mz(1,:)) ~= length(y(1,:))
     return
 end
 
+if iterations <= 0
+    iterations = 1;
+end
+
+if blocksize <= 1E3
+    blocksize = 1E3;
+end
+
 % ---------------------------------------
 % Variables
 % ---------------------------------------
 [m, n] = size(y);
 
-index = 1:floor(blocksize/(m*8)):n;
+if isa(y, 'double')
+    index = 1:floor(blocksize/(m*8)):n;
+else
+    index = 1:floor(blocksize/(m*4)):n;
+end
     
 if index(end) ~= n
     index(end+1) = n + 1;
