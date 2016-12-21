@@ -45,19 +45,11 @@ default.convergence = 1E-5;
 % ---------------------------------------
 p = inputParser;
 
-addRequired(p, 'y',...
-    @(x) validateattributes(x, {'cell', 'numeric'}, {'nonempty'}));
+addRequired(p, 'y',   @ismatrix);
+addRequired(p, 'ref', @ismatrix);
 
-addRequired(p, 'reference',...
-    @(x) validateattributes(x, {'cell', 'numeric'}, {'nonempty'}));
-
-addParameter(p, 'iterations',...
-    default.iterations,...
-    @(x) validateattributes(x, {'numeric'}, {'scalar', 'positive'}));
-
-addParameter(p, 'convergence',...
-    default.convergence,...
-    @(x) validateattributes(x, {'numeric'}, {'scalar', 'nonnegative'}));
+addParameter(p, 'iterations',  default.iterations,  @isscalar);
+addParameter(p, 'convergence', default.convergence, @isscalar);
 
 parse(p, varargin{:});
 
@@ -65,7 +57,7 @@ parse(p, varargin{:});
 % Parse
 % ---------------------------------------
 y = p.Results.y;
-z = p.Results.reference;
+z = p.Results.ref;
 
 iterations  = p.Results.iterations;
 convergence = p.Results.convergence;
@@ -79,6 +71,10 @@ end
 
 if ~iscell(z)
     z = {z};
+end
+
+if iterations < 1
+    iterations = 1;
 end
 
 % ---------------------------------------
