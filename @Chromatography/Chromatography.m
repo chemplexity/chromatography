@@ -49,7 +49,7 @@ classdef Chromatography
     properties (Constant = true)
         
         url     = 'https://github.com/chemplexity/chromatography';
-        version = '0.1.51';
+        version = '0.1.6-dev';
         
         platform    = Chromatography.getPlatform();
         environment = Chromatography.getEnvironment();
@@ -76,7 +76,7 @@ classdef Chromatography
             % ---------------------------------------
             % Path
             % ---------------------------------------     
-            source = fileparts(which('Chromatography'));
+            source = fileparts(mfilename('fullpath'));
             source = regexp(source, '.+(?=[@])', 'match');
 
             addpath(source{1});

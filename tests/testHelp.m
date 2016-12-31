@@ -1,4 +1,4 @@
-function results = helpTest()
+function results = testHelp()
 
 % ---------------------------------------
 % Variables
@@ -109,7 +109,7 @@ for i = 1:length(msg)
     
     if isempty(msg{i})
         fprintf(2,'  FAIL  ');
-        fprintf(['help(''', x{i}, ''')', '\n']);    
+        fprintf(['help(''', x{i}, ''')', '\n']);
     else
         fprintf('  <strong>PASS</strong>  ');
         fprintf(['help(''', x{i}, ''')', '\n']);
