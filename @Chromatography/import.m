@@ -1,3 +1,4 @@
+function varargout = import(obj, varargin)
 % ------------------------------------------------------------------------
 % Method      : Chromatography.import
 % Description : Import instrument data files
@@ -28,8 +29,6 @@
 %   data = obj.import('.D', 'append', data)
 %   data = obj.import('.MS', 'verbose', 'off', 'precision', 2)
 %   data = obj.import('.RAW', 'append', data, 'verbose', 'on')
-
-function varargout = import(obj, varargin)
 
 % ---------------------------------------
 % Parse input

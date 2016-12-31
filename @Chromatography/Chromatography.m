@@ -1,3 +1,4 @@
+classdef Chromatography
 % ------------------------------------------------------------------------
 % Class       : Chromatography
 % Description : Functions for chromatography and mass spectrometry data
@@ -41,8 +42,6 @@
 %   obj.update
 %       Description : updates toolbox to latest version
 %       Syntax      : obj.update
-
-classdef Chromatography
     
     % ---------------------------------------
     % Properties
@@ -51,6 +50,9 @@ classdef Chromatography
         
         url     = 'https://github.com/chemplexity/chromatography';
         version = '0.1.51';
+        
+        platform    = Chromatography.getPlatform();
+        environment = Chromatography.getEnvironment();
         
     end
     
@@ -71,20 +73,20 @@ classdef Chromatography
         % ---------------------------------------
         function obj = Chromatography()
             
+            % ---------------------------------------
+            % Path
+            % ---------------------------------------     
             source = fileparts(which('Chromatography'));
             source = regexp(source, '.+(?=[@])', 'match');
 
-            % ---------------------------------------
-            % Path
-            % ---------------------------------------
             addpath(source{1});
-            addpath(genpath([source{1}, 'Methods']));
-            addpath(genpath([source{1}, 'Development']));
-            addpath(genpath([source{1}, 'Examples']));
-                
+            addpath(genpath([source{1}, 'examples']));
+            addpath(genpath([source{1}, 'src']));
+            addpath(genpath([source{1}, 'tests']));
+                                  
             % ---------------------------------------
             % Defaults
-            % ---------------------------------------
+            % --------------------------------------
             obj.defaults.baseline_smoothness  = 1E6;
             obj.defaults.baseline_asymmetry   = 1E-4;
             obj.defaults.smoothing_smoothness = 0.5;
@@ -356,14 +358,15 @@ classdef Chromatography
             
             fprintf(['Chromatography Toolbox v', Chromatography.version, '\n\n']);
             
-            source = fileparts(which('Chromatography'));
-            source = regexp(source, '.+(?=[@])', 'match');
-            
             % ---------------------------------------
             % Path
             % ---------------------------------------
-            fprintf('[STATUS] Checking online for updates... \n');
+            source = fileparts(which('Chromatography'));
+            source = regexp(source, '.+(?=[@])', 'match');
+            
             cd(source{1});
+            
+            fprintf('[STATUS] Checking online for updates... \n');
             
             % ---------------------------------------
             % Windows
@@ -493,6 +496,36 @@ classdef Chromatography
             fprintf(['\n', repmat('-',1,50), '\n']);
             fprintf('[EXIT]');
             fprintf(['\n', repmat('-',1,50), '\n\n']);
+            
+        end
+    end
+    
+    % ---------------------------------------
+    % Methods (static)
+    % ---------------------------------------
+    methods (Static = true)
+        
+        function varargout = getPlatform(varargin)
+            
+            if ismac()
+                varargout{1} = 'mac';
+            elseif isunix()
+                varargout{1} = 'linux';
+            elseif ispc()
+                varargout{1} = 'windows';
+            else
+                varargout{1} = 'unknown';
+            end 
+            
+        end
+        
+        function varargout = getEnvironment(varargin)
+           
+            if ~isempty(ver('MATLAB'))
+                varargout{1} = 'matlab';
+            elseif ~isempty(ver('OCTAVE'))
+                varargout{1} = 'octave';
+            end
             
         end
     end

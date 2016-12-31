@@ -1,3 +1,4 @@
+function varargout = visualize(obj, varargin)
 % ------------------------------------------------------------------------
 % Method      : Chromatography.visualize
 % Description : Plot chromatograms and customize style
@@ -117,8 +118,6 @@
 %   fig = obj.visualize(data, 'samples', 1, 'xlim', [3, 27])
 %   fig = obj.visualize(data, 'export', {'SampleTIC', '-dtiff', '-r300'}
 
-function varargout = visualize(obj, varargin)
-
 % ---------------------------------------
 % Parse input
 % ---------------------------------------
@@ -128,8 +127,8 @@ function varargout = visualize(obj, varargin)
 % Variables
 % ---------------------------------------
 samples = options.samples;
-ions = options.ions;
-target = options.ions;
+ions    = options.ions;
+target  = options.ions;
 
 % ---------------------------------------
 % Validate attributes
@@ -154,7 +153,7 @@ for i = 1:length(samples)
     % ---------------------------------------
     % Variables
     % ---------------------------------------
-    index = samples(i);
+    index    = samples(i);
     baseline = [];
     
     options.i = i;
@@ -214,7 +213,7 @@ for i = 1:length(samples)
     % ---------------------------------------
     % Select display names
     % ---------------------------------------
-    if strcmpi(options.legend, 'on')
+    if ~isempty(z) && strcmpi(options.legend, 'on')
     
         switch target
         
@@ -249,7 +248,7 @@ for i = 1:length(samples)
         y = full(y);
     end
     
-    if ~isempty(baseline) && strcmpi(options.baseline, 'corrected');
+    if ~isempty(baseline) && strcmpi(options.baseline, 'corrected')
         y = y - baseline;
     end
     
@@ -359,17 +358,19 @@ if strcmpi(target, 'tic')
         
 else
     
-    for i = 1:length(samples)
+    for i = 1:length(options.samples)
         
-        if isempty(data(i).mz)
+        index = options.samples(i);
+        
+        if isempty(data(index).mz)
             continue
             
         elseif strcmpi(target, 'all')
-            mz = [mz, data(i).mz];
+            mz = [mz, data(index).mz];
             
         elseif strcmpi(target, 'xic')
-            index = options.ions(options.ions <= length(data(i).mz));
-            mz = [mz, data(i).mz(index)];
+            index = options.ions(options.ions <= length(data(index).mz));
+            mz = [mz, data(index).mz(index)];
         end 
         
     end
@@ -614,21 +615,20 @@ end
 function options = plot_axes(options, data)
 
 % Axes properties
-options.font.name = options.fontname;
-options.font.size = 14;
-options.line.color = [0.23,0.23,0.23];
+options.font.name  = options.fontname;
+options.font.size  = 14;
 options.line.width = 1.25;
+options.line.color = [0.23, 0.23, 0.23];
 options.ticks.size = [0.007, 0.0075];
 
-% Initialize figure
 options.figure = figure(...
-    'color', 'white',...
+    'color',       'white',...
     'numbertitle', 'off',...
-    'name', 'Chromatography Toolbox',...
-    'units', options.position_units,....
-    'position', options.position,...
-    'visible', 'on',...
-    'paperpositionmode', 'auto');
+    'name',        'Chromatography Toolbox',...
+    'units',       options.position_units,....
+    'position',    options.position,...
+    'visible',     'on'...
+    );
 
 % Check color options
 if isempty(options.colormap) && ~isempty(options.color)
@@ -638,7 +638,7 @@ if isempty(options.colormap) && ~isempty(options.color)
     else
         options.colormap = options.color;
     end
-    
+
 end
 
 % Determine color order
@@ -650,7 +650,7 @@ if ischar(options.colormap)
         options.colormap = 'parula';
         colors = colormap('parula');
     end
-    
+
 else
     colors = options.colormap;
 end
@@ -658,18 +658,18 @@ end
 % Check color group
 if ~any(strcmpi(options.ions, {'tic', 'all'}))
     n = length(options.ions);
-    
 elseif strcmpi(options.ions, 'all')
     n = length(data(options.samples(1)).mz);
-    
 else
     n = length(options.samples);
 end
 
 % Check amount of colors
-if n < length(colors(:,1))
+if n == 0
+    options.colors = colors;
     
-    % Use limited amount of colors
+elseif n < length(colors(:,1))
+    
     c = round(length(colors)/n);
     options.colors = colors(1:c:end,:);
     
@@ -683,18 +683,19 @@ end
 
 % Initialize main axes
 options.axes = axes(...
-    'parent', options.figure,...
-    'looseinset', [0.08, 0.1, 0.05, 0.05],...
-    'fontsize', options.font.size-1,...
-    'fontname', options.font.name,...
-    'xcolor', options.line.color,...
-    'ycolor', options.line.color,...
-    'box', 'off',...
+    'parent',     options.figure,...
+    'fontsize',   options.font.size-1,...
+    'fontname',   options.font.name,...
+    'xcolor',     options.line.color,...
+    'ycolor',     options.line.color,...
     'colororder', options.colors,...
-    'color', 'none',...
-    'linewidth', options.line.width,...
-    'tickdir', 'out',...
-    'ticklength', options.ticks.size);
+    'linewidth',  options.line.width,...
+    'ticklength', options.ticks.size,...
+    'tickdir',    'out',...
+    'box',        'off',...
+    'color',      'none',...
+    'looseinset', [0.08, 0.1, 0.05, 0.05]...
+    );
 
 hold all;
 
@@ -714,6 +715,7 @@ end
 
 % Stacked y-axis label
 if strcmpi(options.layout, 'stacked') || options.offset ~= 0
+    
     options.ylabel = [];
     
     set(options.axes,...
@@ -730,17 +732,18 @@ options.ylabel = ylabel(...
 
 % Initialize empty axes
 options.empty = axes(...
-    'parent', options.figure,...
-    'box','on',...
-    'linewidth', options.line.width,...
-    'color', 'none',...
-    'xcolor', options.line.color,...
-    'ycolor', options.line.color,...
-    'xtick', [],...
-    'ytick', [],...
+    'parent',             options.figure,...
+    'linewidth',          options.line.width,...
+    'xcolor',             options.line.color,...
+    'ycolor',             options.line.color,...
+    'position',           get(options.axes, 'position'),...
+    'xtick',              [],...
+    'ytick',              [],...
+    'color',              'none',...
+    'box',                'on',...
     'selectionhighlight', 'off',...
-    'position', get(options.axes, 'position'),...
-    'nextplot', 'add');
+    'nextplot',           'add'...
+    );
 
 box(options.empty, 'on');
 box(options.axes, 'off');
@@ -759,7 +762,6 @@ end
 if verLessThan('matlab', 'R2014b')
     
     try
-        % Resize callback
         set(options.figure,...
             'resizefcn', @(varargin) set(options.empty,...
             'position', get(options.axes, 'position')));
@@ -767,13 +769,10 @@ if verLessThan('matlab', 'R2014b')
     end
     
 else
-    
-    % Resize callback
     set(options.figure,...
         'sizechangedfcn', @(varargin) set(options.empty,...
         'position', get(options.axes, 'position')));
     
-    % Axes overlap
     set(get(get(options.axes, 'yruler'), 'axle'), 'visible', 'off');
     set(get(get(options.axes, 'xruler'), 'axle'), 'visible', 'off');
     set(get(get(options.axes, 'ybaseline'), 'axle'), 'visible', 'off');  
@@ -808,36 +807,28 @@ input = @(x) find(strcmpi(varargin, x),1);
 % ---------------------------------------
 % Defaults
 % ---------------------------------------
-options.samples = 1:length(data);
-options.ions = 'tic';
-options.baseline = 'off';
-
-options.layout = 'stacked';
-options.scale = 'full';
-options.scope = 'local';
-
-options.xlimits = [];
-options.ylimits = [];
-options.xpermission = 'write';
-options.ypermission = 'write';
-
-options.padding = 0.05;
-options.offset = 0.0;
-options.linewidth = 1.0;
-
-options.name = {};
-options.legend = 'off';
-
-options.color = [0.15,0.15,0.15];
-options.colormap = obj.defaults.plot_colormap;
-
-options.fontname = 'avenir';
-
-options.position = obj.defaults.plot_position;
+options.samples        = 1:length(data);
+options.ions           = 'tic';
+options.baseline       = 'off';
+options.layout         = 'stacked';
+options.scale          = 'normalized';
+options.scope          = 'local';
+options.xlimits        = [];
+options.ylimits        = [];
+options.xpermission    = 'write';
+options.ypermission    = 'write';
+options.padding        = 0.05;
+options.offset         = 0.0;
+options.linewidth      = 1.0;
+options.name           = {};
+options.legend         = 'off';
+options.color          = [0.15,0.15,0.15];
+options.colormap       = obj.defaults.plot_colormap;
+options.fontname       = 'avenir';
+options.position       = obj.defaults.plot_position;
 options.position_units = 'normalized';
-
-options.filename = [datestr(datetime, 'yyyymmdd_HHMM'), '_chromatography_figure'];
-options.export = [];
+options.export         = [];
+options.filename       = [datestr(datetime, 'yyyymmdd_HHMM'), '_chromatography_figure'];
 
 % ---------------------------------------
 % Option: 'samples'
@@ -909,12 +900,18 @@ if ~isempty(input('baseline'))
     baseline = varargin{input('baseline')+1};
     
     baseline_on = {...
+        'y',...
+        'yes',...
+        'true',...
         'on',...
         'show',...
         'display'};
     
     baseline_off = {...
         'default',...
+        'n',...
+        'no',...
+        'false',...
         'off',...
         'hide'};
     
@@ -924,16 +921,14 @@ if ~isempty(input('baseline'))
         'subtract',...
         'subtracted'};
     
-    % Check input
     if any(strcmpi(baseline, baseline_off))
         options.baseline = 'off';
-        
     elseif any(strcmpi(baseline, baseline_on))
         options.baseline = 'on';
-        
     elseif any(strcmpi(baseline, baseline_corrected))
         options.baseline = 'corrected';
     end    
+    
 end
 
 % ---------------------------------------
@@ -954,13 +949,12 @@ if ~isempty(input('layout'))
         'overlay',...
         'overlap'};
     
-    % Check input
     if any(strcmpi(layout, layout_stacked))
         options.layout = 'stacked';
-        
     elseif any(strcmpi(layout, layout_overlaid))
         options.layout = 'overlaid';
     end
+    
 end
 
 % ---------------------------------------
@@ -1027,7 +1021,7 @@ if ~isempty(input('xlim'))
         options.xlimits = [];
         options.xpermission = 'write';
         
-    elseif xlimits(2) < xlimits(1) || length(xlimits) ~= 2;
+    elseif xlimits(2) < xlimits(1) || length(xlimits) ~= 2
         options.xlimits = [];
         options.xpermission = 'write';
         

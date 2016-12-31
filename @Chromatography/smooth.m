@@ -1,3 +1,4 @@
+function varargout = smooth(obj, varargin)
 % ------------------------------------------------------------------------
 % Method      : Chromatography.smooth
 % Description : Smooth chromatogram
@@ -43,8 +44,6 @@
 % References
 % ------------------------------------------------------------------------
 %   P.H.C. Eilers, Analytical Chemistry, 75 (2003) 3631
-
-function varargout = smooth(obj, varargin)
 
 % Check input
 [data, options] = parse(obj, varargin);

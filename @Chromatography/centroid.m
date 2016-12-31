@@ -1,3 +1,4 @@
+function varargout = centroid(obj, varargin)
 % ------------------------------------------------------------------------
 % Method      : Chromatography.centroid
 % Description : Centroid mass values
@@ -26,8 +27,6 @@
 % ------------------------------------------------------------------------
 %   data = obj.centroid(data)
 %   data = obj.centroid(data, 'samples', [2:5, 8, 10])
-
-function varargout = centroid(obj, varargin)
 
 % Check input
 [data, options] = parse(obj, varargin);

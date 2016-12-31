@@ -1,3 +1,4 @@
+function varargout = integrate(obj, varargin)
 % ------------------------------------------------------------------------
 % Method      : Chromatography.integrate
 % Description : Find and integrate peaks
@@ -46,8 +47,6 @@
 % References
 % ------------------------------------------------------------------------
 %   K. Lan, et. al. Journal of Chromatography A, 915 (2001) 1-13
-
-function varargout = integrate(obj, varargin)
 
 % Check input
 [data, options] = parse(obj, varargin);

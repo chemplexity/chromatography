@@ -1,3 +1,4 @@
+function varargout = baseline(obj, varargin)
 % ------------------------------------------------------------------------
 % Method      : Chromatography.baseline
 % Description : Calculate baseline of chromatogram
@@ -43,8 +44,6 @@
 % References
 % ------------------------------------------------------------------------
 %   P.H.C. Eilers, Analytical Chemistry, 75 (2003) 3631
-
-function varargout = baseline(obj, varargin)
 
 % Check input
 [data, options] = parse(obj, varargin);
