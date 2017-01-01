@@ -3,7 +3,7 @@ classdef Chromatography
 % Class       : Chromatography
 % Description : Functions for chromatography and mass spectrometry data
 %
-% Version     : 0.1.51
+% Version     : 0.1.6-dev
 % Website     : https://github.com/chemplexity/chromatography
 %------------------------------------------------------------------------
 %

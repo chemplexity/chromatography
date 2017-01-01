@@ -29,17 +29,15 @@ function data = ImportAgilent(varargin)
 % Examples
 % ------------------------------------------------------------------------
 %   data = ImportAgilent()
-%   data = ImportAgilent('file', {'00159F.D'})
+%   data = ImportAgilent('file', '00159F.D')
 %   data = ImportAgilent('file', {'/Data/2016/04/', '00201B.D'})
 %   data = ImportAgilent('file', {'/Data/2016/'}, 'depth', 4)
 %   data = ImportAgilent('content', 'header', 'depth', 8)
 %   data = ImportAgilent('verbose', 'off')
 
 % ---------------------------------------
-% Initialize
+% Data
 % ---------------------------------------
-file = [];
-
 data.file_path       = [];
 data.file_name       = [];
 data.file_size       = [];
@@ -56,6 +54,7 @@ data.method          = [];
 data.seqindex        = [];
 data.vial            = [];
 data.replicate       = [];
+data.sampling_rate   = [];
 data.time            = [];
 data.intensity       = [];
 data.channel         = [];
@@ -70,15 +69,21 @@ default.file      = [];
 default.depth     = 1;
 default.content   = 'all';
 default.verbose   = 'on';
-default.formats   = {'.D', '.MS', '.CH', '.UV'};
-default.supported = {'.MS', '.CH', '.UV'};
+default.formats   = {'.MS', '.CH', '.UV'};
+
+% ---------------------------------------
+% Platform
+% ---------------------------------------
+if exist('OCTAVE_VERSION', 'builtin')
+    more('off');
+end
 
 % ---------------------------------------
 % Input
 % ---------------------------------------
 p = inputParser;
     
-addParameter(p, 'file',    default.file,    @iscellstr);
+addParameter(p, 'file',    default.file);
 addParameter(p, 'depth',   default.depth,   @isscalar);    
 addParameter(p, 'content', default.content, @ischar);
 addParameter(p, 'verbose', default.verbose, @ischar);
@@ -131,10 +136,12 @@ end
 % ---------------------------------------
 % File selection
 % ---------------------------------------
+file = [];
+
 if isempty(option.file)
     
     % Get files using file selection interface
-    file = FileUI();
+    [file, fileError] = FileUI();
     
 else
     
@@ -151,15 +158,25 @@ else
 end
 
 % Check selection for files
-if isempty(file)
+if exist('fileError', 'var') && fileError == 1
+    status(option.verbose, 7);
+    status(option.verbose, 3);
+    return
+elseif exist('fileError', 'var') && fileError == 2
+    status(option.verbose, 9);
+    status(option.verbose, 3);
+    return
+elseif isempty(file)
     status(option.verbose, 2);
     status(option.verbose, 3);
     return
 end
 
-% Check selection for folders
+% Check selection for subfolders
 if sum([file.directory]) == 0
     option.depth = 0;
+else
+    status(option.verbose, 8);
 end
 
 % ---------------------------------------
@@ -191,7 +208,7 @@ while l >= 0
                     
                     [~, ~, ext] = fileparts(filepath.Name);
                     
-                    if any(strcmpi(ext, default.supported)) || filepath.directory
+                    if any(strcmpi(ext, default.formats)) || filepath.directory
                         file = [file; filepath];
                     end
                 end
@@ -215,7 +232,7 @@ end
 % ---------------------------------------
 [~,~,ext] = cellfun(@(x) fileparts(x), {file.Name}, 'uniformoutput', 0);
 
-file(cellfun(@(x) ~any(strcmpi(x, default.supported)), ext)) = [];
+file(cellfun(@(x) ~any(strcmpi(x, default.formats)), ext)) = [];
 
 % Check selection for files
 if isempty(file)
@@ -272,7 +289,6 @@ for i = 1:length(file)
             
         case 'header'
             data(i,1) = parseinfo(f, data(i,1));
-            
     end
     
     fclose(f);
@@ -299,32 +315,48 @@ function status(varargin)
         % [IMPORT]
         case 1
             fprintf(['\n', repmat('-',1,50), '\n']);
-            fprintf('[IMPORT]');
+            fprintf(' IMPORT');
             fprintf(['\n', repmat('-',1,50), '\n\n']);
 
         % [ERROR]
         case 2
-            fprintf(['[ERROR] No files found...', '\n']);
+            fprintf([' STATUS  No files found...', '\n']);
                 
         % [EXIT]
         case 3
             fprintf(['\n', repmat('-',1,50), '\n']);
-            fprintf('[EXIT]');
+            fprintf(' EXIT');
             fprintf(['\n', repmat('-',1,50), '\n']);
     
         % [STATUS]
         case 4
-            fprintf(['[STATUS] Depth   : ', num2str(varargin{3}), '\n']);
-            fprintf(['[STATUS] Folders : ', num2str(varargin{4}), '\n']);
+            fprintf([' STATUS  Depth   : ', num2str(varargin{3}), '\n']);
+            fprintf([' STATUS  Folders : ', num2str(varargin{4}), '\n']);
             
         % [STATUS]
         case 5
-            fprintf(['[STATUS] Files : ', num2str(varargin{3}), '\n\n']);
+            fprintf([' STATUS  Importing ', num2str(varargin{3}), ' files...', '\n\n']);
 
         % [LOADING]
         case 6
-            fprintf(['[', num2str(varargin{3}), '/', num2str(varargin{4}), ']']);
+            n = num2str(varargin{3});
+            m = num2str(varargin{4});
+            numZeros = length(m) - length(n);
+            
+            fprintf([' [', [repmat('0',1,numZeros), n], '/', m, ']']);
             fprintf(' %s \n', varargin{5});
+        
+        % [STATUS]
+        case 7
+            fprintf([' STATUS  No files selected...', '\n']);
+        
+        % [STATUS]
+        case 8
+            fprintf([' STATUS  Searching subfolders...', '\n']);
+        
+        % [STATUS]
+        case 9
+            fprintf([' STATUS  Unable to load file selection interface...', '\n']);
     end
 end
 
@@ -342,6 +374,7 @@ file  = [];
 % JFileChooser (Java)
 % ---------------------------------------
 if ~usejava('swing')
+    status = 2;
     return
 end
 
@@ -370,10 +403,9 @@ fc.addChoosableFileFilter(agilent);
 % ---------------------------------------
 % Initialize UI
 % ---------------------------------------
-%status = fc.showOpenDialog(fc);
+status = fc.showOpenDialog(fc);
 
-%if status == fc.APPROVE_OPTION
-if fc.showOpenDialog(fc) == fc.APPROVE_OPTION
+if status == fc.APPROVE_OPTION
     
     % Get file selection
     fs = fc.getSelectedFiles();
@@ -436,7 +468,6 @@ switch data.file_version
         data.seqindex    = fnumeric(f, 252,  'int16');
         data.vial        = fnumeric(f, 254,  'int16');
         data.replicate   = fnumeric(f, 256,  'int16');
-        
 end
 
 % Parse datetime
@@ -628,6 +659,13 @@ end
 % Instrument
 % ---------------------------------------
 data.instrument = parseinstrument(data);
+
+% ---------------------------------------
+% Sampling Rate
+% ---------------------------------------
+if ~isempty(data.time)
+    data.sampling_rate = round(1./mean(diff(data.time)));
+end
 
 end
 
