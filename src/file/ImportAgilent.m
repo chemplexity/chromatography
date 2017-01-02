@@ -84,7 +84,7 @@ end
 p = inputParser;
     
 addParameter(p, 'file',    default.file);
-addParameter(p, 'depth',   default.depth,   @isscalar);    
+addParameter(p, 'depth',   default.depth);    
 addParameter(p, 'content', default.content, @ischar);
 addParameter(p, 'verbose', default.verbose, @ischar);
     
@@ -112,7 +112,9 @@ if ~isempty(option.file)
 end
     
 % Parameter: 'depth'
-if ~isnumeric(option.depth)
+if ischar(option.depth) && ~isnan(str2double(option.depth))
+    option.depth = round(str2double(default.depth));
+elseif ~isnumeric(option.depth)
     option.depth = default.depth;
 elseif option.depth < 0 || isnan(option.depth) || isinf(option.depth)
     option.depth = default.depth;

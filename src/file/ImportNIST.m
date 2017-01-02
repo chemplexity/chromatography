@@ -93,7 +93,9 @@ if ~isempty(option.file)
 end
     
 % Parameter: 'depth'
-if ~isnumeric(option.depth)
+if ischar(option.depth) && ~isnan(str2double(option.depth))
+    option.depth = round(str2double(default.depth));
+elseif ~isnumeric(option.depth)
     option.depth = default.depth;
 elseif option.depth < 0 || isnan(option.depth) || isinf(option.depth)
     option.depth = default.depth;

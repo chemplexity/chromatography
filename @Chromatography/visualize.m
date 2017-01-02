@@ -73,7 +73,7 @@ function varargout = visualize(obj, varargin)
 %       'local' (default) | 'global'
 %
 %   'offset' -- sequential y-offset applied to each sample
-%       0 (default) | number
+%       0.05 (default) | number
 %
 %   ----------------------------------------------------------------------
 %   Plot Axes
@@ -142,6 +142,8 @@ if isnumeric(target)
     target = 'xic';
 end
 
+warning('off', 'all');
+
 % ---------------------------------------
 % Initialize plots
 % ---------------------------------------
@@ -165,7 +167,6 @@ for i = 1:length(samples)
     z = data(index).mz;
     
     switch target
-        
         case 'tic'
             y = data(index).tic.values;
         case 'all'            
@@ -174,7 +175,7 @@ for i = 1:length(samples)
             y = data(index).xic.values(:, ions); 
     end
     
-    if isempty(y)
+    if isempty(y) || length(x) <= 1
         continue
     end
     
@@ -406,22 +407,28 @@ xmax = options.xmax.index(options.i);
 % Normalized scale
 if strcmpi(options.scale, 'normalized')
     
-    % Normalization factor
-    switch options.scope
+    if length(y(:,1)) > 1
         
-        case 'local'
-            ymin = min(y(xmin:xmax,:));
-            ymax = max(y(xmin:xmax,:));
+        % Normalization factor
+        switch options.scope
+        
+            case 'local'
+                ymin = min(y(xmin:xmax,:));
+                ymax = max(y(xmin:xmax,:));
 
-        case 'global'
-            ymin = min(min(y(xmin:xmax,:)));
-            ymax = max(max(y(xmin:xmax,:)));
+            case 'global'
+                ymin = min(min(y(xmin:xmax,:)));
+                ymax = max(max(y(xmin:xmax,:)));
+        end
+    
+        y = bsxfun(@rdivide,...
+            bsxfun(@minus, y, ymin), (ymax - ymin));
+    
+        y = y .* 100;
+        
+    else
+        y = 0.5;
     end
-    
-    y = bsxfun(@rdivide,...
-        bsxfun(@minus, y, ymin), (ymax - ymin));
-    
-    y = y .* 100;
     
 elseif strcmpi(options.scale, 'full') && strcmpi(options.layout, 'stacked')
     
@@ -429,9 +436,20 @@ elseif strcmpi(options.scale, 'full') && strcmpi(options.layout, 'stacked')
     switch options.scope
         
         case 'local'
-            ymin = min(min(y(xmin:xmax,:)));
-            ymax = max(max(y(xmin:xmax,:)));
             
+            if length(y(:,1)) > 1
+                ymin = min(min(y(xmin:xmax,:)));
+                ymax = max(max(y(xmin:xmax,:)));
+            else
+                ymin = options.scaling_factor(1);
+                ymax = options.scaling_factor(2);
+            end
+            
+            if ~isfield(options, 'scaling_factor')
+                options.scaling_factor(1) = ymin;
+                options.scaling_factor(2) = ymax;
+            end
+
             if options.i == 1 && extra == 0
                 options.scaling_factor(1) = ymin;
                 options.scaling_factor(2) = ymax;
@@ -516,6 +534,11 @@ end
 % Check x-limits options
 function [x, options] = plot_xlim(x, options)
 
+% Check x values
+if isempty(x)
+    x = [0, 1];
+end
+
 % Determine min/max
 xmin = min(min(x));
 xmax = max(max(x));
@@ -566,8 +589,13 @@ else
     xmax = length(x);
 end
 
-ymin = min(min(y(xmin:xmax,:)));
-ymax = max(max(y(xmin:xmax,:)));
+if length(y(:,1)) > 1
+    ymin = min(min(y(xmin:xmax,:)));
+    ymax = max(max(y(xmin:xmax,:)));
+else
+    ymin = y - 1;
+    ymax = y + 1;
+end
 
 % Axes: Y-Limits (auto)
 if isempty(options.ylimits)
@@ -818,7 +846,7 @@ options.ylimits        = [];
 options.xpermission    = 'write';
 options.ypermission    = 'write';
 options.padding        = 0.05;
-options.offset         = 0.0;
+options.offset         = 0.05;
 options.linewidth      = 1.0;
 options.name           = {};
 options.legend         = 'off';
@@ -1080,10 +1108,10 @@ if ~isempty(input('offset'))
     offset = varargin{input('offset')+1};
     
     % Check input
-    if any(strcmpi(offset, {'on'}))
+    if any(strcmpi(offset, {'on', 'default'}))
         options.offset = 0.05;
         
-    elseif any(strcmpi(offset, {'default', 'off', 'none'}))
+    elseif any(strcmpi(offset, {'off', 'none'}))
         options.offset = 0.0;
         
     elseif isnumeric(offset)

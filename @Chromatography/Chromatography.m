@@ -108,6 +108,7 @@ classdef Chromatography
                 '.D',   'Agilent (*.D)';
                 '.MS',  'Agilent (*.MS)';
                 '.CH',  'Agilent (*.CH)';
+                '.MSP', 'NIST (*.MSP)';
                 '.RAW', 'Thermo (*.RAW)'};
             
             obj.options.export = {...

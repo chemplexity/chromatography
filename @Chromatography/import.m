@@ -97,14 +97,13 @@ switch options.filetype
             end
             
             filepath = fattrib.Name;
-            fileinfo = dir(filepath);
                 
             % ---------------------------------------
             % Import netCDF
             % ---------------------------------------
             tic;
             
-            fdata = ImportCDF(filepath, 'precision', options.precision);
+            fdata = ImportCDF('file', filepath, 'verbose', 'off');
             
             options.compute_time = options.compute_time + toc;
             
@@ -113,29 +112,114 @@ switch options.filetype
             % ---------------------------------------
             if isempty(fdata)
                 fprintf([...
-                    '[', num2str(i), '/', num2str(length(files(:,1))), ']'...
+                    '[', num2str(i), '/', num2str(length(files(:,1))), ']',...
                     ' Error loading ''', '%s', '''\n'], filepath);
                 continue
             end
             
-            if sum(fdata.xic.values(end,:)) == 0
-                fdata.time(end) = [];
-                fdata.tic.values(end) = [];
-                fdata.xic.values(end,:) = [];
+            for j = 1:length(fdata)
+                
+                if isfield(fdata, 'tic') && nnz(fdata(j).tic) == 0 && nnz(fdata(j).xic) == 0
+                    fprintf([...
+                        '[', num2str(i), '/', num2str(length(files(:,1))), ']',...
+                        ' No data found ''', '%s', '''\n'], filepath);
+                    continue
+                end
+                
+                import_data{end+1} = [];
+                
+                import_data{end}.file.path  = fdata(j).file_path;
+                import_data{end}.file.name  = fdata(j).file_name;
+                import_data{end}.file.bytes = fdata(j).file_size;
+                
+                if isfield(fdata, 'experiment_title')
+                    import_data{end}.sample.name = fdata(j).experiment_title;
+                else
+                    import_data{end}.sample.name = '';
+                end
+                
+                if isfield(fdata, 'administrative_comments')
+                    import_data{end}.sample.description = fdata(j).administrative_comments;
+                else
+                    import_data{end}.sample.description = '';
+                end
+                
+                if isfield(fdata, 'external_file_ref_0')
+                    import_data{end}.method.name = fdata(j).external_file_ref_0;
+                else
+                    import_data{end}.method.name = '';
+                end
+                
+                if isfield(fdata, 'experiment_date_time_stamp')
+                    import_data{end}.method.datetime = fdata(j).experiment_date_time_stamp;
+                else
+                    import_data{end}.method.datetime = '';
+                end
+                
+                if isfield(fdata, 'operator_name')
+                    import_data{end}.method.operator = fdata(j).operator_name;
+                else
+                    import_data{end}.method.operator = '';
+                end
+                
+                if isfield(fdata, 'instrument')
+                    import_data{end}.method.instrument = fdata(j).instrument;
+                else
+                    import_data{end}.method.instrument = '';
+                end
+                
+                if isfield(fdata, 'instrument_name') && isempty(import_data{end}.method.instrument)
+                    import_data{end}.method.instrument = fdata(j).instrument_name;
+                end
+                
+                if isfield(fdata, 'scan_acquisition_time')
+                    import_data{end}.time = fdata(j).scan_acquisition_time;
+
+                    if ~isempty(import_data{end}.time)
+                        if isfield(fdata, 'time_values_units') && ~isempty(fdata(j).time_values_units)
+                            if strcmpi(fdata(j).time_values_units, 'seconds')
+                                import_data{end}.time = import_data{end}.time ./ 60;
+                            end
+                        elseif isfield(fdata, 'units') && ~isempty(fdata(j).units)
+                            if strcmpi(fdata(j).units, 'seconds')
+                                import_data{end}.time = import_data{end}.time ./ 60;
+                            end
+                        end 
+                    end
+                    
+                else
+                    import_data{end}.time = [];
+                end
+                
+                if isfield(fdata, 'total_intensity')
+                    import_data{end}.tic.values = fdata(j).total_intensity;
+                else
+                    import_data{end}.tic.values = [];
+                end
+                
+                if isfield(fdata, 'ordinate_values') && isempty(import_data{end}.tic.values)
+                    import_data{end}.tic.values = fdata(j).ordinate_values;
+                end
+                
+                if isfield(fdata, 'intensity_values')
+                    import_data{end}.xic.values = fdata(j).intensity_values;
+                else
+                    import_data{end}.xic.values = [];
+                end
+                
+                if isfield(fdata, 'mass_values')
+                    import_data{end}.mz = fdata(j).mass_values;
+                else
+                    import_data{end}.mz = [];
+                end
+                
             end
             
-            import_data{end+1} = fdata;
-                
-            import_data{end}.file.path  = filepath;
-            import_data{end}.file.name  = regexp(filepath, '(?i)\w+[.]CDF', 'match');
-            import_data{end}.file.name  = import_data{end}.file.name{1};
-            import_data{end}.file.bytes = fileinfo.bytes;
-                
             % ---------------------------------------
             % Update status
             % ---------------------------------------
-            options.import_bytes = options.import_bytes + fileinfo.bytes;
-            update(i, length(files(:,1)), options.compute_time, options.progress, fileinfo.bytes);
+            options.import_bytes = options.import_bytes + import_data{end}.file.bytes;
+            update(i, length(files(:,1)), options.compute_time, options.progress, import_data{end}.file.bytes);
         end
         
     case {'.D', '.CH', '.MS'}
@@ -263,7 +347,7 @@ switch options.filetype
                 end
                 
                 if isfield(fdata, 'datetime')
-                    import_data{end}.method.date = fdata(j).datetime;
+                    import_data{end}.method.datetime = fdata(j).datetime;
                 end
                 
                 % ---------------------------------------
@@ -272,6 +356,95 @@ switch options.filetype
                 options.import_bytes = options.import_bytes + import_data{end}.file.bytes;
                 update(i, length(files(:,1)), options.compute_time, options.progress, import_data{end}.file.bytes);
             end     
+        end
+        
+    case {'.MSP'}
+        
+        for i = 1:length(files(:,1))
+            
+            % ---------------------------------------
+            % File path
+            % ---------------------------------------
+            filepath = fullfile(files{i,1}, strcat(files{i,2}, files{i,3}));
+            [status, fattrib] = fileattrib(filepath);
+            
+            if ~status
+                fprintf([...
+                    '[', num2str(i), '/', num2str(length(files(:,1))), ']'...
+                    ' Invalid file path ''', '%s', '''\n'], filepath);
+                continue
+            end
+            
+            filepath = fattrib.Name;
+            
+            % ---------------------------------------
+            % Import NIST
+            % ---------------------------------------
+            tic;
+            
+            fdata = ImportNIST('file', filepath, 'verbose', 'off');
+            
+            options.compute_time = options.compute_time + toc;
+            
+            % ---------------------------------------
+            % Append data
+            % ---------------------------------------
+            if isempty(fdata)
+                fprintf([...
+                    '[', num2str(i), '/', num2str(length(files(:,1))), ']',...
+                    ' Error loading ''', '%s', '''\n'], filepath);
+                continue
+            end
+            
+            for j = 1:length(fdata)
+                
+                if isfield(fdata, 'tic') && nnz(fdata(j).tic) == 0 && nnz(fdata(j).xic) == 0
+                    fprintf([...
+                        '[', num2str(i), '/', num2str(length(files(:,1))), ']',...
+                        ' No data found ''', '%s', '''\n'], filepath);
+                    continue
+                end
+                
+                import_data{end+1} = [];
+                
+                import_data{end}.file.path  = fdata(j).file_path;
+                import_data{end}.file.name  = fdata(j).file_name;
+                import_data{end}.file.bytes = fdata(j).file_size;
+                
+                if isfield(fdata, 'compound_name')
+                    import_data{end}.sample.name = fdata(j).compound_name;
+                else
+                    import_data{end}.sample.name = '';
+                end
+                
+                if isfield(fdata, 'comments')
+                    import_data{end}.sample.description = fdata(j).comments;
+                else
+                    import_data{end}.sample.description = '';
+                end
+                
+                if isfield(fdata, 'intensity')
+                    import_data{end}.xic.values = fdata(j).intensity;
+                    if ~isempty(import_data{end}.xic.values)
+                        import_data{end}.tic.values = sum(fdata(j).intensity,2);
+                    end
+                else
+                    import_data{end}.xic.values = [];
+                end
+                
+                if isfield(fdata, 'mz')
+                    import_data{end}.mz = fdata(j).mz;
+                else
+                    import_data{end}.mz = [];
+                end
+                
+            end
+            
+            % ---------------------------------------
+            % Update status
+            % ---------------------------------------
+            options.import_bytes = options.import_bytes + import_data{end}.file.bytes;
+            update(i, length(files(:,1)), options.compute_time, options.progress, import_data{end}.file.bytes);
         end
         
     case {'.RAW'}
@@ -374,12 +547,7 @@ end
 for i = 1:length(import_data)
     
     import_data(i).id = length(data) + i;
-    
-    if ~isempty(import_data(i).sample.name)
-        import_data(i).name = import_data(i).sample.name;
-    else
-        import_data(i).name = import_data(i).file.name;
-    end
+    import_data(i).name = import_data(i).file.name;
     
     import_data(i).backup.time = import_data(i).time;
     import_data(i).backup.tic = import_data(i).tic.values;
