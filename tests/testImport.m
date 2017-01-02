@@ -28,6 +28,9 @@ agilentData = {...
 };
 
 agilentFields = {...
+    'file_path',...
+    'file_name',...
+    'file_size',...
     'sample_name',...
     'sample_info',...
     'operator',...
@@ -55,6 +58,9 @@ nistData = {...
 };
 
 nistFields = {...
+    'file_path',...
+    'file_name',...
+    'file_size',...
     'compound_name',...
     'compound_formula',...
     'compound_mw',....
@@ -67,6 +73,37 @@ nistFields = {...
     'intensity'...
 };
 
+cdfPath = [dataPath, filesep, 'netcdf'];
+
+cdfData = {...
+    'agilent-ms.cdf',...
+    'finnigan-ms.cdf',...
+    'hp-ms.cdf',...
+    'kratos-ms.cdf',...
+    'sciex-ms.cdf'...
+};
+
+cdfFields = {...
+    'file_path',...
+    'file_name',...
+    'file_size',...
+    'dataset_completeness',...
+    'netcdf_revision',...
+    'ms_template_revision',....
+    'experiment_date_time_stamp',...
+    'netcdf_file_date_time_stamp',...
+    'instrument_name',...
+    'experiment_type',...
+    'raw_data_mass_format',...
+    'raw_data_intensity_format',...
+    'scan_index',...
+    'point_count',...
+    'mass_values',...
+    'intensity_values',...
+    'total_intensity'...
+};
+
+
 % ---------------------------------------
 % Intro
 % ---------------------------------------
@@ -78,7 +115,8 @@ fprintf(['\n', repmat('-',1,50), '\n']);
 % Functions
 % ---------------------------------------
 results = testAgilentData(agilentData, agilentPath, agilentFields, results);
-results = testNistData(nistData, nistPath, nistFields, results);
+results = testNISTData(nistData, nistPath, nistFields, results);
+results = testCDFData(cdfData, cdfPath, cdfFields, results);
 
 % ---------------------------------------
 % Summary
@@ -94,7 +132,7 @@ end
 % ---------------------------------------
 % Agilent
 % ---------------------------------------
-function results = testAgilentData(filename, filepath, fields, results)
+function results = testAgilentData(filename, filepath, agilentFields, results)
 
 % ---------------------------------------
 % Function
@@ -135,15 +173,15 @@ fprintf(['\n', 'Data: ImportAgilent', '\n']);
 file = [filepath, filesep, filename{1}];
 data = ImportAgilent('file', {file}, 'verbose', 'off');
 
-for i = 1:length(fields)
+for i = 1:length(agilentFields)
      
-    if isfield(data, fields{i}) && ~isempty(data.(fields{i}))
+    if isfield(data, agilentFields{i}) && ~isempty(data.(agilentFields{i}))
         fprintf('  <strong>PASS</strong>  ');
-        fprintf(['data.', fields{i}, '\n']);
+        fprintf(['data.', agilentFields{i}, '\n']);
         results.pass = results.pass + 1;
     else
         fprintf(2,'  FAIL  ');
-        fprintf(['data.', fields{i}, '\n']);
+        fprintf(['data.', agilentFields{i}, '\n']);
         results.fail = results.fail + 1;
     end
     
@@ -154,7 +192,7 @@ end
 % ---------------------------------------
 % NIST
 % ---------------------------------------
-function results = testNistData(filename, filepath, fields, results)
+function results = testNISTData(filename, filepath, nistFields, results)
 
 file = [filepath, filesep, filename{1}];
 data = ImportNIST('file', file, 'verbose', 'off');
@@ -179,15 +217,58 @@ end
 % ---------------------------------------
 fprintf(['\n', 'Data: ImportNIST', '\n']);
 
-for i = 1:length(fields)
+for i = 1:length(nistFields)
      
-    if isfield(data, fields{i}) && ~isempty(data.(fields{i}))
+    if isfield(data, nistFields{i}) && ~isempty(data.(nistFields{i}))
         fprintf('  <strong>PASS</strong>  ');
-        fprintf(['data.', fields{i}, '\n']);
+        fprintf(['data.', nistFields{i}, '\n']);
         results.pass = results.pass + 1;
     else
         fprintf(2,'  FAIL  ');
-        fprintf(['data.', fields{i}, '\n']);
+        fprintf(['data.', nistFields{i}, '\n']);
+        results.fail = results.fail + 1;
+    end
+    
+end
+
+end
+
+% ---------------------------------------
+% netCDF
+% ---------------------------------------
+function results = testCDFData(filename, filepath, cdfFields, results)
+
+data = ImportCDF('file', filepath, 'depth', 2, 'verbose', 'off');
+
+% ---------------------------------------
+% Function
+% ---------------------------------------
+fprintf(['\n', 'Function: ImportCDF', '\n']);
+
+if length(data) == length(filename) && length(fields(data)) > 3
+    fprintf('  <strong>PASS</strong>  ');
+    fprintf(['.CDF', '\n']);
+    results.pass = results.pass + 1;
+else
+    fprintf(2,'  FAIL  ');
+    fprintf(['.CDF', '\n']);
+    results.fail = results.fail + 1;
+end
+
+% ---------------------------------------
+% Data
+% ---------------------------------------
+fprintf(['\n', 'Data: ImportCDF', '\n']);
+
+for i = 1:length(cdfFields)
+    
+    if isfield(data, cdfFields{i}) && ~any(cellfun(@isempty,{data.(cdfFields{i})}))
+        fprintf('  <strong>PASS</strong>  ');
+        fprintf(['data.', cdfFields{i}, '\n']);
+        results.pass = results.pass + 1;
+    else
+        fprintf(2,'  FAIL  ');
+        fprintf(['data.', cdfFields{i}, '\n']);
         results.fail = results.fail + 1;
     end
     
