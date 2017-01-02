@@ -167,7 +167,7 @@ while l >= 0
         
         [~, ~, ext] = fileparts(file(i).Name);
         
-        if any(strcmpi(ext, {'.M', '.git', '.lnk'}))
+        if any(strcmpi(ext, {'.M', '.git', '.lnk', '.raw'}))
             continue
             
         elseif file(i).directory == 1

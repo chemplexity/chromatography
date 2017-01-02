@@ -191,7 +191,7 @@ while l >= 0
         
         [~, ~, ext] = fileparts(file(i).Name);
         
-        if any(strcmpi(ext, {'.M', '.git', '.lnk'}))
+        if any(strcmpi(ext, {'.M', '.git', '.lnk', '.raw'}))
             continue
             
         elseif file(i).directory == 1
@@ -674,13 +674,15 @@ end
 % ---------------------------------------
 function dateStr = parsedate(dateStr)
 
-% Octave Unsupported
-if isempty(ver('matlab'))
-  return
+% Platform
+if exist('OCTAVE_VERSION', 'builtin')
+    return
 end
 
-formatOut = 'yyyy/mm/dd HH:MM:SS';
+% ISO 8601
+formatOut = 'yyyy-mm-ddTHH:MM:SS';
 
+% Possible Formats
 dateFormat = {...
     'dd mmm yy HH:MM PM',...
     'dd mmm yy HH:MM',...
