@@ -59,7 +59,7 @@ count = 0;
 timer = 0;
 
 fprintf([...
-    '\n[SMOOTH]\n',...
+    '\nSMOOTH \n',...
     '\nSmoothing data for ', num2str(length(samples)), ' samples...\n',...
     '\nSmoothness : ', num2str(smoothness),...
     '\nAsymmetry  : ', num2str(asymmetry), '\n\n']);
@@ -126,12 +126,12 @@ for i = 1:length(samples)
     fprintf([' in ', num2str(timer,'%.1f'), ' sec']);
     
     % Data processed (type|vectors)
-    count = count + length(y(1,:));
+    count = count + size(y,2);
     
     if strcmpi(ions, 'tic')
-        fprintf([' (TIC|', num2str(length(y(1,:))), ')\n']);
+        fprintf([' (TIC|', num2str(size(y,2)), ')\n']);
     else
-        fprintf([' (XIC|', num2str(length(y(1,:))), ')\n']);
+        fprintf([' (XIC|', num2str(size(y,2)), ')\n']);
     end
     
     % Update status
@@ -167,7 +167,7 @@ fprintf(['\n',...
     'Elapsed  : ', elapsed, '\n',...
     'Smoothed : ', num2str(count), '\n']);
 
-fprintf('\n[COMPLETE]\n\n');
+fprintf('\nEXIT\n\n');
 
 end
 

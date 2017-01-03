@@ -62,9 +62,8 @@ parse(p, varargin{:});
 % ---------------------------------------
 % Parse
 % ---------------------------------------
-x = p.Results.x;
-y = p.Results.y;
-
+x      = p.Results.x;
+y      = p.Results.y;
 xrange = p.Results.xrange;
 xmin   = p.Results.xmin;
 xmax   = p.Results.xmax;
@@ -72,23 +71,27 @@ xmax   = p.Results.xmax;
 % ---------------------------------------
 % Validate
 % ---------------------------------------
-if length(x(:,1)) ~= length(y(:,1))
+
+% Input: x, y
+if size(x,1) ~= size(y,1)
     return
 end
 
+if size(x,1) <= 1
+    return
+end
+
+% Parameter: 'xrange', 'xmin', 'xmax'
 if isempty(xrange) && isempty(xmin) && isempty(xmax)
     return
 end
 
 if ~isempty(xmin) && ~isempty(xmax)
     xfilter = x >= xmin(1) & x <= xmax(1);
-    
 elseif ~isempty(xmin)
     xfilter = x >= xmin(1); 
-    
 elseif ~isempty(xmax)
     xfilter = x <= xmax(1);
-
 else
     xfilter(1:length(x)) = false;
 end

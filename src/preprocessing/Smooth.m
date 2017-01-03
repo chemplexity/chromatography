@@ -19,7 +19,7 @@ function y = Smooth(varargin)
 % ------------------------------------------------------------------------
 % Input (Name, Value)
 % ------------------------------------------------------------------------
-%   'smoothness' -- smoothing parameter (1E-1 to 1E4)
+%   'smoothness' -- smoothing parameter (1E-1 to 1E5)
 %       0.5 (default) | number
 %
 %   'asymmetry' -- asymmetry parameter (0 to 1)
@@ -78,23 +78,34 @@ gradient   = p.Results.gradient;
 % ---------------------------------------
 % Validate
 % ---------------------------------------
-if ~isa(y, 'double')
+
+% Input: y
+type = class(y);
+
+if ~strcmpi(type, 'double')
     y = double(y);
-    isSingle = 1;
-else
-    isSingle = 0;
 end
 
+% Parameter: 'asymmetry'
 if a <= 0
     a = 1E-9;
 elseif a >= 1
     a = 1 - 1E-9;
 end
 
+% Parameter: 'smoothness'
+if s <= 0
+    s = 0;
+elseif s > 1E15
+    s = 1E15;
+end
+
+% Parameter: 'iterations'
 if iterations <= 0
     iterations = 1;
 end
 
+% Parameter: 'gradient'
 if gradient < 0
     gradient = 0;
 end
@@ -114,13 +125,17 @@ W = spdiags(w(:,1), 0, m, m);
 D = diff(speye(m), 2);
 D = s * (D' * D);
 
+if m <= 1
+    return
+end
+
 % ---------------------------------------
 % Smooth
 % ---------------------------------------
 for i = 1:n
     
     % Check y-values
-    if ~nnz(y(:,i))
+    if ~any(y(:,i)~=0)
         continue
     end
     
@@ -156,17 +171,19 @@ for i = 1:n
         
     end
     
-    % Reset weights
-    w(:,1) = 1;
-    W = spdiags(w(:,1), 0, m, m);
-    
     % Update signal
     y(:,i) = z;
     
+    % Reset weights
+    if i < n
+        w(:,1) = 1;
+        W = spdiags(w(:,1), 0, m, m);
+    end
+    
 end
 
-if isSingle
-    y = single(y);
+if ~strcmpi(type, 'double')
+    y = cast(y, type);
 end
 
 end

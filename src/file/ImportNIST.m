@@ -169,7 +169,7 @@ while l >= 0
         
         [~, ~, ext] = fileparts(file(i).Name);
         
-        if any(strcmpi(ext, {'.M', '.git', '.lnk', '.raw'}))
+        if any(strcmpi(ext, {'.M', '.git', '.lnk'}))
             continue
             
         elseif file(i).directory == 1
@@ -271,60 +271,49 @@ end
 % ---------------------------------------
 function status(varargin)
         
-    % Check verbose
-    if ~varargin{1}
-        return
-    end
+if ~varargin{1}
+    return
+end
 
-    % Display status
-    switch varargin{2}
+switch varargin{2}
             
+    case 1
         % [IMPORT]
-        case 1
-            fprintf(['\n', repmat('-',1,50), '\n']);
-            fprintf(' IMPORT');
-            fprintf(['\n', repmat('-',1,50), '\n\n']);
-
+        fprintf(['\n', repmat('-',1,50), '\n']);
+        fprintf(' IMPORT');
+        fprintf(['\n', repmat('-',1,50), '\n\n']);
+    case 2
         % [ERROR]
-        case 2
-            fprintf([' STATUS  No files found...', '\n']);
-                
+        fprintf([' STATUS  No files found...', '\n']);
+    case 3
         % [EXIT]
-        case 3
-            fprintf(['\n', repmat('-',1,50), '\n']);
-            fprintf(' EXIT');
-            fprintf(['\n', repmat('-',1,50), '\n\n']);
-    
+        fprintf(['\n', repmat('-',1,50), '\n']);
+        fprintf(' EXIT');
+        fprintf(['\n', repmat('-',1,50), '\n']);
+    case 4
         % [STATUS]
-        case 4
-            fprintf([' STATUS  Depth   : ', num2str(varargin{3}), '\n']);
-            fprintf([' STATUS  Folders : ', num2str(varargin{4}), '\n']);
-            
+        fprintf([' STATUS  Depth   : ', num2str(varargin{3}), '\n']);
+        fprintf([' STATUS  Folders : ', num2str(varargin{4}), '\n']);
+    case 5
         % [STATUS]
-        case 5
-            fprintf([' STATUS  Importing ', num2str(varargin{3}), ' files...', '\n\n']);
-
+        fprintf([' STATUS  Importing ', num2str(varargin{3}), ' files...', '\n\n']);
+    case 6
         % [LOADING]
-        case 6
-            n = num2str(varargin{3});
-            m = num2str(varargin{4});
-            numZeros = length(m) - length(n);
-            
-            fprintf([' [', [repmat('0',1,numZeros), n], '/', m, ']']);
-            fprintf(' %s \n', varargin{5});
-        
+        m = num2str(varargin{3});
+        n = num2str(varargin{4});
+        fprintf([' [', [repmat('0', 1, length(n) - length(m)), m], '/', n, ']']);
+        fprintf(' %s \n', varargin{5});
+    case 7
         % [STATUS]
-        case 7
-            fprintf([' STATUS  No files selected...', '\n']);
-        
+        fprintf([' STATUS  No files selected...', '\n']);
+    case 8
         % [STATUS]
-        case 8
-            fprintf([' STATUS  Searching subfolders...', '\n']);
-            
+        fprintf([' STATUS  Searching subfolders...', '\n']);
+    case 9
         % [STATUS]
-        case 9
-            fprintf([' STATUS  Unable to load file selection interface...', '\n']);
-    end
+        fprintf([' STATUS  Unable to load file selection interface...', '\n']);
+end
+
 end
 
 % ---------------------------------------
@@ -433,7 +422,6 @@ switch name
         
     otherwise
         strRegEx = ['(?:', name, '[:]\s*)(\S[ ]+|\S+)+(?:(\r|[;]))'];
-        
 end
 
 strMatch = regexp(f, strRegEx, 'tokens', 'once');

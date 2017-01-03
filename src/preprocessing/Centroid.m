@@ -54,9 +54,8 @@ parse(p, varargin{:});
 % ---------------------------------------
 % Parse
 % ---------------------------------------
-mz = p.Results.mz;
-y  = p.Results.y;
-
+y          = p.Results.y;
+z          = p.Results.mz;
 iterations = p.Results.iterations;
 blocksize  = p.Results.blocksize;
 
@@ -66,14 +65,22 @@ varargout{2} = [];
 % ---------------------------------------
 % Validate
 % ---------------------------------------
-if length(mz(1,:)) ~= length(y(1,:))
+
+% Input: mz
+if size(z,2) ~= size(y,2)
     return
 end
 
+if size(z,2) == 1 || size(y,1) == 1
+    return
+end
+
+% Parameter: 'iterations' 
 if iterations <= 0
     iterations = 1;
 end
 
+% Parameter: 'blocksize'
 if blocksize <= 1E3
     blocksize = 1E3;
 end
@@ -81,36 +88,34 @@ end
 % ---------------------------------------
 % Variables
 % ---------------------------------------
-[m, n] = size(y);
+[m,n] = size(y);
 
-if isa(y, 'double')
-    index = 1:floor(blocksize/(m*8)):n;
+if isa(y,'double')
+    ii = 1:floor(blocksize/(m*8)):n;
 else
-    index = 1:floor(blocksize/(m*4)):n;
+    ii = 1:floor(blocksize/(m*4)):n;
 end
     
-if index(end) ~= n
-    index(end+1) = n + 1;
+if ii(end) ~= n
+    ii(end+1) = n+1;
 end
     
 % ---------------------------------------
 % Centroid
 % ---------------------------------------
-for i = 1:length(index)-1
+for i = 1:numel(ii)-1
 
-    block.mz = mz(index(i):index(i+1)-1);
-    block.y  = y(:, index(i):index(i+1)-1);
+    z0 = z(1, ii(i):ii(i+1)-1);
+    y0 = y(:, ii(i):ii(i+1)-1);
     
     if issparse(y)
-        [block.mz, block.y] = centroid(block.mz, full(block.y), iterations);
-        varargout{1} = [varargout{1}, block.mz];
-        varargout{2} = [varargout{2}, sparse(block.y)];
+        [z0, y0] = centroid(z0, full(y0), iterations);
+        varargout = {[varargout{1}, z0], varargout{2}, sparse(y0)};
     else
-        [block.mz, block.y] = centroid(block.mz, block.y, iterations);
-        varargout{1} = [varargout{1}, block.mz];
-        varargout{2} = [varargout{2}, block.y];
+        [z0, y0] = centroid(z0, y0, iterations);
+        varargout = {[varargout{1}, z0], [varargout{2}, y0]};
     end
-
+    
 end
 
 end
@@ -124,42 +129,42 @@ gradient = 1;
 counter  = 0;
 
 % ---------------------------------------
-% Centroid
+% Centroid algorithm
 % ---------------------------------------
 while gradient ~= 0 && counter < iterations
     
-    n = length(y(1,:));
+    n = size(y,2);
     
     for i = 2:n-1
         
-        % Find zeros in column
-        middle = ~y(:, i);
+        % Index zeros in column
+        y1 = ~y(:, i);
         
-        % Find zeros in adjacent columns
-        upper = ~y(:, i+1);
-        lower = ~y(:, i-1);
+        % Index zeros in adjacent columns
+        y2 = ~y(:, i+1);
+        y0 = ~y(:, i-1);
         
-        % Consolidate if next column has more zeros
-        if nnz(middle) < nnz(upper)
+        % Shift values from y(i+1) to y(i)
+        if nnz(y1) < nnz(y2)
             
-            % Find zeros adjacent to nonzeros
-            index = xor(middle, upper);
+            % Index nonzeros adjacent to zeros
+            ii = xor(y1, y2);
             
-            % Shift nonzeros in adjacent column to middle column
-            y(index, i) = y(index, i) + y(index, i+1);
-            y(index, i+1) = 0;
+            % Shift values from y(i+1) to y(i)
+            y(ii, i) = y(ii, i) + y(ii, i+1);
+            y(ii, i+1) = 0;
             
         end
         
-        % Consolidate if previous column has more zero elements
-        if nnz(middle) < nnz(lower)
+        % Shift values from y(i-1) to y(i)
+        if nnz(y1) < nnz(y0)
             
-            % Find zeros adjacent to nonzeros
-            index = xor(middle, lower);
+            % Index nonzeros adjacent to zeros
+            ii = xor(y1, y0);
             
-            % Shift nonzeros in adjacent column to middle column
-            y(index, i) = y(index, i) + y(index, i-1);
-            y(index, i-1) = 0;
+            % Shift values from y(i-1) to y(i)
+            y(ii, i) = y(ii, i) + y(ii, i-1);
+            y(ii, i-1) = 0;
             
         end
     end
@@ -171,7 +176,7 @@ while gradient ~= 0 && counter < iterations
     y(:, ii) = [];
     
     % Update values
-    gradient = n - length(y(1,:));
+    gradient = n - size(y,2);
     counter  = counter + 1;
     
 end

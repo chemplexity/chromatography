@@ -7,8 +7,8 @@ function b = Baseline(varargin)
 % ------------------------------------------------------------------------
 % Syntax
 % ------------------------------------------------------------------------
-%   baseline = Baseline(y)
-%   baseline = Baseline( __ , Name, Value)
+%   b = Baseline(y)
+%   b = Baseline( __ , Name, Value)
 %
 % ------------------------------------------------------------------------
 % Input (Required)
@@ -22,7 +22,7 @@ function b = Baseline(varargin)
 %   'smoothness' -- smoothing parameter (1E3 to 1E9)
 %       1E6 (default) | number
 %
-%   'asymmetry' -- asymmetry parameter (1E-1 to 1E-6)
+%   'asymmetry' -- asymmetry parameter (1E-6 to 1E-1)
 %       1E-4 (default) | number
 %
 %   'iterations' -- maximum number of baseline iterations
@@ -80,11 +80,10 @@ gradient   = p.Results.gradient;
 % ---------------------------------------
 
 % Input: y
-if ~isa(y, 'double')
+type = class(y);
+
+if ~strcmpi(type, 'double')
     y = double(y);
-    isSingle = 1;
-else
-    isSingle = 0;
 end
 
 % Parameter: 'asymmetry'
@@ -134,13 +133,17 @@ W = spdiags(w(:,1), 0, m, m);
 D = diff(speye(m), 2);
 D = s * (D' * D);
 
+if m <= 1
+    return
+end
+
 % ---------------------------------------
 % Baseline
 % ---------------------------------------
 for i = 1:n
     
     % Check y-values
-    if ~nnz(y(:,i))
+    if ~any(y(:,i)~=0)
         continue
     end
     
@@ -179,17 +182,19 @@ for i = 1:n
         
     end
     
-    % Reset weights
-    w(:,1) = 1;
-    W = spdiags(w(:,1), 0, m, m);
-
     % Update baseline
     b(:,i) = z;
     
+    % Reset weights
+    if i < n
+        w(:,1) = 1;
+        W = spdiags(w(:,1), 0, m, m);
+    end
+    
 end
 
-if isSingle
-    b = single(b);
+if ~strcmpi(type, 'double')
+    b = cast(b, type);
 end
 
 end
