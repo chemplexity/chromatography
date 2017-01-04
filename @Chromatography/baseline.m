@@ -127,6 +127,8 @@ for i = 1:length(samples)
     % Calculate baseline values
     if ~isempty(y)
         baseline = Baseline(y, 'smoothness', smoothness, 'asymmetry', asymmetry);
+    else
+        baseline = [];
     end
     
     % Output values

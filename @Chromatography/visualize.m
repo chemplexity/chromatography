@@ -219,13 +219,17 @@ for i = 1:length(samples)
         switch target
         
             case 'tic'
-                names = options.name(i);     
+                names = options.name(i);
             case 'all'
                 names(length(z)) = {''};
                 mz = z(:);
             case 'xic'
                 names(length(z)) = {''};
                 mz = z(ions(ions <= length(z)));
+        end
+        
+        if isempty(names)
+            names = '';
         end
         
         if ~isempty(names) && any(strcmpi(ions, {'all','xic'}))
@@ -633,7 +637,15 @@ elseif length(options.name) > 100
     legend(options.axes, 'hide');
     
 elseif strcmpi(options.legend, 'on')
+    
+    for i = 1:length(options.name)
+        if isempty(options.name{i})
+            options.name{i} = ' ';
+        end
+    end
+    
     legend(options.axes, 'show', 'string', options.name, 'interpreter', 'none');
+    
 end
 
 end

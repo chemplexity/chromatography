@@ -69,6 +69,7 @@ fprintf([...
 
 % Calculate peak area
 for i = 1:length(samples)
+    
     tic;
     
     % Display progress
@@ -115,6 +116,7 @@ for i = 1:length(samples)
             if ~isempty(baseline)
                 baseline = baseline(:, options.ions);
             end
+            
     end
     
     % Calculate baseline correction
@@ -122,14 +124,17 @@ for i = 1:length(samples)
         y = y - baseline;
     end
     
-    % Calculate curve fitting results
-    switch obj.defaults.integrate_model
+    if ~isempty(y)
         
-        case 'emg'
-            peaks = ExponentialGaussian(x, y, 'center', center, 'width', width);
-            
-        otherwise
-            peaks = ExponentialGaussian(x, y, 'center', center, 'width', width);
+        switch obj.defaults.integrate_model
+            case 'emg'
+                peaks = ExponentialGaussian(x, y, 'center', center, 'width', width);
+            otherwise
+                peaks = ExponentialGaussian(x, y, 'center', center, 'width', width);
+        end
+    
+    else    
+        peaks = [];
     end
     
     if isempty(peaks)

@@ -103,11 +103,11 @@ classdef Chromatography
             % ---------------------------------------
             % Options
             % ---------------------------------------
-            obj.options.import = {...
-                '.CDF', 'netCDF (*.CDF)';
+            obj.options.import = {...                
                 '.D',   'Agilent (*.D)';
                 '.MS',  'Agilent (*.MS)';
                 '.CH',  'Agilent (*.CH)';
+                '.CDF', 'netCDF (*.CDF)';
                 '.MSP', 'NIST (*.MSP)';
                 '.RAW', 'Thermo (*.RAW)'};
             
@@ -122,15 +122,15 @@ classdef Chromatography
         function data = reset(~, data, varargin)
             
             fprintf(['\n', repmat('-',1,50), '\n']);
-            fprintf('[RESET]');
+            fprintf(' RESET');
             fprintf(['\n', repmat('-',1,50), '\n\n']);
             
             if ~isstruct(data)
                 
-                fprintf('[ERROR] Input data must be of type ''struct''\n');
+                fprintf(' ERROR  Input data must be of type ''struct''\n');
                 
                 fprintf(['\n', repmat('-',1,50), '\n']);
-                fprintf('[EXIT]');
+                fprintf(' EXIT');
                 fprintf(['\n', repmat('-',1,50), '\n\n']);
                 
                 return
@@ -174,7 +174,7 @@ classdef Chromatography
             % ---------------------------------------
             % Restore data to original values
             % ---------------------------------------
-            fprintf(['[STATUS] Restoring ', num2str(numel(n)), ' files...\n']);
+            fprintf([' STATUS  Restoring ', num2str(numel(n)), ' files...\n']);
             
             for i = 1:length(n)
                 
@@ -196,7 +196,7 @@ classdef Chromatography
             end
             
             fprintf(['\n', repmat('-',1,50), '\n']);
-            fprintf('[EXIT]');
+            fprintf(' EXIT');
             fprintf(['\n', repmat('-',1,50), '\n\n']);
 
         end
@@ -226,7 +226,7 @@ classdef Chromatography
             
             sample = {...
                 'name',...
-                'description',...
+                'info',...
                 'sequence',...
                 'vial',...
                 'replicate'};
@@ -235,8 +235,7 @@ classdef Chromatography
                 'name',...
                 'operator',...
                 'instrument',...
-                'date',...
-                'time'};
+                'datetime'};
             
             tic = {...
                 'values',...
@@ -310,6 +309,7 @@ classdef Chromatography
                     if strcmpi(extra, 'ms2')
                         data = check(data, {'ms2'});
                     end
+                    
                 end
             end
             
@@ -348,16 +348,22 @@ classdef Chromatography
             end
         end
         
-        % ---------------------------------------
-        % Update
-        % ---------------------------------------
         function update(varargin)
+        % ----------------------------------------------------------------
+        % Method      : Chromatography.update
+        % Description : Update toolbox to latest version (requires git)
+        % ----------------------------------------------------------------
+        %
+        % ----------------------------------------------------------------
+        % Syntax
+        % ----------------------------------------------------------------
+        %    Chromatography.update
             
             fprintf(['\n', repmat('-',1,50), '\n']);
-            fprintf('[UPDATE]');
+            fprintf(' UPDATE');
             fprintf(['\n', repmat('-',1,50), '\n\n']);
             
-            fprintf(['Chromatography Toolbox v', Chromatography.version, '\n\n']);
+            fprintf([' Chromatography Toolbox v', Chromatography.version, '\n\n']);
             
             % ---------------------------------------
             % Path
@@ -367,7 +373,7 @@ classdef Chromatography
             
             cd(source{1});
             
-            fprintf('[STATUS] Checking online for updates... \n');
+            fprintf(' STATUS Checking online for updates... \n');
             
             % ---------------------------------------
             % Windows
@@ -378,7 +384,7 @@ classdef Chromatography
                 
                 if status
                     
-                    fprintf('[STATUS] Searching system for ''git.exe''... \n');
+                    fprintf(' STATUS  Searching system for ''git.exe''... \n');
                     
                     [status, output] = system('dir C:\Users\*git.exe /s');
                     
@@ -386,11 +392,11 @@ classdef Chromatography
                         
                         link = 'https://git-scm.com/download/windows';
                         
-                        fprintf('[STATUS] Unable to find ''git.exe''... \n');
-                        fprintf('[STATUS] Visit ''%s'' to install Git for Windows...\n', link);
+                        fprintf(' STATUS  Unable to find ''git.exe''... \n');
+                        fprintf(' STATUS  Visit ''%s'' to install Git for Windows...\n', link);
                         
                         fprintf(['\n', repmat('-',1,50), '\n']);
-                        fprintf('[EXIT]');
+                        fprintf(' EXIT');
                         fprintf(['\n', repmat('-',1,50), '\n\n']);
                         
                         return
@@ -417,14 +423,14 @@ classdef Chromatography
                     
                     if ismac
                         link = 'https://git-scm.com/download/mac';
-                        fprintf('[STATUS] Visit ''%s'' to install Git for OSX...\n', link);
+                        fprintf(' STATUS  Visit ''%s'' to install Git for OSX...\n', link);
                     else
                         link = 'https://git-scm.com/download/linux';
-                        fprintf('[STATUS] Visit ''%s'' to install Git for Linux...\n', link);
+                        fprintf(' STATUS  Visit ''%s'' to install Git for Linux...\n', link);
                     end
                     
                     fprintf(['\n', repmat('-',1,50), '\n']);
-                    fprintf('[EXIT]');
+                    fprintf(' EXIT');
                     fprintf(['\n', repmat('-',1,50), '\n\n']);
                     
                     return
@@ -442,10 +448,10 @@ classdef Chromatography
             
             if status
                 
-                fprintf('[STATUS] Error executing ''git --version''... \n');
+                fprintf(' STATUS  Error executing ''git --version''... \n');
                 
                 fprintf(['\n', repmat('-',1,50), '\n']);
-                fprintf('[EXIT]');
+                fprintf(' EXIT');
                 fprintf(['\n', repmat('-',1,50), '\n\n']);
                 
                 return
@@ -458,7 +464,7 @@ classdef Chromatography
             
             if status
                 
-                fprintf('[STATUS] Initializing git repository... \n');
+                fprintf(' STATUS  Initializing git repository... \n');
                 
                 [~,~] = system([git, ' init']);
                 [~,~] = system([git, ' remote add origin ', Chromatography.url, '.git']);
@@ -468,7 +474,7 @@ classdef Chromatography
             % ---------------------------------------
             % Fetch latest updates
             % ---------------------------------------
-            fprintf('[STATUS] Fetching latest updates from ''%s''...\n', Chromatography.url);
+            fprintf(' STATUS  Fetching latest updates from ''%s''...\n', Chromatography.url);
             
             [~,~] = system([git, ' pull']);
             
@@ -491,11 +497,11 @@ classdef Chromatography
                 end
             end
             
-            fprintf(['[STATUS] Update complete!', '\n\n']);
-            fprintf(['Chromatography Toolbox v', Chromatography.version, '\n']);
+            fprintf([' STATUS  Update complete!', '\n\n']);
+            fprintf([' Chromatography Toolbox v', Chromatography.version, '\n']);
             
             fprintf(['\n', repmat('-',1,50), '\n']);
-            fprintf('[EXIT]');
+            fprintf(' EXIT');
             fprintf(['\n', repmat('-',1,50), '\n\n']);
             
         end

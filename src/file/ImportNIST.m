@@ -19,6 +19,9 @@ function data = ImportNIST(varargin)
 %   'depth' -- subfolder search depth
 %       1 (default) | integer
 %
+%   'content' -- read all data or header only
+%       'all' (default) | 'header'
+%
 %   'verbose' -- show progress in command window
 %       'on' (default) | 'off'
 %
@@ -49,10 +52,11 @@ data.intensity        = [];
 % ---------------------------------------
 % Defaults
 % ---------------------------------------
-default.file      = [];
-default.depth     = 1;
-default.verbose   = 'on';
-default.formats   = {'.MSP'};
+default.file    = [];
+default.depth   = 1;
+default.content = 'all';
+default.verbose = 'on';
+default.formats = {'.MSP'};
 
 % ---------------------------------------
 % Platform
@@ -65,11 +69,12 @@ end
 % Input
 % ---------------------------------------
 p = inputParser;
-    
+
 addParameter(p, 'file',    default.file);
 addParameter(p, 'depth',   default.depth,   @isscalar);
+addParameter(p, 'content', default.content, @ischar);
 addParameter(p, 'verbose', default.verbose, @ischar);
-    
+
 parse(p, varargin{:});
 
 % ---------------------------------------
@@ -77,6 +82,7 @@ parse(p, varargin{:});
 % ---------------------------------------
 option.file    = p.Results.file;
 option.depth   = p.Results.depth;
+option.content = p.Results.content;
 option.verbose = p.Results.verbose;
 
 % ---------------------------------------
@@ -91,7 +97,7 @@ if ~isempty(option.file)
         option.file = {option.file};
     end
 end
-    
+
 % Parameter: 'depth'
 if ischar(option.depth) && ~isnan(str2double(option.depth))
     option.depth = round(str2double(default.depth));
@@ -103,106 +109,53 @@ else
     option.depth = round(option.depth);
 end
 
+% Parameter: 'content'
+if ~any(strcmpi(option.content, {'default', 'all', 'header'}))
+    option.content = 'all';
+end
+
 % Parameter: 'verbose'
 if any(strcmpi(option.verbose, {'off', 'no', 'n', 'false', '0'}))
     option.verbose = false;
 else
     option.verbose = true;
-    status(option.verbose, 1);
 end
 
 % ---------------------------------------
 % File selection
 % ---------------------------------------
-file = [];
+status(option.verbose, 'import');
 
 if isempty(option.file)
-    
-    % Get files using file selection interface
-    [file, fileError] = FileUI();
-    
+    [file, fileError] = FileUI([]);
 else
-    
-    % Get files from user input
-    for i = 1:length(option.file)
-
-        [~, filepath] = fileattrib(option.file{i});
-        
-        if isstruct(filepath)
-            file = [file; filepath];
-        end       
-    end
-    
+    file = FileVerify(option.file, []);
 end
 
-% Check selection for files
-if exist('fileError', 'var') && fileError
-    status(option.verbose, 7);
-    status(option.verbose, 3);
+if exist('fileError', 'var') && fileError == 1
+    status(option.verbose, 'selection_cancel');
+    status(option.verbose, 'exit');
     return
+    
 elseif exist('fileError', 'var') && fileError == 2
-    status(option.verbose, 9);
-    status(option.verbose, 3);
+    status(option.verbose, 'java_error');
+    status(option.verbose, 'exit');
     return
+    
 elseif isempty(file)
-    status(option.verbose, 2);
-    status(option.verbose, 3);
+    status(option.verbose, 'file_error');
+    status(option.verbose, 'exit');
     return
-end
-
-% Check selection for subfolders
-if sum([file.directory]) == 0
-    option.depth = 0;
-else
-    status(option.verbose, 8);
 end
 
 % ---------------------------------------
 % Search subfolders
 % ---------------------------------------
-n = [1, length(file)];
-l = option.depth;
-
-while l >= 0
-    
-    for i = n(1):n(2)
-        
-        [~, ~, ext] = fileparts(file(i).Name);
-        
-        if any(strcmpi(ext, {'.M', '.git', '.lnk'}))
-            continue
-            
-        elseif file(i).directory == 1
-            
-            f = dir(file(i).Name);
-            f(cellfun(@(x) any(strcmpi(x, {'.', '..'})), {f.name})) = [];
-            
-            for j = 1:length(f)
-                
-                filepath = [file(i).Name, filesep, f(j).name];
-                [~, filepath] = fileattrib(filepath);
-                
-                if isstruct(filepath)
-                    
-                    [~, ~, ext] = fileparts(filepath.Name);
-                    
-                    if any(strcmpi(ext, default.formats)) || filepath.directory
-                        file = [file; filepath];
-                    end
-                end
-            end
-        end
-    end
-    
-    % Exit subfolder search
-    if length(file) <= n(2)
-        break
-    end
-    
-    % Update values
-    n = [n(2) + 1, length(file)];
-    l = l - 1;
-    
+if sum([file.directory]) == 0
+    option.depth = 0;
+else
+    status(option.verbose, 'subfolder_search');
+    file = parsesubfolder(file, option.depth, default.formats);
 end
 
 % ---------------------------------------
@@ -214,55 +167,74 @@ file(cellfun(@(x) ~any(strcmpi(x, default.formats)), ext)) = [];
 
 % Check selection for files
 if isempty(file)
-    status(option.verbose, 2);
-    status(option.verbose, 3);
+    status(option.verbose, 'selection_error');
+    status(option.verbose, 'exit');
     return
 else
-    status(option.verbose, 5, length(file));
+    status(option.verbose, 'file_count', length(file));
 end
 
 % ---------------------------------------
 % Import
 % ---------------------------------------
+tic;
+
 for i = 1:length(file)
     
     % ---------------------------------------
     % Permissions
     % ---------------------------------------
     if ~file(i).UserRead
-       continue
+        continue
     end
     
     % ---------------------------------------
     % Properties
     % ---------------------------------------
-    [fdir, fname, fext] = fileparts(file(i).Name);
-
-    data(i,1).file_path = fdir;
-    data(i,1).file_name = [fname, fext];
+    [filePath, fileName, fileExt] = fileparts(file(i).Name);
+    
+    data(i,1).file_path = filePath;
+    data(i,1).file_name = [fileName, fileExt];
     data(i,1).file_size = subsref(dir(file(i).Name), substruct('.', 'bytes'));
     
     % ---------------------------------------
     % Status
     % ---------------------------------------
-    [~, statusPath] = fileparts(data(i,1).file_path); 
-    statusPath = ['..', filesep, statusPath, filesep, data(i,1).file_name]; 
+    [~, statusPath] = fileparts(data(i,1).file_path);
+    statusPath = ['..', filesep, statusPath, filesep, data(i,1).file_name];
     
-    status(option.verbose, 6, i, length(file), statusPath);
-
+    status(option.verbose, 'loading_file', i, length(file));
+    status(option.verbose, 'file_name', statusPath);
+    status(option.verbose, 'loading_stats', data(i,1).file_size);
+    
     % ---------------------------------------
     % Read
     % ---------------------------------------
     f = fileread(file(i).Name);
     
-    if ~isempty(f)
-        data(i,1) = parseinfo(f, data(i,1));
-        data(i,1) = parsedata(f, data(i,1));
+    if isempty(f)
+        continue
     end
     
+    switch option.content
+        
+        case {'all', 'default'}
+            
+            data(i,1) = parseinfo(f, data(i,1));
+            data(i,1) = parsedata(f, data(i,1));
+            
+        case {'header',}
+            
+            data(i,1) = parseinfo(f, data(i,1));
+            
+    end
 end
 
-status(option.verbose, 3);
+% ---------------------------------------
+% Exit
+% ---------------------------------------
+status(option.verbose, 'summary_stats', length(data), toc, sum([data.file_size]));
+status(option.verbose, 'exit');
 
 end
 
@@ -270,65 +242,64 @@ end
 % Status
 % ---------------------------------------
 function status(varargin)
-        
+
 if ~varargin{1}
     return
 end
 
 switch varargin{2}
-            
-    case 1
-        % [IMPORT]
-        fprintf(['\n', repmat('-',1,50), '\n']);
-        fprintf(' IMPORT');
-        fprintf(['\n', repmat('-',1,50), '\n\n']);
-    case 2
-        % [ERROR]
-        fprintf([' STATUS  No files found...', '\n']);
-    case 3
-        % [EXIT]
+    
+    case 'exit'
         fprintf(['\n', repmat('-',1,50), '\n']);
         fprintf(' EXIT');
         fprintf(['\n', repmat('-',1,50), '\n']);
-    case 4
-        % [STATUS]
-        fprintf([' STATUS  Depth   : ', num2str(varargin{3}), '\n']);
-        fprintf([' STATUS  Folders : ', num2str(varargin{4}), '\n']);
-    case 5
-        % [STATUS]
+        
+    case 'file_count'
         fprintf([' STATUS  Importing ', num2str(varargin{3}), ' files...', '\n\n']);
-    case 6
-        % [LOADING]
+        
+    case 'file_name'
+        fprintf(' %s', varargin{3});
+        
+    case 'import'
+        fprintf(['\n', repmat('-',1,50), '\n']);
+        fprintf(' IMPORT');
+        fprintf(['\n', repmat('-',1,50), '\n\n']);
+        
+    case 'java_error'
+        fprintf([' STATUS  Unable to load file selection interface...', '\n']);
+        
+    case 'loading_file'
         m = num2str(varargin{3});
         n = num2str(varargin{4});
         fprintf([' [', [repmat('0', 1, length(n) - length(m)), m], '/', n, ']']);
-        fprintf(' %s \n', varargin{5});
-    case 7
-        % [STATUS]
+        
+    case 'loading_stats'
+        fprintf([' (', parsebytes(varargin{3}), ')\n']);
+        
+    case 'selection_cancel'
         fprintf([' STATUS  No files selected...', '\n']);
-    case 8
-        % [STATUS]
+        
+    case 'selection_error'
+        fprintf([' STATUS  No files found...', '\n']);
+        
+    case 'subfolder_search'
         fprintf([' STATUS  Searching subfolders...', '\n']);
-    case 9
-        % [STATUS]
-        fprintf([' STATUS  Unable to load file selection interface...', '\n']);
+        
+    case 'summary_stats'
+        fprintf(['\n Files   : ', num2str(varargin{3})]);
+        fprintf(['\n Elapsed : ', parsetime(varargin{4})]);
+        fprintf(['\n Bytes   : ', parsebytes(varargin{5}),'\n']);
+        
 end
 
 end
 
 % ---------------------------------------
-% FileUI 
+% FileUI
 % ---------------------------------------
-function [file, status] = FileUI()
+function [file, status] = FileUI(file)
 
-% ---------------------------------------
-% Variables
-% ---------------------------------------
-file  = [];
-
-% ---------------------------------------
 % JFileChooser (Java)
-% ---------------------------------------
 if ~usejava('swing')
     status = 2;
     return
@@ -336,16 +307,12 @@ end
 
 fc = javax.swing.JFileChooser(java.io.File(pwd));
 
-% ---------------------------------------
 % Options
-% ---------------------------------------
 fc.setFileSelectionMode(fc.FILES_AND_DIRECTORIES);
 fc.setMultiSelectionEnabled(true);
 fc.setAcceptAllFileFilterUsed(false);
 
-% ---------------------------------------
 % Filter: NIST (.MSP)
-% ---------------------------------------
 nist = com.mathworks.hg.util.dFilter;
 
 nist.setDescription('NIST files (*.MSP)');
@@ -353,9 +320,7 @@ nist.addExtension('msp');
 
 fc.addChoosableFileFilter(nist);
 
-% ---------------------------------------
 % Initialize UI
-% ---------------------------------------
 status = fc.showOpenDialog(fc);
 
 if status == fc.APPROVE_OPTION
@@ -378,7 +343,24 @@ end
 end
 
 % ---------------------------------------
-% File information
+% File verification
+% ---------------------------------------
+function file = FileVerify(str, file)
+
+for i = 1:length(str)
+    
+    [~, f] = fileattrib(str{i});
+    
+    if isstruct(f)
+        file = [file; f];
+    end
+    
+end
+
+end
+
+% ---------------------------------------
+% File header
 % ---------------------------------------
 function data = parseinfo(f, data)
 
@@ -411,25 +393,81 @@ function data = parsedata(f, data)
 end
 
 % ---------------------------------------
+% Data = subfolder contents
+% ---------------------------------------
+function file = parsesubfolder(file, searchDepth, fileType)
+
+searchIndex = [1, length(file)];
+
+while searchDepth >= 0
+    
+    for i = searchIndex(1):searchIndex(2)
+        
+        [~, ~, fileExt] = fileparts(file(i).Name);
+        
+        if any(strcmpi(fileExt, {'.m', '.git', '.lnk'}))
+            continue
+        elseif file(i).directory == 1
+            file = parsedirectory(file, i, fileType);
+        end
+        
+    end
+    
+    if length(file) > searchIndex(2)
+        searchDepth = searchDepth-1;
+        searchIndex = [searchIndex(2)+1, length(file)];
+    else
+        break
+    end
+end
+
+end
+
+% ---------------------------------------
+% Data = directory contents
+% ---------------------------------------
+function file = parsedirectory(file, fileIndex, fileType)
+
+filePath = dir(file(fileIndex).Name);
+filePath(cellfun(@(x) any(strcmpi(x, {'.', '..'})), {filePath.name})) = [];
+
+for i = 1:length(filePath)
+    
+    fileName = [file(fileIndex).Name, filesep, filePath(i).name];
+    [~, fileName] = fileattrib(fileName);
+    
+    if isstruct(fileName)
+        [~, ~, fileExt] = fileparts(fileName.Name);
+        
+        if fileName.directory || any(strcmpi(fileExt, fileType))
+            file = [file; fileName];
+        end
+    end
+end
+
+end
+
+% ---------------------------------------
 % Data = string
 % ---------------------------------------
 function str = parsefield(f, name)
 
 switch name
-
+    
     case {'CAS[#]'}
         strRegEx = ['(?:', name, '[:]\s*)(\S[ ]|\S+)+(?:(\r|[;]))'];
         
     otherwise
         strRegEx = ['(?:', name, '[:]\s*)(\S[ ]+|\S+)+(?:(\r|[;]))'];
+        
 end
 
-strMatch = regexp(f, strRegEx, 'tokens', 'once');
+str = regexp(f, strRegEx, 'tokens', 'once');
 
-if isempty(strMatch)
+if isempty(str)
     str = '';
 else
-    str = strtrim(deblank(strMatch{1}));
+    str = strtrim(deblank(str{1}));
 end
 
 end
@@ -437,12 +475,12 @@ end
 % ---------------------------------------
 % Data = number
 % ---------------------------------------
-function num = parsenumber(str)
+function x = parsenumber(str)
 
-num = str2double(str);
+x = str2double(str);
 
-if isnan(num)
-    num = str;
+if isnan(x)
+    x = str;
 end
 
 end
@@ -452,17 +490,46 @@ end
 % ---------------------------------------
 function [x, y] = parsearray(f)
 
-strRegEx = '(\d+ \d+)';
-strMatch = regexp(f, strRegEx, 'match');
+str = regexp(f, '(\d+ \d+)', 'match');
 
-if isempty(strMatch)
+if isempty(str)
     x = [];
     y = [];
 else
-    xy = cellfun(@(x) strsplit(x,' '), strMatch, 'uniformoutput', 0);
+    xy = cellfun(@(x) strsplit(x,' '), str, 'uniformoutput', 0);
     xy = reshape(str2double([xy{:}]), 2, []);
     x = xy(1,:);
     y = xy(2,:);
+end
+
+end
+
+% ---------------------------------------
+% Data = byte string
+% ---------------------------------------
+function str = parsebytes(x)
+
+if x > 1E9
+    str = [num2str(x/1E6, '%.1f'), ' GB'];
+elseif x > 1E6
+    str = [num2str(x/1E6, '%.1f'), ' MB'];
+elseif x > 1E3
+    str = [num2str(x/1E3, '%.1f'), ' KB'];
+else
+    str = [num2str(x/1E3, '%.3f'), ' KB'];
+end
+
+end
+
+% ---------------------------------------
+% Data = time string
+% ---------------------------------------
+function str = parsetime(x)
+
+if x > 60
+    str = [num2str(x/60, '%.1f'), ' min'];
+else
+    str = [num2str(x, '%.1f'), ' sec'];
 end
 
 end

@@ -1,23 +1,35 @@
 function varargout = import(obj, varargin)
 % ------------------------------------------------------------------------
 % Method      : Chromatography.import
-% Description : Import instrument data files
+% Description : Read instrument data files
 % ------------------------------------------------------------------------
 %
 % ------------------------------------------------------------------------
 % Syntax
 % ------------------------------------------------------------------------
-%   data = obj.import(filetype)
+%   data = obj.import()
 %   data = obj.import( __ , Name, Value)
 %
 % ------------------------------------------------------------------------
 % Input (Name, Value)
 % ------------------------------------------------------------------------
-%   'filetype' -- file extension of data file
-%       '.D', '.MS', '.CH', '.CDF', '.RAW'
+%   'file' -- name of file or folder path
+%       empty (default) | cell array of strings
+%
+%   'filetype' -- file extension or manufacturer name
+%       'agilent' | '.D', '.MS', '.CH'
+%       'netcdf'  | '.CDF'
+%       'nist'    | '.MSP'
+%       'thermo'  | '.RAW'
+%
+%   'depth' -- subfolder search depth
+%       1 (default) | integer
+%
+%   'content' -- read all data or header only
+%       'all' (default) | 'header'
 %
 %   'append' -- append new data to existing data structure
-%       structure
+%       empty (default) | structure
 %
 %   'verbose' -- display import progress in command window
 %       'on' (default) | 'off'
@@ -31,737 +43,759 @@ function varargout = import(obj, varargin)
 %   data = obj.import('.RAW', 'append', data, 'verbose', 'on')
 
 % ---------------------------------------
-% Parse input
+% Defaults
 % ---------------------------------------
-[data, options] = parse(obj, varargin);
-varargout{1} = data;
+default.file    = [];
+default.type    = [];
+default.append  = [];
+default.depth   = 1;
+default.content = 'all';
+default.verbose = 'on';
+default.formats = {'d', 'ms', 'ch', 'uv', 'cdf', 'msp', 'raw'};
 
 % ---------------------------------------
-% Check input
+% Variables
 % ---------------------------------------
-if isempty(data) && isempty(options)
-    disp('Unrecognized file format.');
+data = {};
+totalBytes = 0;
+
+% ---------------------------------------
+% Platform
+% ---------------------------------------
+if exist('OCTAVE_VERSION', 'builtin')
+    more('off');
+end
+
+% ---------------------------------------
+% Input
+% ---------------------------------------
+p = inputParser;
+
+addParameter(p, 'file',     default.file);
+addParameter(p, 'filetype', default.type);
+addParameter(p, 'depth',    default.depth);
+addParameter(p, 'content',  default.content, @ischar);
+addParameter(p, 'append',   default.append,  @isstruct);
+addParameter(p, 'verbose',  default.verbose, @ischar);
+
+parse(p, varargin{:});
+
+% ---------------------------------------
+% Options
+% ---------------------------------------
+option.file    = p.Results.file;
+option.type    = p.Results.filetype;
+option.depth   = p.Results.depth;
+option.content = p.Results.content;
+option.append  = p.Results.append;
+option.verbose = p.Results.verbose;
+option.extra   = '';
+
+% ---------------------------------------
+% Validate
+% ---------------------------------------
+
+% Parameter: 'file'
+if ~isempty(option.file)
+    if iscell(option.file)
+        option.file(~cellfun(@ischar, option.file)) = [];
+    elseif ischar(option.file)
+        option.file = {option.file};
+    end
+end
+
+% Parameter: 'type'
+if ischar(option.type) && strcmpi(option.type, 'all')
+    option.type = default.formats;
+elseif ischar(option.type)
+    option.type = {option.type};
+elseif ~ischar(option.type) && ~iscellstr(option.type)
+    option.type = default.formats;
+end
+
+if ~isempty(option.type)
+    option.type = parseformat(option.type);
+    option.type(cellfun(@(x) ~any(strcmpi(x, default.formats)), option.type)) = [];
+end
+
+if isempty(option.type)
+    option.type = parseformat(default.formats);
+end
+
+% Parameter: 'depth'
+if ischar(option.depth) && ~isnan(str2double(option.depth))
+    option.depth = round(str2double(default.depth));
+elseif ~isnumeric(option.depth)
+    option.depth = default.depth;
+elseif option.depth < 0 || isnan(option.depth) || isinf(option.depth)
+    option.depth = default.depth;
+else
+    option.depth = round(option.depth);
+end
+
+% Parameter: 'content'
+if ~any(strcmpi(option.content, {'default', 'all', 'header'}))
+    option.content = 'all';
+end
+
+% Parameter: 'append'
+varargout{1} = option.append;
+
+% Parameter: 'verbose'
+if any(strcmpi(option.verbose, {'off', 'no', 'n', 'false', '0'}))
+    option.verbose = false;
+else
+    option.verbose = true;
+end
+
+% ---------------------------------------
+% File selection
+% ---------------------------------------
+status(option.verbose, 'import');
+
+if isempty(option.file)
+    [file, fileError] = FileUI(option.type, []);
+else
+    file = FileVerify(option.file, []);
+end
+
+% Check file selection
+if exist('fileError', 'var') && fileError == 1
+    status(option.verbose, 'selection_cancel');
+    status(option.verbose, 'exit');
+    return
+    
+elseif exist('fileError', 'var') && fileError == 2
+    status(option.verbose, 'java_error');
+    status(option.verbose, 'exit');
+    return
+    
+elseif isempty(file)
+    status(option.verbose, 'selection_error');
+    status(option.verbose, 'exit');
     return
 end
 
 % ---------------------------------------
-% Select files
+% Search subfolders
 % ---------------------------------------
-files = dialog(obj, varargin{1});
-
-if ~isempty(files)
-    files(~strcmpi(files(:,3), varargin{1}), :) = [];
+if sum([file.directory]) == 0
+    option.depth = 0;
+else
+    status(option.verbose, 'subfolder_search');
+    option.type(cellfun(@(x) any(strcmpi(x, 'd')), option.type)) = [];
+    file = parsesubfolder(file, option.depth, option.type);
 end
 
 % ---------------------------------------
-% Status
+% Filter unsupported files
 % ---------------------------------------
-if isempty(files)
-    fprintf(['\n',...
-        '[IMPORT]\n\n',...
-        '[WARNING] No files selected...\n\n',...
-        '[COMPLETE]\n\n']);
+[~,~,fileExt] = cellfun(@(x) fileparts(x), {file.Name}, 'uniformoutput', 0);
+
+fileExt = regexp(fileExt, '\w+', 'match', 'once');
+
+file(cellfun(@(x) ~any(strcmpi(x, option.type)), fileExt)) = [];
+
+if isempty(file)
+    status(option.verbose, 'selection_error');
+    status(option.verbose, 'exit');
     return
 else
-    fprintf(['\n',...
-        '[IMPORT]\n\n',...
-        'Importing ', num2str(length(files(:,1))), ' files...\n\n',...
-        'Format : ', options.filetype, '\n\n']);
+    status(option.verbose, 'file_count', length(file));
 end
-
-options.file_count = length(files(:,1));
-%path(files{1,1}, path);
 
 % ---------------------------------------
 % Import
 % ---------------------------------------
-import_data = {};
+tic;
 
-switch options.filetype
+for i = 1:length(file)
     
-    case {'.CDF'}
+    % ---------------------------------------
+    % Status
+    % ---------------------------------------
+    [filePath, fileName, fileExt] = fileparts(file(i).Name);
+    [parentPath, parentName, parentExt] = fileparts(filePath);
+    
+    if strcmpi(parentExt, '.D')
         
-        for i = 1:length(files(:,1))
-            
-            % ---------------------------------------
-            % File path
-            % ---------------------------------------
-            filepath = fullfile(files{i,1}, strcat(files{i,2}, files{i,3}));
-            [status, fattrib] = fileattrib(filepath);
-            
-            if ~status
-                fprintf([...
-                    '[', num2str(i), '/', num2str(length(files(:,1))), ']'...
-                    ' Invalid file path ''', '%s', '''\n'], filepath);
-                continue
-            end
-            
-            filepath = fattrib.Name;
-                
-            % ---------------------------------------
-            % Import netCDF
-            % ---------------------------------------
-            tic;
-            
-            fdata = ImportCDF('file', filepath, 'verbose', 'off');
-            
-            options.compute_time = options.compute_time + toc;
-            
-            % ---------------------------------------
-            % Append data
-            % ---------------------------------------
-            if isempty(fdata)
-                fprintf([...
-                    '[', num2str(i), '/', num2str(length(files(:,1))), ']',...
-                    ' Error loading ''', '%s', '''\n'], filepath);
-                continue
-            end
-            
-            for j = 1:length(fdata)
-                
-                if isfield(fdata, 'tic') && nnz(fdata(j).tic) == 0 && nnz(fdata(j).xic) == 0
-                    fprintf([...
-                        '[', num2str(i), '/', num2str(length(files(:,1))), ']',...
-                        ' No data found ''', '%s', '''\n'], filepath);
-                    continue
-                end
-                
-                import_data{end+1} = [];
-                
-                import_data{end}.file.path  = fdata(j).file_path;
-                import_data{end}.file.name  = fdata(j).file_name;
-                import_data{end}.file.bytes = fdata(j).file_size;
-                
-                if isfield(fdata, 'experiment_title')
-                    import_data{end}.sample.name = fdata(j).experiment_title;
-                else
-                    import_data{end}.sample.name = '';
-                end
-                
-                if isfield(fdata, 'administrative_comments')
-                    import_data{end}.sample.description = fdata(j).administrative_comments;
-                else
-                    import_data{end}.sample.description = '';
-                end
-                
-                if isfield(fdata, 'external_file_ref_0')
-                    import_data{end}.method.name = fdata(j).external_file_ref_0;
-                else
-                    import_data{end}.method.name = '';
-                end
-                
-                if isfield(fdata, 'experiment_date_time_stamp')
-                    import_data{end}.method.datetime = fdata(j).experiment_date_time_stamp;
-                else
-                    import_data{end}.method.datetime = '';
-                end
-                
-                if isfield(fdata, 'operator_name')
-                    import_data{end}.method.operator = fdata(j).operator_name;
-                else
-                    import_data{end}.method.operator = '';
-                end
-                
-                if isfield(fdata, 'instrument')
-                    import_data{end}.method.instrument = fdata(j).instrument;
-                else
-                    import_data{end}.method.instrument = '';
-                end
-                
-                if isfield(fdata, 'instrument_name') && isempty(import_data{end}.method.instrument)
-                    import_data{end}.method.instrument = fdata(j).instrument_name;
-                end
-                
-                if isfield(fdata, 'scan_acquisition_time')
-                    import_data{end}.time = fdata(j).scan_acquisition_time;
-
-                    if ~isempty(import_data{end}.time)
-                        if isfield(fdata, 'time_values_units') && ~isempty(fdata(j).time_values_units)
-                            if strcmpi(fdata(j).time_values_units, 'seconds')
-                                import_data{end}.time = import_data{end}.time ./ 60;
-                            end
-                        elseif isfield(fdata, 'units') && ~isempty(fdata(j).units)
-                            if strcmpi(fdata(j).units, 'seconds')
-                                import_data{end}.time = import_data{end}.time ./ 60;
-                            end
-                        end 
-                    end
-                    
-                else
-                    import_data{end}.time = [];
-                end
-                
-                if isfield(fdata, 'total_intensity')
-                    import_data{end}.tic.values = fdata(j).total_intensity;
-                else
-                    import_data{end}.tic.values = [];
-                end
-                
-                if isfield(fdata, 'ordinate_values') && isempty(import_data{end}.tic.values)
-                    import_data{end}.tic.values = fdata(j).ordinate_values;
-                end
-                
-                if isfield(fdata, 'intensity_values')
-                    import_data{end}.xic.values = fdata(j).intensity_values;
-                else
-                    import_data{end}.xic.values = [];
-                end
-                
-                if isfield(fdata, 'mass_values')
-                    import_data{end}.mz = fdata(j).mass_values;
-                else
-                    import_data{end}.mz = [];
-                end
-                
-            end
-            
-            % ---------------------------------------
-            % Update status
-            % ---------------------------------------
-            options.import_bytes = options.import_bytes + import_data{end}.file.bytes;
-            update(i, length(files(:,1)), options.compute_time, options.progress, import_data{end}.file.bytes);
-        end
+        [~, statusPath, statusExt] = fileparts(parentPath);
         
-    case {'.D', '.CH', '.MS'}
+        statusPath = ['..',...
+            filesep, statusPath, statusExt,...
+            filesep, parentName, parentExt,...
+            filesep, fileName, fileExt];
+    else
         
-        for i = 1:length(files(:,1))
+        statusPath = ['..',...
+            filesep, parentName, parentExt,...
+            filesep, fileName, fileExt];
+    end
+    
+    status(option.verbose, 'loading_file', i, size(file,1));
+    status(option.verbose, 'file_name', statusPath);
+    
+    % ---------------------------------------
+    % Read
+    % ---------------------------------------
+    switch lower(fileExt)
+        
+        case {'.d', '.ch', '.ms', '.uv'}
             
             % ---------------------------------------
-            % File path
+            % Agilent
             % ---------------------------------------
-            filepath = fullfile(files{i,1}, strcat(files{i,2}, files{i,3}));
-            [status, fattrib] = fileattrib(filepath);
+            x = loadfile(file(i), option, 'agilent');
             
-            if ~status
-                fprintf([...
-                    '[', num2str(i), '/', num2str(length(files(:,1))), ']'...
-                    ' Invalid file path ''', '%s', '''\n'], filepath);
-                continue
+            for j = 1:length(x)
+                
+                data{end+1} = obj.format('validate', []);
+                
+                data{end}.file.path         = parsefield(x(j), {'file_path'});
+                data{end}.file.name         = parsefield(x(j), {'file_name'});
+                data{end}.file.bytes        = parsefield(x(j), {'file_size'});
+                data{end}.sample.name       = parsefield(x(j), {'sample_name'});
+                data{end}.sample.info       = parsefield(x(j), {'sample_info'});
+                data{end}.sample.sequence   = parsefield(x(j), {'seqindex'});
+                data{end}.sample.vial       = parsefield(x(j), {'vial'});
+                data{end}.sample.replicate  = parsefield(x(j), {'replicate'});
+                data{end}.method.name       = parsefield(x(j), {'method'});
+                data{end}.method.operator   = parsefield(x(j), {'operator'});
+                data{end}.method.instrument = parsefield(x(j), {'instrument'});
+                data{end}.method.datetime   = parsefield(x(j), {'datetime'});
+                data{end}.time              = parsefield(x(j), {'time'});
+                data{end}.tic.values        = parsefield(x(j), {'total_intensity', 'ordinate_values'});
+                data{end}.xic.values        = parsefield(x(j), {'intensity'});
+                data{end}.mz                = parsefield(x(j), {'channel'});
+                
+                if size(x(j).intensity, 2) == 1
+                    data{end}.tic.values = data{end}.xic.values;
+                elseif ~isempty(x(j).intensity)
+                    data{end}.tic.values = sum(x(j).intensity, 2);
+                end
+                
+                if size(data{end}.mz, 2) > 1 && data{end}.mz(1) == 0
+                    data{end}.xic.values(:,1) = [];
+                    data{end}.mz(:,1)= [];
+                end
+                
+                totalBytes = loadstats(file(i), data{end}, option, totalBytes);
+                
             end
             
-            filepath = fattrib.Name;
+        case {'.cdf'}
             
             % ---------------------------------------
-            % Import Agilent
+            % netCDF
             % ---------------------------------------
-            tic;
+            x = loadfile(file(i), option, 'netcdf');
             
-            fdata = ImportAgilent('file', {filepath}, 'verbose', 'off');
-            
-            options.compute_time = options.compute_time + toc;
-            
-            % ---------------------------------------
-            % Append data
-            % ---------------------------------------
-            if isempty(fdata)
-                fprintf([...
-                    '[', num2str(i), '/', num2str(length(files(:,1))), ']',...
-                    ' Error loading ''', '%s', '''\n'], filepath);
-                continue
-            end
+            for j = 1:length(x)
                 
-            for j = 1:length(fdata)
+                data{end+1} = obj.format('validate', []);
                 
-                if isfield(fdata, 'tic') && nnz(fdata(j).tic) == 0 && nnz(fdata(j).xic) == 0
-                    fprintf([...
-                        '[', num2str(i), '/', num2str(length(files(:,1))), ']',...
-                        ' No data found ''', '%s', '''\n'], filepath);
-                    continue
-                end
+                data{end}.file.path          = parsefield(x(j), {'file_path'});
+                data{end}.file.name          = parsefield(x(j), {'file_name'});
+                data{end}.file.bytes         = parsefield(x(j), {'file_size'});
+                data{end}.sample.name        = parsefield(x(j), {'experiment_title'});
+                data{end}.sample.info        = parsefield(x(j), {'administrative_comments'});
+                data{end}.method.name        = parsefield(x(j), {'external_file_ref_0'});
+                data{end}.method.datetime    = parsefield(x(j), {'experiment_date_time_stamp'});
+                data{end}.method.operator    = parsefield(x(j), {'operator_name'});
+                data{end}.method.instrument  = parsefield(x(j), {'instrument', 'instrument_name'});
+                data{end}.time               = parsefield(x(j), {'scan_acquisition_time'});
+                data{end}.tic.values         = parsefield(x(j), {'total_intensity', 'ordinate_values'});
+                data{end}.xic.values         = parsefield(x(j), {'intensity_values'});
+                data{end}.mz                 = parsefield(x(j), {'mass_values'});
                 
-                import_data{end+1} = [];
-                
-                import_data{end}.file.path  = fdata(j).file_path;
-                import_data{end}.file.name  = fdata(j).file_name;
-                import_data{end}.file.bytes = fdata(j).file_size;
-                
-                import_data{end}.sample.name = fdata(j).sample_name;
-                import_data{end}.method.name = fdata(j).method;
-                
-                import_data{end}.time = [];
-                import_data{end}.tic.values = [];
-                import_data{end}.xic.values = [];
-                import_data{end}.mz = [];
-                
-                if isfield(fdata, 'time')
-                    import_data{end}.time = fdata(j).time;
-                end
-                
-                if isfield(fdata, 'intensity')
-                    
-                    import_data{end}.xic.values = fdata(j).intensity;
-                    
-                    if isempty(fdata(j).intensity)
-                        continue
-                    elseif length(fdata(j).intensity(1,:)) == 1
-                        import_data{end}.tic.values = import_data{end}.xic.values;
-                    else
-                        import_data{end}.tic.values = sum(fdata(j).intensity, 2);
-                    end
-                    
-                end
-                
-                if isfield(fdata, 'channel')
-                    import_data{end}.mz = fdata(j).channel;
-                    
-                    if length(import_data{end}.mz) > 1 && import_data{end}.mz(1) == 0
-                        import_data{end}.xic.values(:,1) = [];
-                        import_data{end}.mz(:,1)= [];
+                if ~isempty(data{end}.time)
+                    if strcmpi(parsefield(x, {'time_values_units', 'units'}), 'seconds')
+                        data{end}.time = data{end}.time ./ 60;
                     end
                 end
                 
-                if isfield(fdata, 'tic')
-                    import_data{end}.tic.values = fdata(j).tic;
-                end
-                
-                if isfield(fdata, 'xic')
-                    import_data{end}.xic.values = fdata(j).xic;
-                end
-                
-                if isfield(fdata, 'mz')
-                    import_data{end}.mz = fdata(j).mz;
-                end
-                
-                if isfield(fdata, 'sample_info')
-                    import_data{end}.sample.description = fdata(j).sample_info;
-                end
-                
-                if isfield(fdata, 'seqindex')
-                    import_data{end}.sample.sequence = fdata(j).seqindex;
-                end
-                
-                if isfield(fdata, 'vial')
-                    import_data{end}.sample.vial = fdata(j).vial;
-                end
-                
-                if isfield(fdata, 'replicate')
-                    import_data{end}.sample.replicate = fdata(j).replicate;
-                end
-                
-                if isfield(fdata, 'operator')
-                    import_data{end}.method.operator = fdata(j).operator;
-                end
-                
-                if isfield(fdata, 'instrument')
-                    import_data{end}.method.instrument = fdata(j).instrument;
-                end
-                
-                if isfield(fdata, 'datetime')
-                    import_data{end}.method.datetime = fdata(j).datetime;
-                end
-                
-                % ---------------------------------------
-                % Update status
-                % ---------------------------------------
-                options.import_bytes = options.import_bytes + import_data{end}.file.bytes;
-                update(i, length(files(:,1)), options.compute_time, options.progress, import_data{end}.file.bytes);
-            end     
-        end
-        
-    case {'.MSP'}
-        
-        for i = 1:length(files(:,1))
-            
-            % ---------------------------------------
-            % File path
-            % ---------------------------------------
-            filepath = fullfile(files{i,1}, strcat(files{i,2}, files{i,3}));
-            [status, fattrib] = fileattrib(filepath);
-            
-            if ~status
-                fprintf([...
-                    '[', num2str(i), '/', num2str(length(files(:,1))), ']'...
-                    ' Invalid file path ''', '%s', '''\n'], filepath);
-                continue
-            end
-            
-            filepath = fattrib.Name;
-            
-            % ---------------------------------------
-            % Import NIST
-            % ---------------------------------------
-            tic;
-            
-            fdata = ImportNIST('file', filepath, 'verbose', 'off');
-            
-            options.compute_time = options.compute_time + toc;
-            
-            % ---------------------------------------
-            % Append data
-            % ---------------------------------------
-            if isempty(fdata)
-                fprintf([...
-                    '[', num2str(i), '/', num2str(length(files(:,1))), ']',...
-                    ' Error loading ''', '%s', '''\n'], filepath);
-                continue
-            end
-            
-            for j = 1:length(fdata)
-                
-                if isfield(fdata, 'tic') && nnz(fdata(j).tic) == 0 && nnz(fdata(j).xic) == 0
-                    fprintf([...
-                        '[', num2str(i), '/', num2str(length(files(:,1))), ']',...
-                        ' No data found ''', '%s', '''\n'], filepath);
-                    continue
-                end
-                
-                import_data{end+1} = [];
-                
-                import_data{end}.file.path  = fdata(j).file_path;
-                import_data{end}.file.name  = fdata(j).file_name;
-                import_data{end}.file.bytes = fdata(j).file_size;
-                
-                if isfield(fdata, 'compound_name')
-                    import_data{end}.sample.name = fdata(j).compound_name;
-                else
-                    import_data{end}.sample.name = '';
-                end
-                
-                if isfield(fdata, 'comments')
-                    import_data{end}.sample.description = fdata(j).comments;
-                else
-                    import_data{end}.sample.description = '';
-                end
-                
-                if isfield(fdata, 'intensity')
-                    import_data{end}.xic.values = fdata(j).intensity;
-                    if ~isempty(import_data{end}.xic.values)
-                        import_data{end}.tic.values = sum(fdata(j).intensity,2);
-                    end
-                else
-                    import_data{end}.xic.values = [];
-                end
-                
-                if isfield(fdata, 'mz')
-                    import_data{end}.mz = fdata(j).mz;
-                else
-                    import_data{end}.mz = [];
-                end
+                totalBytes = loadstats(file(i), data{end}, option, totalBytes);
                 
             end
             
-            % ---------------------------------------
-            % Update status
-            % ---------------------------------------
-            options.import_bytes = options.import_bytes + import_data{end}.file.bytes;
-            update(i, length(files(:,1)), options.compute_time, options.progress, import_data{end}.file.bytes);
-        end
-        
-    case {'.RAW'}
-        
-        for i = 1:length(files(:,1))
+        case {'.msp'}
             
             % ---------------------------------------
-            % File path
+            % NIST
             % ---------------------------------------
-            filepath = fullfile(files{i,1}, strcat(files{i,2}, files{i,3}));
-            [status, fattrib] = fileattrib(filepath);
+            x = loadfile(file(i), option, 'nist');
             
-            if ~status
-                fprintf([...
-                    '[', num2str(i), '/', num2str(length(files(:,1))), ']',...
-                    ' Invalid file path ''', '%s', '''\n'], filepath);
+            for j = 1:length(x)
                 
-                options.error_count = options.error_count + 1;
-                continue
+                data{end+1} = obj.format('validate', []);
+                
+                data{end}.file.path   = parsefield(x(j), {'file_path'});
+                data{end}.file.name   = parsefield(x(j), {'file_name'});
+                data{end}.file.bytes  = parsefield(x(j), {'file_size'});
+                data{end}.sample.name = parsefield(x(j), {'compound_name'});
+                data{end}.sample.info = parsefield(x(j), {'comments'});
+                data{end}.xic.values  = parsefield(x(j), {'intensity'});
+                data{end}.mz          = parsefield(x(j), {'mz'});
+                
+                if ~isempty(data{end}.xic.values)
+                    data{end}.tic.values = sum(data{end}.xic.values, 2);
+                end
+                
+                totalBytes = loadstats(file(i), data{end}, option, totalBytes);
+                
             end
             
-            filepath = fattrib.Name;
-            fileinfo = dir(filepath);
+        case {'.raw'}
             
             % ---------------------------------------
-            % Import Thermo
+            % Thermo
             % ---------------------------------------
-            tic;
+            x = loadfile(file(i), option, 'thermo');
             
-            fdata = ImportThermo(filepath, 'precision', options.precision);
-            
-            options.compute_time = options.compute_time + toc;
-            
-            % ---------------------------------------
-            % Append data
-            % ---------------------------------------
-            if ~isempty(fdata)
-                fprintf([...
-                    '[', num2str(i), '/', num2str(length(files(:,1))), ']',...
-                    ' Error loading ''', '%s', '''\n'], filepath);
-                continue
+            for j = 1:length(x)
+                
+                data{end+1} = obj.format('validate', []);
+                
+                data{end}.file.path  = parsefield(x(j), {'file_path'});
+                data{end}.file.name  = parsefield(x(j), {'file_name'});
+                data{end}.file.bytes = parsefield(x(j), {'file_size'});
+                
+                if isfield(x, 'ms2')
+                    option.extra = 'ms2';
+                end
+                
+                totalBytes = loadstats(file(i), data{end}, option, totalBytes);
+                
             end
             
-            import_data{end+1} = fdata;
-            
-            import_data{end}.file.path = filepath;
-            import_data{end}.file.name = regexp(filepath, '(?i)\w+[.]RAW', 'match');
-            import_data{end}.file.name = import_data{end}.file.name{1};
-            import_data{end}.file.bytes = fileinfo.bytes;
-            
-            if ~isfield(import_data{end}, 'xic')
-                import_data{end}.xic = [];
-            end
-            
-            if isfield(import_data{i}, 'ms2')
-                options.extra = 'ms2';
-            end
-            
-            % ---------------------------------------
-            % Status
-            % ---------------------------------------
-            options.import_bytes = options.import_bytes + fileinfo.bytes;
-            update(i, length(files(:,1)), options.compute_time, options.progress, fileinfo.bytes);
-            
-        end
+    end
 end
+
+totalTime = toc;
 
 % ---------------------------------------
 % Filter data
 % ---------------------------------------
-varargout{1} = data;
-import_data(cellfun(@isempty, import_data)) = [];
+data(cellfun(@isempty, data)) = [];
 
-if ~isempty(import_data)
-    import_data = [import_data{:}];
+if ~isempty(data)
+    data = [data{:}];
 else
-    fprintf('Unable to import selection\n');
+    fprintf(' Unable to import selection\n');
     return
 end
 
-if ~isempty(data) && isempty(data(1).id) && isempty(data(1).name)
-    data(1) = [];
+if ~isempty(option.append) && isempty(option.append(1).id) && isempty(option.append(1).name)
+    option.append(1) = [];
 end
 
 % ---------------------------------------
 % Check MS/MS data
 % ---------------------------------------
-if ~isempty(options.extra)
-    data = obj.format('validate', data, 'extra', options.extra);    
-    import_data = obj.format('validate', import_data, 'extra', options.extra);
-elseif isfield(data, 'ms2')
-    import_data = obj.format('validate', import_data, 'extra', 'ms2');
+if ~isempty(option.extra)
+    option.append = obj.format('validate', option.append, 'extra', option.extra);
+    data = obj.format('validate', data, 'extra', option.extra);
+    
+elseif isfield(option.append, 'ms2')
+    data = obj.format('validate', data, 'extra', 'ms2');
+    
 else
-    import_data = obj.format('validate', import_data);
+    data = obj.format('validate', data);
 end
 
 % ---------------------------------------
 % Prepare output
 % ---------------------------------------
-for i = 1:length(import_data)
+for i = 1:length(data)
     
-    import_data(i).id = length(data) + i;
-    import_data(i).name = import_data(i).file.name;
-    
-    import_data(i).backup.time = import_data(i).time;
-    import_data(i).backup.tic = import_data(i).tic.values;
-    import_data(i).backup.xic = import_data(i).xic.values;
-    import_data(i).backup.mz = import_data(i).mz;
-    
-    import_data(i).tic.baseline = [];
-    import_data(i).xic.baseline = [];
-    
-    import_data(i).status.centroid = 'N';
-    import_data(i).status.baseline = 'N';
-    import_data(i).status.smoothed = 'N';
-    import_data(i).status.integrate = 'N';
+    data(i).id               = length(option.append)+i;
+    data(i).name             = data(i).file.name;
+    data(i).backup.time      = data(i).time;
+    data(i).backup.tic       = data(i).tic.values;
+    data(i).backup.xic       = data(i).xic.values;
+    data(i).backup.mz        = data(i).mz;
+    data(i).tic.baseline     = [];
+    data(i).xic.baseline     = [];
+    data(i).status.centroid  = 'N';
+    data(i).status.baseline  = 'N';
+    data(i).status.smoothed  = 'N';
+    data(i).status.integrate = 'N';
     
 end
 
 % ---------------------------------------
-% Display summary
+% Exit
 % ---------------------------------------
-if options.compute_time > 60
-    elapsed = [num2str(options.compute_time/60, '%.1f'), ' min'];
-else
-    elapsed = [num2str(options.compute_time, '%.1f'), ' sec'];
+status(option.verbose, 'summary_stats', length(data), totalTime, totalBytes);
+status(option.verbose, 'exit');
+
+varargout{1} = [option.append, data];
+
 end
-
-fprintf(['\n',...
-    'Files   : ', num2str(length(import_data)+options.error_count), '\n',...
-    'Elapsed : ', elapsed, '\n',...
-    'Bytes   : ', num2str(options.import_bytes/1E6, '%.2f'), ' MB\n']);
-
-fprintf('\n[COMPLETE]\n\n');
 
 % ---------------------------------------
-% Output
+% Status
 % ---------------------------------------
-varargout{1} = [data, import_data];
+function status(varargin)
 
-end
-
-% Open dialog box to select files
-function varargout = dialog(obj, varargin)
-
-% Set filetype
-extension = upper(varargin{1});
-
-% Initialize JFileChooser object
-fileChooser = javax.swing.JFileChooser(java.io.File(cd));
-
-% Select directories if certain filetype
-if strcmp(extension, '.D')
-    fileChooser.setFileSelectionMode(fileChooser.DIRECTORIES_ONLY);
-end
-
-% Determine file description and file extension
-filter = com.mathworks.hg.util.dFilter;
-description = [obj.options.import{strcmp(obj.options.import(:,1), extension), 2}];
-extension = lower(extension(2:end));
-
-% Set file description and file extension
-filter.setDescription(description);
-filter.addExtension(extension);
-fileChooser.setFileFilter(filter);
-
-% Enable multiple file selections and open dialog box
-fileChooser.setMultiSelectionEnabled(true);
-status = fileChooser.showOpenDialog(fileChooser);
-
-% Determine selected file paths
-if status == fileChooser.APPROVE_OPTION
-    
-    % Get file information
-    info = fileChooser.getSelectedFiles();
-    
-    % Parse file information
-    for i = 1:size(info, 1)
-        [files{i,1}, files{i,2}, files{i,3}] = fileparts(char(info(i).getAbsolutePath));
-    end
-else
-    % If file selection was cancelled
-    files = [];
-end
-
-% Return selected files
-varargout{1} = files;
-
-end
-
-function update(varargin)
-
-if strcmpi(varargin{4}, 'off')
+if ~varargin{1}
     return
 end
 
-m = num2str(varargin{1});
-n = num2str(varargin{2});
-
-if varargin{3} > 60
-    t = [num2str(varargin{3}/60, '%.1f'), ' min'];
-else
-    t = [num2str(varargin{3}, '%.1f'), ' sec'];
+switch varargin{2}
+    
+    case 'exit'
+        fprintf(['\n', repmat('-',1,50), '\n']);
+        fprintf(' EXIT');
+        fprintf(['\n', repmat('-',1,50), '\n']);
+        
+    case 'file_count'
+        fprintf([' STATUS  Importing ', num2str(varargin{3}), ' files...', '\n\n']);
+        
+    case 'file_name'
+        fprintf(' %s', varargin{3});
+        
+    case 'import'
+        fprintf(['\n', repmat('-',1,50), '\n']);
+        fprintf(' IMPORT');
+        fprintf(['\n', repmat('-',1,50), '\n\n']);
+        
+    case 'java_error'
+        fprintf([' STATUS  Unable to load file selection interface...', '\n']);
+        
+    case 'loading_error'
+        fprintf([' Error loading ''', '%s', '''\n'], varargin{3});
+        
+    case 'loading_file'
+        m = num2str(varargin{3});
+        n = num2str(varargin{4});
+        fprintf([' [', [repmat('0', 1, length(n) - length(m)), m], '/', n, ']']);
+        
+    case 'loading_stats'
+        fprintf([' (', parsebytes(varargin{3}), ')\n']);
+        
+    case 'selection_cancel'
+        fprintf([' STATUS  No files selected...', '\n']);
+        
+    case 'selection_error'
+        fprintf([' STATUS  No files found...', '\n']);
+        
+    case 'subfolder_search'
+        fprintf([' STATUS  Searching subfolders...', '\n']);
+        
+    case 'summary_stats'
+        fprintf(['\n Files   : ', num2str(varargin{3})]);
+        fprintf(['\n Elapsed : ', parsetime(varargin{4})]);
+        fprintf(['\n Bytes   : ', parsebytes(varargin{5}),'\n']);
+        
 end
 
-if varargin{5} > 1E6
-    size = [num2str(varargin{5}/1E6,'%.1f'), ' MB'];
-else
-    size = [num2str(varargin{5}/1E3,'%.1f'), ' KB'];
 end
 
-fprintf(['[', m, '/', n, '] in ', t, ' (', size, ')\n']);
+% ---------------------------------------
+% FileUI
+% ---------------------------------------
+function [fileSelection, fileStatus] = FileUI(fileExtension, fileSelection)
 
-end
+% Variables
+fileExtension = regexp(fileExtension, '\w{1,4}', 'match');
 
-function varargout = parse(obj, varargin)
-
-varargin = varargin{1};
-nargin = length(varargin);
-
-if nargin < 1
-    error('Not enough input arguments...');
-elseif ~ischar(varargin{1})
-    error('Undefined input arguments of type ''filetype''...');
-elseif ischar(varargin{1})
-    varargin{1} = upper(varargin{1});
-end
-
-% Check for supported file extension
-if ~any(find(strcmpi(varargin{1}, obj.options.import)))
-    varargout{1} = [];
-    varargout{2} = [];
+% JFileChooser (Java)
+if ~usejava('swing')
+    fileStatus = 2;
     return
-else
-    options.filetype = varargin{1};
 end
 
-input = @(x) find(strcmpi(varargin, x),1);
+fc = javax.swing.JFileChooser(java.io.File(pwd));
 
-% Append
-if ~isempty(input('append'))
-    options.append = varargin{input('append')+1};
+% Options
+fc.setFileSelectionMode(fc.FILES_AND_DIRECTORIES);
+fc.setMultiSelectionEnabled(true);
+fc.setAcceptAllFileFilterUsed(false);
+
+% Filter: Agilent (.D, .MS, .CH, .UV)
+agilent = com.mathworks.hg.util.dFilter;
+
+agilent.setDescription('Agilent files (*.D, *.MS, *.CH, *.UV)');
+agilent.addExtension('d');
+agilent.addExtension('ms');
+agilent.addExtension('ch');
+agilent.addExtension('uv');
+
+if any(cellfun(@(x) any(strcmpi(x, {'agilent', 'd', 'ms', 'cd', 'uv'})), fileExtension))
+    fc.addChoosableFileFilter(agilent);
+end
+
+% Filter: netCDF (.CDF)
+netcdf = com.mathworks.hg.util.dFilter;
+
+netcdf.setDescription('netCDF files (*.CDF');
+netcdf.addExtension('cdf');
+
+if any(cellfun(@(x) any(strcmpi(x, {'netcdf', 'cdf'})), fileExtension))
+    fc.addChoosableFileFilter(netcdf);
+end
+
+% Filter: NIST (.MSP)
+nist = com.mathworks.hg.util.dFilter;
+
+nist.setDescription('NIST files (*.MSP');
+nist.addExtension('msp');
+
+if any(cellfun(@(x) any(strcmpi(x, {'nist', 'msp'})), fileExtension))
+    fc.addChoosableFileFilter(nist);
+end
+
+% Filter: Thermo (.RAW)
+thermo = com.mathworks.hg.util.dFilter;
+
+thermo.setDescription('Thermo files (*.RAW');
+thermo.addExtension('raw');
+
+if any(cellfun(@(x) any(strcmpi(x, {'thermo', 'raw'})), fileExtension))
+    fc.addChoosableFileFilter(thermo);
+end
+
+% Initialize UI
+fileStatus = fc.showOpenDialog(fc);
+
+if fileStatus == fc.APPROVE_OPTION
     
-    if isstruct(options.append)
-        data = obj.format('validate', options.append);
-    else
-        data = obj.format();
+    % Get file selection
+    fs = fc.getSelectedFiles();
+    
+    for i = 1:size(fs, 1)
+        
+        % Get file information
+        [~, f] = fileattrib(char(fs(i).getAbsolutePath));
+        
+        % Append to file list
+        if isstruct(f)
+            fileSelection = [fileSelection; f];
+        end
     end
-else
-    data = obj.format();
+    
 end
 
-% Precision
-options.precision = 3;
+end
 
-if ~isempty(input('precision'))
-    precision = varargin{input('precision')+1};
+% ---------------------------------------
+% File verification
+% ---------------------------------------
+function file = FileVerify(str, file)
+
+for i = 1:length(str)
     
-    % Check for valid input
-    if ~isnumeric(precision)
-        options.precision = 3;
+    [~, f] = fileattrib(str{i});
+    
+    if isstruct(f)
+        file = [file; f];
+    end
+    
+end
+
+end
+
+% ---------------------------------------
+% Data = subfolder contents
+% ---------------------------------------
+function file = parsesubfolder(file, searchDepth, fileType)
+
+searchIndex = [1, length(file)];
+
+while searchDepth >= 0
+    
+    for i = searchIndex(1):searchIndex(2)
         
-    elseif precision < 0
+        [~, ~, fileExt] = fileparts(file(i).Name);
         
-        % Check for case: -x
-        if precision >= -9 && precision <= 0
-            options.precision = abs(precision);
-        else
-            options.precision = 3;
-            disp('Input arguments of type ''precision'' invalid. Value set to: ''3''.');
+        if any(strcmpi(fileExt, {'.m', '.git', '.lnk'}))
+            continue
+        elseif file(i).directory == 1
+            file = parsedirectory(file, i, fileType);
         end
         
-    elseif precision > 0 && log10(precision) < 0
-        
-        % Check for case: 10^-x
-        if log10(precision) >= -9 && log10(precision) <= 0
-            options.precision = abs(log10(precision));
-        else
-            options.precision = 3;
-            disp('Input arguments of type ''precision'' invalid. Value set to: ''3''.');
-        end
-        
-    elseif precision > 9
-        
-        % Check for case: 10^x
-        if log10(precision) <= 9 && log10(precision) >= 0
-            options.precision = log10(precision);
-        else
-            options.precision = 3;
-            disp('Input arguments of type ''precision'' invalid. Value set to: ''3''.');
-        end 
-        
-    else
-        options.precision = precision;
     end
-end
-
-% Verbose
-options.progress = 'on';
-
-if ~isempty(input('verbose'))
-    options.progress = varargin{input('verbose')+1};
     
-    if any(strcmpi(options.progress, {'off', 'hide'}))
-        options.progress = 'off'; 
-    elseif any(strcmpi(options.progress, {'default', 'on', 'show', 'display'}))
-        options.progress = 'on';
+    if length(file) > searchIndex(2)
+        searchDepth = searchDepth-1;
+        searchIndex = [searchIndex(2)+1, length(file)];
+    else
+        break
     end
 end
 
-options.compute_time = 0;
-options.import_bytes = 0;
-options.file_count   = 0;
-options.error_count  = 0;
-options.extra        = '';
+end
 
-varargout{1} = data;
-varargout{2} = options;
+% ---------------------------------------
+% Data = directory contents
+% ---------------------------------------
+function file = parsedirectory(file, fileIndex, fileType)
+
+filePath = dir(file(fileIndex).Name);
+filePath(cellfun(@(x) any(strcmpi(x, {'.', '..'})), {filePath.name})) = [];
+
+for i = 1:length(filePath)
+    
+    fileName = [file(fileIndex).Name, filesep, filePath(i).name];
+    [~, fileName] = fileattrib(fileName);
+    
+    if isstruct(fileName)
+        [~, ~, fileExt] = fileparts(fileName.Name);
+        fileExt = regexp(fileExt, '\w+', 'match', 'once');
+        
+        if fileName.directory || any(strcmpi(fileExt, fileType))
+            file = [file; fileName];
+        end
+    end
+end
+
+end
+
+% ---------------------------------------
+% Data = raw data
+% ---------------------------------------
+function data = loadfile(file, option, fileType)
+
+if ~file.UserRead
+    return
+end
+
+switch fileType
+    
+    case 'agilent'
+        
+        data = ImportAgilent(...
+            'file', file.Name,....
+            'content', option.content,...
+            'verbose', 'off');
+        
+    case 'netcdf'
+        
+        data = ImportCDF(...
+            'file', file.Name,...
+            'content', option.content,...
+            'verbose', 'off');
+        
+    case 'nist'
+        
+        data = ImportNIST(...
+            'file', file.Name,...
+            'content', option.content,...
+            'verbose', 'off');
+        
+    case 'thermo'
+        
+        data = ImportThermo(...
+            'file', file.Name,...
+            'content', option.content,...
+            'verbose', 'off');
+        
+    otherwise
+        
+        data = [];
+        
+end
+
+end
+
+% ---------------------------------------
+% Data = total bytes
+% ---------------------------------------
+function x = loadstats(file, data, option, x)
+
+n = data.file.bytes;
+
+if isempty(n)
+    status(option.verbose, 'loading_error', file.Name);
+else
+    status(option.verbose, 'loading_stats', n);
+    x = x + n;
+end
+
+end
+
+% ---------------------------------------
+% Data = byte string
+% ---------------------------------------
+function str = parsebytes(x)
+
+if x > 1E9
+    str = [num2str(x/1E6, '%.1f'), ' GB'];
+elseif x > 1E6
+    str = [num2str(x/1E6, '%.1f'), ' MB'];
+elseif x > 1E3
+    str = [num2str(x/1E3, '%.1f'), ' KB'];
+else
+    str = [num2str(x/1E3, '%.3f'), ' KB'];
+end
+
+end
+
+% ---------------------------------------
+% Data = time string
+% ---------------------------------------
+function str = parsetime(x)
+
+if x > 60
+    str = [num2str(x/60, '%.1f'), ' min'];
+else
+    str = [num2str(x, '%.1f'), ' sec'];
+end
+
+end
+
+% ---------------------------------------
+% Data = file extension
+% ---------------------------------------
+function str = parseformat(str)
+
+str = regexp(str, '\w+', 'match');
+str = cellfun(@lower, str);
+
+if ischar(str)
+    str = {str};
+end
+
+if any(cellfun(@(x) any(strcmpi(x, {'agilent', 'd'})), str))
+    str(cellfun(@(x) any(strcmpi(x, {'agilent', 'd'})), str)) = [];
+    str = [str, 'ms', 'ch', 'uv'];
+end
+
+
+
+if any(strcmpi(str, 'netcdf'))
+    str(strcmpi(str, 'netcdf')) = [];
+    str = [str, 'cdf'];
+end
+
+if any(strcmpi(str, 'nist'))
+    str(strcmpi(str, 'nist')) = [];
+    str = [str, 'msp'];
+end
+
+if any(strcmpi(str, 'thermo'))
+    str(strcmpi(str, 'thermo')) = [];
+    str = [str, 'raw'];
+end
+
+str = unique(str);
+
+end
+
+% ---------------------------------------
+% Data = structure contents
+% ---------------------------------------
+function x = parsefield(data, field)
+
+x = [];
+
+for i = 1:length(field)
+    
+    if isfield(data, field{i}) && ~isempty(data.(field{i}))
+        x = data.(field{i});
+    end
+    
+end
 
 end
