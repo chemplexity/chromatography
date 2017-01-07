@@ -165,7 +165,6 @@ end
 
 file(cellfun(@(x) ~any(strcmpi(x, default.formats)), ext)) = [];
 
-% Check selection for files
 if isempty(file)
     status(option.verbose, 'selection_error');
     status(option.verbose, 'exit');
@@ -228,12 +227,13 @@ for i = 1:length(file)
             data(i,1) = parseinfo(f, data(i,1));
             
     end
+    
 end
 
 % ---------------------------------------
 % Exit
 % ---------------------------------------
-status(option.verbose, 'summary_stats', length(data), toc, sum([data.file_size]));
+status(option.verbose, 'stats', length(data), toc, sum([data.file_size]));
 status(option.verbose, 'exit');
 
 end
@@ -285,7 +285,7 @@ switch varargin{2}
     case 'subfolder_search'
         fprintf([' STATUS  Searching subfolders...', '\n']);
         
-    case 'summary_stats'
+    case 'stats'
         fprintf(['\n Files   : ', num2str(varargin{3})]);
         fprintf(['\n Elapsed : ', parsetime(varargin{4})]);
         fprintf(['\n Bytes   : ', parsebytes(varargin{5}),'\n']);
@@ -360,40 +360,7 @@ end
 end
 
 % ---------------------------------------
-% File header
-% ---------------------------------------
-function data = parseinfo(f, data)
-
-data.compound_name    = parsefield(f, 'Name');
-data.compound_formula = parsefield(f, 'Formula');
-data.compound_mw      = parsefield(f, 'MW');
-data.cas_id           = parsefield(f, 'CAS[#]');
-data.nist_id          = parsefield(f, 'NIST[#]');
-data.db_id            = parsefield(f, 'DB[#]');
-data.comments         = parsefield(f, 'Comments');
-data.num_peaks        = parsefield(f, 'Peaks');
-
-if ~isempty(data.compound_mw)
-    data.compound_mw = parsenumber(data.compound_mw);
-end
-
-if ~isempty(data.num_peaks)
-    data.num_peaks = parsenumber(data.num_peaks);
-end
-
-end
-
-% ---------------------------------------
-% File data
-% ---------------------------------------
-function data = parsedata(f, data)
-
-[data.mz, data.intensity] = parsearray(f);
-
-end
-
-% ---------------------------------------
-% Data = subfolder contents
+% Subfolder contents
 % ---------------------------------------
 function file = parsesubfolder(file, searchDepth, fileType)
 
@@ -424,7 +391,7 @@ end
 end
 
 % ---------------------------------------
-% Data = directory contents
+% Directory contents
 % ---------------------------------------
 function file = parsedirectory(file, fileIndex, fileType)
 
@@ -444,6 +411,69 @@ for i = 1:length(filePath)
         end
     end
 end
+
+end
+
+% ---------------------------------------
+% Data = byte string
+% ---------------------------------------
+function str = parsebytes(x)
+
+if x > 1E9
+    str = [num2str(x/1E6, '%.1f'), ' GB'];
+elseif x > 1E6
+    str = [num2str(x/1E6, '%.1f'), ' MB'];
+elseif x > 1E3
+    str = [num2str(x/1E3, '%.1f'), ' KB'];
+else
+    str = [num2str(x/1E3, '%.3f'), ' KB'];
+end
+
+end
+
+% ---------------------------------------
+% Data = time string
+% ---------------------------------------
+function str = parsetime(x)
+
+if x > 60
+    str = [num2str(x/60, '%.1f'), ' min'];
+else
+    str = [num2str(x, '%.1f'), ' sec'];
+end
+
+end
+
+% ---------------------------------------
+% File header
+% ---------------------------------------
+function data = parseinfo(f, data)
+
+data.compound_name    = parsefield(f, 'Name');
+data.compound_formula = parsefield(f, 'Formula');
+data.compound_mw      = parsefield(f, 'MW');
+data.cas_id           = parsefield(f, 'CAS[#]');
+data.nist_id          = parsefield(f, 'NIST[#]');
+data.db_id            = parsefield(f, 'DB[#]');
+data.comments         = parsefield(f, 'Comments');
+data.num_peaks        = parsefield(f, 'Peaks');
+
+if ~isempty(data.compound_mw)
+    data.compound_mw = parsenumber(data.compound_mw);
+end
+
+if ~isempty(data.num_peaks)
+    data.num_peaks = parsenumber(data.num_peaks);
+end
+
+end
+
+% ---------------------------------------
+% File data
+% ---------------------------------------
+function data = parsedata(f, data)
+
+[data.mz, data.intensity] = parsearray(f);
 
 end
 
@@ -500,36 +530,6 @@ else
     xy = reshape(str2double([xy{:}]), 2, []);
     x = xy(1,:);
     y = xy(2,:);
-end
-
-end
-
-% ---------------------------------------
-% Data = byte string
-% ---------------------------------------
-function str = parsebytes(x)
-
-if x > 1E9
-    str = [num2str(x/1E6, '%.1f'), ' GB'];
-elseif x > 1E6
-    str = [num2str(x/1E6, '%.1f'), ' MB'];
-elseif x > 1E3
-    str = [num2str(x/1E3, '%.1f'), ' KB'];
-else
-    str = [num2str(x/1E3, '%.3f'), ' KB'];
-end
-
-end
-
-% ---------------------------------------
-% Data = time string
-% ---------------------------------------
-function str = parsetime(x)
-
-if x > 60
-    str = [num2str(x/60, '%.1f'), ' min'];
-else
-    str = [num2str(x, '%.1f'), ' sec'];
 end
 
 end

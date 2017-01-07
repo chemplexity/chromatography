@@ -11,14 +11,17 @@ function varargout = ExponentialGaussian(varargin)
 %   peaks = ExponentialGaussian( __ , Name, Value)
 %
 % ------------------------------------------------------------------------
-% Input (Required)
+% Input (Optional)
 % ------------------------------------------------------------------------
 %   x -- time values (size = n x 1)
 %       array
 %
+% ------------------------------------------------------------------------
+% Input (Required)
+% ------------------------------------------------------------------------
 %   y -- intensity values
 %       array | matrix (size = n x m)
-%
+%       
 % ------------------------------------------------------------------------
 % Input (Name, Value)
 % ------------------------------------------------------------------------
@@ -46,82 +49,76 @@ function varargout = ExponentialGaussian(varargin)
 default.center = 0;
 default.width  = 1;
 
+varargout{1} = [];
+
 % ---------------------------------------
 % Input
 % ---------------------------------------
 p = inputParser;
 
-addRequired(p, 'x',...
-    @(x) validateattributes(x, {'numeric'}, {'nonnan', 'nonempty'}));
+addRequired(p, 'y', @ismatrix);
 
-addRequired(p, 'y',...
-    @(x) validateattributes(x, {'numeric'}, {'nonnan', 'nonempty'}));
+addOptional(p, 'x', [], @isnumeric);
 
-addParameter(p, 'center',...
-    default.center,...
-    @(x) validateattributes(x, {'numeric'}, {'scalar', 'nonnegative'}));
-
-addParameter(p, 'width',...
-    default.width,...
-    @(x) validateattributes(x, {'numeric'}, {'scalar', 'nonnegative'}));
-
+addParameter(p, 'center', default.center, @isnumeric);
+addParameter(p, 'width',  default.width,  @isnumeric);
+    
 parse(p, varargin{:});
 
 % ---------------------------------------
 % Parse
 % ---------------------------------------
-x = p.Results.x;
-y = p.Results.y;
-
+x      = p.Results.x;
+y      = p.Results.y;
 center = p.Results.center;
 width  = p.Results.width;
-
-varargout{1} = [];
 
 % ---------------------------------------
 % Validate
 % ---------------------------------------
 
-% Input: y
-if ~isa(y, 'double')
-    y = double(y);
-end
-
-if length(y(:,1)) == 1 && length(y(1,:)) > 1
-    y = y';
-end
-
 % Input: x
-if ~isa(x, 'double')
-    x = double(x);
+if ~isempty(x)
+    y = p.Results.x;
+    x = p.Results.y;
+else
+    x = (1:size(y,1))';
 end
 
 if isempty(x)
-    x = 1:length(y(:,1));
+    x = 1:size(y,1);
 end
 
-if length(x(:,1)) == 1 && length(x(1,:)) > 1
+if size(x,1) == 1 && size(x,2) > 1
     x = x';
 end
 
-if length(x(:,1)) ~= length(y(:,1))
-    x = 1:length(y(:,1));
+% Input: y
+type = class(y);
+
+if ~strcmpi(type, 'double')
+    x = double(x);
+    y = double(y);
+end
+
+if size(y,1) == 1 && size(y,2) > 1
+    y = y';
+end
+
+if size(x,1) ~= size(y,1)
+    x = 1:size(y,1);
 end
 
 % Parameter: 'center'
 if center == 0
     [~,index] = max(y);
     center = x(index,1);
-    
 elseif center > max(x)
     center = max(x) - width/2;
-    
 elseif center < min(x)
     center = min(x) + width/2;
-    
 elseif center + width/2 > max(x)
     width = (max(x) - center) * 2;
-    
 elseif center - width/2 < min(x)
     width = (center - min(x)) * 2;
 end
@@ -129,8 +126,18 @@ end
 % ---------------------------------------
 % Variables
 % ---------------------------------------
-peaks = {'time', 'width', 'height', 'area', 'fit', 'error'};
-peaks = cell2struct(cell(1, length(peaks)), peaks, 2);
+peaks = struct(...
+    'time',   [],...
+    'width',  [],...
+    'height', [],...
+    'area',   [],...
+    'fit',    [],...
+    'error',  []...
+);
+
+if size(y,1) <= 1 || ~nnz(y)
+    return
+end
 
 % ---------------------------------------
 % Peak detection
@@ -155,14 +162,19 @@ EGH.c = @(t) 4.000000 * t^0 + -6.293724 * t^1 + 9.2328340 * t^2 + ...
 % ---------------------------------------
 for i = 1:length(y(1,:))
     
-    % Pre-allocate memory
     peaks.time(i)   = 0;
-    peaks.height(i) = 0;
     peaks.width(i)  = 0;
+    peaks.height(i) = 0;
     peaks.area(i)   = 0;
-    peaks.fit(:,i)  = zeros(length(y(:,i)),1);
+    peaks.fit(:,i)  = zeros(size(y,1), 1, type);
     peaks.error(i)  = 0;
     
+    % Check y-values
+    if ~nnz(y(:,i))
+        continue
+    end
+    
+    % Check peak values
     if isempty(peak) || any(peak.center(:,i) == 0)
         continue
     end
@@ -226,6 +238,10 @@ for i = 1:length(y(1,:))
     
     if isnan(area) || isnan(rmsd(index))
         continue
+    end
+    
+    if ~strcmpi(type, 'double')
+        yfit(:,index) = cast(yfit(:,index), type);
     end
     
     % Update values

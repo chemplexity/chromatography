@@ -154,10 +154,8 @@ end
 % ---------------------------------------
 [~,~,ext] = cellfun(@(x) fileparts(x), {file.Name}, 'uniformoutput', 0);
 
-% Remove unsupported file extensions
 file(cellfun(@(x) ~any(strcmpi(x, default.formats)), ext)) = [];
 
-% Check selection for files
 if isempty(file)
     status(option.verbose, 'selection_error');
     status(option.verbose, 'exit');
@@ -228,7 +226,7 @@ end
 % ---------------------------------------
 % Exit
 % ---------------------------------------
-status(option.verbose, 'summary_stats', length(data), toc, sum([data.file_size]));
+status(option.verbose, 'stats', length(data), toc, sum([data.file_size]));
 status(option.verbose, 'exit');
 
 end
@@ -280,7 +278,7 @@ switch varargin{2}
     case 'subfolder_search'
         fprintf([' STATUS  Searching subfolders...', '\n']);
         
-	case 'summary_stats'
+	case 'stats'
         fprintf(['\n Files   : ', num2str(varargin{3})]);
         fprintf(['\n Elapsed : ', parsetime(varargin{4})]);
         fprintf(['\n Bytes   : ', parsebytes(varargin{5}),'\n']);
@@ -350,6 +348,91 @@ for i = 1:length(str)
         file = [file; f];
     end
     
+end
+
+end
+
+% ---------------------------------------
+% Subfolder contents
+% ---------------------------------------
+function file = parsesubfolder(file, searchDepth, fileType)
+
+searchIndex = [1, length(file)];
+
+while searchDepth >= 0
+    
+    for i = searchIndex(1):searchIndex(2)
+        
+        [~, ~, fileExt] = fileparts(file(i).Name);
+        
+        if any(strcmpi(fileExt, {'.m', '.git', '.lnk'}))
+            continue
+        elseif file(i).directory == 1
+            file = parsedirectory(file, i, fileType);
+        end
+        
+    end
+    
+    if length(file) > searchIndex(2)
+        searchDepth = searchDepth-1;
+        searchIndex = [searchIndex(2)+1, length(file)];
+    else
+        break
+    end 
+end
+
+end
+
+% ---------------------------------------
+% Directory contents
+% ---------------------------------------
+function file = parsedirectory(file, fileIndex, fileType)
+
+filePath = dir(file(fileIndex).Name);
+filePath(cellfun(@(x) any(strcmpi(x, {'.', '..'})), {filePath.name})) = [];
+
+for i = 1:length(filePath)
+    
+    fileName = [file(fileIndex).Name, filesep, filePath(i).name];
+    [~, fileName] = fileattrib(fileName);
+    
+    if isstruct(fileName)
+        [~, ~, fileExt] = fileparts(fileName.Name);
+        
+        if fileName.directory || any(strcmpi(fileExt, fileType))
+            file = [file; fileName];
+        end
+    end
+end
+
+end
+
+% ---------------------------------------
+% Data = byte string
+% ---------------------------------------
+function str = parsebytes(x)
+
+if x > 1E9
+    str = [num2str(x/1E6, '%.1f'), ' GB'];
+elseif x > 1E6
+    str = [num2str(x/1E6, '%.1f'), ' MB'];
+elseif x > 1E3
+    str = [num2str(x/1E3, '%.1f'), ' KB'];
+else
+    str = [num2str(x/1E3, '%.3f'), ' KB'];
+end
+
+end
+
+% ---------------------------------------
+% Data = time string
+% ---------------------------------------
+function str = parsetime(x)
+
+if x > 60
+    str = [num2str(x/60, '%.1f'), ' min'];
+else
+    str = [num2str(x, '%.1f'), ' sec'];
 end
 
 end
@@ -560,61 +643,6 @@ end
 end
 
 % ---------------------------------------
-% Data = subfolder contents
-% ---------------------------------------
-function file = parsesubfolder(file, searchDepth, fileType)
-
-searchIndex = [1, length(file)];
-
-while searchDepth >= 0
-    
-    for i = searchIndex(1):searchIndex(2)
-        
-        [~, ~, fileExt] = fileparts(file(i).Name);
-        
-        if any(strcmpi(fileExt, {'.m', '.git', '.lnk'}))
-            continue
-        elseif file(i).directory == 1
-            file = parsedirectory(file, i, fileType);
-        end
-        
-    end
-    
-    if length(file) > searchIndex(2)
-        searchDepth = searchDepth-1;
-        searchIndex = [searchIndex(2)+1, length(file)];
-    else
-        break
-    end 
-end
-
-end
-
-% ---------------------------------------
-% Data = directory contents
-% ---------------------------------------
-function file = parsedirectory(file, fileIndex, fileType)
-
-filePath = dir(file(fileIndex).Name);
-filePath(cellfun(@(x) any(strcmpi(x, {'.', '..'})), {filePath.name})) = [];
-
-for i = 1:length(filePath)
-    
-    fileName = [file(fileIndex).Name, filesep, filePath(i).name];
-    [~, fileName] = fileattrib(fileName);
-    
-    if isstruct(fileName)
-        [~, ~, fileExt] = fileparts(fileName.Name);
-        
-        if fileName.directory || any(strcmpi(fileExt, fileType))
-            file = [file; fileName];
-        end
-    end
-end
-
-end
-
-% ---------------------------------------
 % Data = datetime
 % ---------------------------------------
 function str = parsedate(str)
@@ -652,36 +680,6 @@ if ~isempty(str)
         str = datestr(dateNum, formatOut);
     end
     
-end
-
-end
-
-% ---------------------------------------
-% Data = byte string
-% ---------------------------------------
-function str = parsebytes(x)
-
-if x > 1E9
-    str = [num2str(x/1E6, '%.1f'), ' GB'];
-elseif x > 1E6
-    str = [num2str(x/1E6, '%.1f'), ' MB'];
-elseif x > 1E3
-    str = [num2str(x/1E3, '%.1f'), ' KB'];
-else
-    str = [num2str(x/1E3, '%.3f'), ' KB'];
-end
-
-end
-
-% ---------------------------------------
-% Data = time string
-% ---------------------------------------
-function str = parsetime(x)
-
-if x > 60
-    str = [num2str(x/60, '%.1f'), ' min'];
-else
-    str = [num2str(x, '%.1f'), ' sec'];
 end
 
 end

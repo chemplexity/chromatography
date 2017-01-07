@@ -159,7 +159,6 @@ else
     file = FileVerify(option.file, []);
 end
 
-% Check file selection
 if exist('fileError', 'var') && fileError == 1
     status(option.verbose, 'selection_cancel');
     status(option.verbose, 'exit');
@@ -255,13 +254,13 @@ for i = 1:length(file)
                 data{end}.file.name         = parsefield(x(j), {'file_name'});
                 data{end}.file.bytes        = parsefield(x(j), {'file_size'});
                 data{end}.sample.name       = parsefield(x(j), {'sample_name'});
-                data{end}.sample.info       = parsefield(x(j), {'sample_info'});
+                data{end}.sample.info       = parsefield(x(j), {'barcode'});
                 data{end}.sample.sequence   = parsefield(x(j), {'seqindex'});
                 data{end}.sample.vial       = parsefield(x(j), {'vial'});
                 data{end}.sample.replicate  = parsefield(x(j), {'replicate'});
-                data{end}.method.name       = parsefield(x(j), {'method'});
+                data{end}.method.name       = parsefield(x(j), {'method_name'});
                 data{end}.method.operator   = parsefield(x(j), {'operator'});
-                data{end}.method.instrument = parsefield(x(j), {'instrument'});
+                data{end}.method.instrument = parsefield(x(j), {'instmodel'});
                 data{end}.method.datetime   = parsefield(x(j), {'datetime'});
                 data{end}.time              = parsefield(x(j), {'time'});
                 data{end}.tic.values        = parsefield(x(j), {'total_intensity', 'ordinate_values'});
@@ -426,7 +425,7 @@ end
 % ---------------------------------------
 % Exit
 % ---------------------------------------
-status(option.verbose, 'summary_stats', length(data), totalTime, totalBytes);
+status(option.verbose, 'stats', length(data), totalTime, totalBytes);
 status(option.verbose, 'exit');
 
 varargout{1} = [option.append, data];
@@ -483,7 +482,7 @@ switch varargin{2}
     case 'subfolder_search'
         fprintf([' STATUS  Searching subfolders...', '\n']);
         
-    case 'summary_stats'
+    case 'stats'
         fprintf(['\n Files   : ', num2str(varargin{3})]);
         fprintf(['\n Elapsed : ', parsetime(varargin{4})]);
         fprintf(['\n Bytes   : ', parsebytes(varargin{5}),'\n']);
@@ -529,7 +528,7 @@ end
 % Filter: netCDF (.CDF)
 netcdf = com.mathworks.hg.util.dFilter;
 
-netcdf.setDescription('netCDF files (*.CDF');
+netcdf.setDescription('netCDF files (*.CDF)');
 netcdf.addExtension('cdf');
 
 if any(cellfun(@(x) any(strcmpi(x, {'netcdf', 'cdf'})), fileExtension))
@@ -539,7 +538,7 @@ end
 % Filter: NIST (.MSP)
 nist = com.mathworks.hg.util.dFilter;
 
-nist.setDescription('NIST files (*.MSP');
+nist.setDescription('NIST files (*.MSP)');
 nist.addExtension('msp');
 
 if any(cellfun(@(x) any(strcmpi(x, {'nist', 'msp'})), fileExtension))
@@ -549,7 +548,7 @@ end
 % Filter: Thermo (.RAW)
 thermo = com.mathworks.hg.util.dFilter;
 
-thermo.setDescription('Thermo files (*.RAW');
+thermo.setDescription('Thermo files (*.RAW)');
 thermo.addExtension('raw');
 
 if any(cellfun(@(x) any(strcmpi(x, {'thermo', 'raw'})), fileExtension))
@@ -597,7 +596,7 @@ end
 end
 
 % ---------------------------------------
-% Data = subfolder contents
+% Subfolder contents
 % ---------------------------------------
 function file = parsesubfolder(file, searchDepth, fileType)
 
@@ -628,7 +627,7 @@ end
 end
 
 % ---------------------------------------
-% Data = directory contents
+% Directory contents
 % ---------------------------------------
 function file = parsedirectory(file, fileIndex, fileType)
 
@@ -648,6 +647,36 @@ for i = 1:length(filePath)
             file = [file; fileName];
         end
     end
+end
+
+end
+
+% ---------------------------------------
+% Data = byte string
+% ---------------------------------------
+function str = parsebytes(x)
+
+if x > 1E9
+    str = [num2str(x/1E6, '%.1f'), ' GB'];
+elseif x > 1E6
+    str = [num2str(x/1E6, '%.1f'), ' MB'];
+elseif x > 1E3
+    str = [num2str(x/1E3, '%.1f'), ' KB'];
+else
+    str = [num2str(x/1E3, '%.3f'), ' KB'];
+end
+
+end
+
+% ---------------------------------------
+% Data = time string
+% ---------------------------------------
+function str = parsetime(x)
+
+if x > 60
+    str = [num2str(x/60, '%.1f'), ' min'];
+else
+    str = [num2str(x, '%.1f'), ' sec'];
 end
 
 end
@@ -711,36 +740,6 @@ if isempty(n)
 else
     status(option.verbose, 'loading_stats', n);
     x = x + n;
-end
-
-end
-
-% ---------------------------------------
-% Data = byte string
-% ---------------------------------------
-function str = parsebytes(x)
-
-if x > 1E9
-    str = [num2str(x/1E6, '%.1f'), ' GB'];
-elseif x > 1E6
-    str = [num2str(x/1E6, '%.1f'), ' MB'];
-elseif x > 1E3
-    str = [num2str(x/1E3, '%.1f'), ' KB'];
-else
-    str = [num2str(x/1E3, '%.3f'), ' KB'];
-end
-
-end
-
-% ---------------------------------------
-% Data = time string
-% ---------------------------------------
-function str = parsetime(x)
-
-if x > 60
-    str = [num2str(x/60, '%.1f'), ' min'];
-else
-    str = [num2str(x, '%.1f'), ' sec'];
 end
 
 end

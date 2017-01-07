@@ -44,16 +44,20 @@ data.file_size       = [];
 data.file_info       = [];
 data.file_version    = [];
 data.sample_name     = [];
-data.sample_info     = [];
+data.barcode         = [];
 data.operator        = [];
 data.datetime        = [];
 data.instrument      = [];
+data.instmodel       = [];
 data.inlet           = [];
-data.detector        = [];
-data.method          = [];
+data.method_name     = [];
 data.seqindex        = [];
 data.vial            = [];
 data.replicate       = [];
+data.glp_flag        = [];
+data.data_source     = [];
+data.firmware_rev    = [];
+data.software_rev    = [];
 data.sampling_rate   = [];
 data.time            = [];
 data.intensity       = [];
@@ -178,7 +182,6 @@ end
 
 file(cellfun(@(x) ~any(strcmpi(x, default.formats)), ext)) = [];
 
-% Check selection for files
 if isempty(file)
     status(option.verbose, 'selection_error');
     status(option.verbose, 'exit');
@@ -304,7 +307,7 @@ switch varargin{2}
     case 'subfolder_search'
         fprintf([' STATUS  Searching subfolders...', '\n']);
         
-    case 'summary_stats'
+    case 'stats'
         fprintf(['\n Files   : ', num2str(varargin{3})]);
         fprintf(['\n Elapsed : ', parsetime(varargin{4})]);
         fprintf(['\n Bytes   : ', parsebytes(varargin{5}),'\n']);
@@ -382,6 +385,91 @@ end
 end
 
 % ---------------------------------------
+% Subfolder contents
+% ---------------------------------------
+function file = parsesubfolder(file, searchDepth, fileType)
+
+searchIndex = [1, length(file)];
+
+while searchDepth >= 0
+    
+    for i = searchIndex(1):searchIndex(2)
+        
+        [~, ~, fileExt] = fileparts(file(i).Name);
+        
+        if any(strcmpi(fileExt, {'.m', '.git', '.lnk'}))
+            continue
+        elseif file(i).directory == 1
+            file = parsedirectory(file, i, fileType);
+        end
+        
+    end
+    
+    if length(file) > searchIndex(2)
+        searchDepth = searchDepth-1;
+        searchIndex = [searchIndex(2)+1, length(file)];
+    else
+        break
+    end
+end
+
+end
+
+% ---------------------------------------
+% Directory contents
+% ---------------------------------------
+function file = parsedirectory(file, fileIndex, fileType)
+
+filePath = dir(file(fileIndex).Name);
+filePath(cellfun(@(x) any(strcmpi(x, {'.', '..'})), {filePath.name})) = [];
+
+for i = 1:length(filePath)
+    
+    fileName = [file(fileIndex).Name, filesep, filePath(i).name];
+    [~, fileName] = fileattrib(fileName);
+    
+    if isstruct(fileName)
+        [~, ~, fileExt] = fileparts(fileName.Name);
+        
+        if fileName.directory || any(strcmpi(fileExt, fileType))
+            file = [file; fileName];
+        end
+    end
+end
+
+end
+
+% ---------------------------------------
+% Data = byte string
+% ---------------------------------------
+function str = parsebytes(x)
+
+if x > 1E9
+    str = [num2str(x/1E6, '%.1f'), ' GB'];
+elseif x > 1E6
+    str = [num2str(x/1E6, '%.1f'), ' MB'];
+elseif x > 1E3
+    str = [num2str(x/1E3, '%.1f'), ' KB'];
+else
+    str = [num2str(x/1E3, '%.3f'), ' KB'];
+end
+
+end
+
+% ---------------------------------------
+% Data = time string
+% ---------------------------------------
+function str = parsetime(x)
+
+if x > 60
+    str = [num2str(x/60, '%.1f'), ' min'];
+else
+    str = [num2str(x, '%.1f'), ' sec'];
+end
+
+end
+
+% ---------------------------------------
 % File header
 % ---------------------------------------
 function data = parseinfo(f, data)
@@ -400,31 +488,49 @@ switch data.file_version
     
     case {'2', '8', '81', '30', '31'}
         
-        data.file_info   = fpascal(f,  4,   'uint8');
-        data.sample_name = fpascal(f,  24,  'uint8');
-        data.sample_info = fpascal(f,  86,  'uint8');
-        data.operator    = fpascal(f,  148, 'uint8');
-        data.datetime    = fpascal(f,  178, 'uint8');
-        data.detector    = fpascal(f,  208, 'uint8');
-        data.inlet       = fpascal(f,  218, 'uint8');
-        data.method      = fpascal(f,  228, 'uint8');
-        data.seqindex    = fnumeric(f, 252, 'int16');
-        data.vial        = fnumeric(f, 254, 'int16');
-        data.replicate   = fnumeric(f, 256, 'int16');
+        data.file_info    = fpascal(f,  4,    'uint8');
+        data.sample_name  = fpascal(f,  24,   'uint8');
+        data.barcode      = fpascal(f,  86,   'uint8');
+        data.operator     = fpascal(f,  148,  'uint8');
+        data.datetime     = fpascal(f,  178,  'uint8');
+        data.instmodel    = fpascal(f,  208,  'uint8');
+        data.inlet        = fpascal(f,  218,  'uint8');
+        data.method_name  = fpascal(f,  228,  'uint8');
+        data.seqindex     = fnumeric(f, 252,  'int16');
+        data.vial         = fnumeric(f, 254,  'int16');
+        data.replicate    = fnumeric(f, 256,  'int16');
         
     case {'130', '131', '179', '181'}
         
-        data.file_info   = fpascal(f,  347,  'uint16');
-        data.sample_name = fpascal(f,  858,  'uint16');
-        data.sample_info = fpascal(f,  1369, 'uint16');
-        data.operator    = fpascal(f,  1880, 'uint16');
-        data.datetime    = fpascal(f,  2391, 'uint16');
-        data.detector    = fpascal(f,  2492, 'uint16');
-        data.inlet       = fpascal(f,  2533, 'uint16');
-        data.method      = fpascal(f,  2574, 'uint16');
-        data.seqindex    = fnumeric(f, 252,  'int16');
-        data.vial        = fnumeric(f, 254,  'int16');
-        data.replicate   = fnumeric(f, 256,  'int16');
+        data.file_info    = fpascal(f,  347,  'uint16');
+        data.sample_name  = fpascal(f,  858,  'uint16');
+        data.barcode      = fpascal(f,  1369, 'uint16');
+        data.operator     = fpascal(f,  1880, 'uint16');
+        data.datetime     = fpascal(f,  2391, 'uint16');
+        data.instmodel    = fpascal(f,  2492, 'uint16');
+        data.inlet        = fpascal(f,  2533, 'uint16');
+        data.method_name  = fpascal(f,  2574, 'uint16');
+        data.seqindex     = fnumeric(f, 252,  'int16');
+        data.vial         = fnumeric(f, 254,  'int16');
+        data.replicate    = fnumeric(f, 256,  'int16');
+        
+end
+
+switch data.file_version
+   
+    case {'30'}
+        
+        data.glp_flag     = fnumeric(f, 318,  'int32');
+        data.data_source  = fpascal(f,  322,  'uint16');
+        data.firmware_rev = fpascal(f,  355,  'uint16');
+        data.software_rev = fpascal(f,  405,  'uint16');
+    
+    case {'130', '179'}
+        
+        data.glp_flag     = fnumeric(f, 3085, 'int32');
+        data.data_source  = fpascal(f,  3089, 'uint16');
+        data.firmware_rev = fpascal(f,  3601, 'uint16');
+        data.software_rev = fpascal(f,  3802, 'uint16');
         
 end
 
@@ -437,9 +543,9 @@ end
 data.instrument = parseinstrument(data);
 
 % Fix formatting
-data.detector = upper(data.detector);
-data.inlet    = upper(data.inlet);
-data.operator = upper(data.operator);
+data.instmodel = upper(data.instmodel);
+data.inlet     = upper(data.inlet);
+data.operator  = upper(data.operator);
 
 end
 
@@ -619,63 +725,6 @@ end
 end
 
 % ---------------------------------------
-% Data = subfolder contents
-% ---------------------------------------
-function file = parsesubfolder(file, searchDepth, fileType)
-
-searchIndex = [1, length(file)];
-
-while searchDepth >= 0
-    
-    for i = searchIndex(1):searchIndex(2)
-        
-        [~, ~, fileExt] = fileparts(file(i).Name);
-        
-        if any(strcmpi(fileExt, {'.m', '.git', '.lnk'}))
-            continue
-        elseif file(i).directory == 1
-            file = parsedirectory(file, i, fileType);
-        end
-        
-    end
-    
-    if length(file) > searchIndex(2)
-        searchDepth = searchDepth-1;
-        searchIndex = [searchIndex(2)+1, length(file)];
-    else
-        break
-    end
-    
-end
-
-end
-
-% ---------------------------------------
-% Data = directory contents
-% ---------------------------------------
-function file = parsedirectory(file, fileIndex, fileType)
-
-filePath = dir(file(fileIndex).Name);
-filePath(cellfun(@(x) any(strcmpi(x, {'.', '..'})), {filePath.name})) = [];
-
-for i = 1:length(filePath)
-    
-    fileName = [file(fileIndex).Name, filesep, filePath(i).name];
-    [~, fileName] = fileattrib(fileName);
-    
-    if isstruct(fileName)
-        [~, ~, fileExt] = fileparts(fileName.Name);
-        
-        if fileName.directory || any(strcmpi(fileExt, fileType))
-            file = [file; fileName];
-        end
-    end
-    
-end
-
-end
-
-% ---------------------------------------
 % Data = datetime
 % ---------------------------------------
 function str = parsedate(str)
@@ -735,7 +784,7 @@ instrMatch = @(x,str) any(cellfun(@any, regexpi(x, str)));
 str = [...
     data.file_info,...
     data.inlet,...
-    data.detector,...
+    data.instmodel,...
     data.channel_units];
 
 if isempty(str)
@@ -802,36 +851,6 @@ end
 end
 
 % ---------------------------------------
-% Data = byte string
-% ---------------------------------------
-function str = parsebytes(x)
-
-if x > 1E9
-    str = [num2str(x/1E6, '%.1f'), ' GB'];
-elseif x > 1E6
-    str = [num2str(x/1E6, '%.1f'), ' MB'];
-elseif x > 1E3
-    str = [num2str(x/1E3, '%.1f'), ' KB'];
-else
-    str = [num2str(x/1E3, '%.3f'), ' KB'];
-end
-
-end
-
-% ---------------------------------------
-% Data = time string
-% ---------------------------------------
-function str = parsetime(x)
-
-if x > 60
-    str = [num2str(x/60, '%.1f'), ' min'];
-else
-    str = [num2str(x, '%.1f'), ' sec'];
-end
-
-end
-
-% ---------------------------------------
 % Data = pascal string
 % ---------------------------------------
 function str = fpascal(f, offset, type)
@@ -839,7 +858,7 @@ function str = fpascal(f, offset, type)
 fseek(f, offset, 'bof');
 str = fread(f, fread(f, 1, 'uint8'), [type, '=>char'], 'l')';
 
-if length(str) > 255
+if length(str) > 512
     str = '';
 else
     str = strtrim(deblank(str));
@@ -912,6 +931,89 @@ for i = 1:numel(data.time)
     data.intensity(i, index(n(i,3):n(i,2))+1) = y(n(i,3):n(i,2));
 end
 
+end
+
+% ---------------------------------------
+% Data = spectrum
+% ---------------------------------------
+function spectrum = fspectrum(f, offset, scans, detector)
+
+spectrum = struct(...
+    'offset',                 [],...
+    'identifier',            [],...
+    'record_length',          [],...
+    'retention_time',         [],...
+    'wavelength_start',       [],...
+    'wavelength_end',         [],...
+    'wavelength_step',        [],...
+    'spectrum_attribute',     [],...
+    'additional_info_length', [],...
+    'additional_info',        [],...
+    'data_points',            [],...
+    'intensity_values',       []...
+);
+
+for i = 1:scans
+    
+    fseek(f, offset, 'bof');
+
+    spectrum(i).offset                 = ftell(f);
+    spectrum(i).identifier            = fread(f, 1, 'int16', 'l');
+    spectrum(i).record_length          = fread(f, 1, 'int16', 'l');
+    spectrum(i).retention_time         = fread(f, 1, 'int32', 'l');
+    spectrum(i).wavelength_start       = fread(f, 1, 'int16', 'l');
+    spectrum(i).wavelength_end         = fread(f, 1, 'int16', 'l');
+    spectrum(i).wavelength_step        = fread(f, 1, 'int16', 'l');
+    spectrum(i).spectrum_attribute     = fread(f, 1, 'int16', 'l');
+    spectrum(i).additional_info_length = fread(f, 1, 'int16', 'l');
+
+    switch detector
+        
+        case 1
+            % DAD: exposure_time
+            spectrum(i).additional_info = fread(f, 1, 'int32', 'l');
+            
+        case 2
+            % FLD: complement_wavelength, scan_speed
+            spectrum(i).additional_info = fread(f, [1,2], 'int16', 'l');
+            
+        otherwise
+            fseek(f, spectrum(i).additional_info_length, 'cof');
+            
+    end
+    
+    
+    spectrum(i).data_points = floor(...
+        (spectrum(i).wavelength_end - spectrum(i).wavelength_start) / ...
+        spectrum(i).wavelength_step + 1);
+ 
+    if spectrum(i).identifier == 65
+        
+        spectrum(i).intensity_values = fread(f, spectrum(i).data_points, 'int32', 'l');
+     
+    else  
+        
+        spectrum(i).intensity_values = zeros(spectrum(i).data_points, 1);
+        x = [0,0];
+    
+        for j = 1:spectrum(i).data_points
+    
+            x(1) = fread(f, 1, 'int16', 'l');
+        
+            if x(1) ~= -32768
+                x(2) = x(1) + x(2);
+            else
+                x(2) = fread(f, 1, 'int32', 'l');
+            end
+        
+            spectrum(i).intensity_values(j, 1) = x(2);
+        
+        end
+        
+    end
+end
+ 
+ 
 end
 
 % ---------------------------------------
