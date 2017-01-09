@@ -254,7 +254,7 @@ for i = 1:length(file)
                 data{end}.file.name         = parsefield(x(j), {'file_name'});
                 data{end}.file.bytes        = parsefield(x(j), {'file_size'});
                 data{end}.sample.name       = parsefield(x(j), {'sample_name'});
-                data{end}.sample.info       = parsefield(x(j), {'barcode'});
+                data{end}.sample.info       = parsefield(x(j), {'barcode', 'misc_info'});
                 data{end}.sample.sequence   = parsefield(x(j), {'seqindex'});
                 data{end}.sample.vial       = parsefield(x(j), {'vial'});
                 data{end}.sample.replicate  = parsefield(x(j), {'replicate'});
@@ -263,7 +263,6 @@ for i = 1:length(file)
                 data{end}.method.instrument = parsefield(x(j), {'instmodel'});
                 data{end}.method.datetime   = parsefield(x(j), {'datetime'});
                 data{end}.time              = parsefield(x(j), {'time'});
-                data{end}.tic.values        = parsefield(x(j), {'total_intensity', 'ordinate_values'});
                 data{end}.xic.values        = parsefield(x(j), {'intensity'});
                 data{end}.mz                = parsefield(x(j), {'channel'});
                 
