@@ -63,6 +63,12 @@ classdef Chromatography
         
     end
     
+    properties (Access = private)
+        
+        verbose = true;
+        
+    end
+    
     % ---------------------------------------
     % Methods
     % ---------------------------------------
@@ -259,7 +265,7 @@ classdef Chromatography
             end
         end
         
-        function update(varargin)
+        function update(obj, varargin)
             % ------------------------------------------------------------
             % Method      : Chromatography.update
             % Description : Update toolbox to latest version
@@ -311,6 +317,8 @@ classdef Chromatography
             addParameter(p, 'force',   default.force);
             addParameter(p, 'verbose', default.verbose);
             
+            parse(p, varargin{:});
+            
             % ---------------------------------------
             % Options
             % ---------------------------------------
@@ -324,7 +332,7 @@ classdef Chromatography
             % ---------------------------------------
 
             % Parameter: 'git'
-            option.git = validateFile(option.git);
+            option.git = Chromatography.validateFile(option.git);
             
             % Parameter: 'branch'
             validBranch = {'master', 'dev'};
@@ -334,18 +342,18 @@ classdef Chromatography
             end
             
             % Parameter: 'force'
-            option.force = validateLogical(option.force, default.force);
+            option.force = Chromatography.validateLogical(option.force, default.force);
             
             % Parameter: 'verbose'
-            option.verbose = validateLogical(option.verbose, default.verbose);
-                        
+            obj.verbose = Chromatography.validateLogical(option.verbose, default.verbose);
+             
             % ---------------------------------------
             % Path
             % ---------------------------------------
-            Chromatography.dispMsg(option.verbose, 'header', 'UPDATE');
-            Chromatography.dispMsg(option.verbose, 'version');    
-            Chromatography.dispMsg(option.verbose, 'status', ...
-                'Checking online for updates...');
+            obj.dispMsg('header', 'UPDATE');
+            obj.dispMsg('version');
+            obj.dispMsg('newline');
+            obj.dispMsg('status', 'Checking online for updates...');
             
             sourcePath = fileparts(mfilename('fullpath'));
             sourcePath = regexp(sourcePath, '.+(?=[@])', 'match');
@@ -361,27 +369,25 @@ classdef Chromatography
                 
                 if gitStatus
 
-                    Chromatography.dispMsg(option.verbose, 'status',...
-                        'Searching system for ''git.exe''...');
+                    obj.dispMsg('status', 'Searching system for ''git.exe''...');
                     
                     [gitStatus, gitPath] = system('dir C:\Users\*git.exe /s');
                     
                     if gitStatus
                         
-                        Chromatography.dispMsg(option.verbose, 'status',...
-                            'Unable to find ''git.exe''...');
+                        msg = ['Visit ', link.windows, ' to and install Git for Windows...'];
                         
-                        Chromatography.dispMsg(option.verbose, 'status',...
-                            ['Visit ', link.windows, ' to and install Git for Windows...']);
-                        
-                        Chromatography.dispMsg(option.verbose, 'header',...
-                            'EXIT');
+                        obj.dispMsg('status', 'Unable to find ''git.exe''...');
+                        obj.dispMsg('status', msg);
+                        obj.dispMsg('header', 'EXIT');
                         
                         return
+                        
                     end
                     
                     gitPath = regexp(gitPath,'(?i)(?!of)\S[:]\\(\\|\w)*', 'match');
                     gitPath = [gitPath{1}, filesep, 'git.exe'];
+                    
                 end
                 
                 option.git = deblank(strtrim(gitPath));
@@ -395,28 +401,25 @@ classdef Chromatography
                 
                 if gitStatus
                     
-                    Chromatography.dispMsg(option.verbose, 'status',...
-                        'Unable to find ''git'' executable...');
-
                     if ismac
-                        Chromatography.dispMsg(option.verbose, 'status',...
-                            ['Visit ', link.mac, ' to and install Git for OSX...']);
+                        msg = ['Visit ', link.mac, ' to and install Git for OSX...'];
                     else
-                        Chromatography.dispMsg(option.verbose, 'status',...
-                            ['Visit ', link.linux, ' to and install Git for Linux...']);
+                        msg = ['Visit ', link.linux, ' to and install Git for Linux...'];
                     end
                     
-                    Chromatography.dispMsg(option.verbose, 'header',...
-                        'EXIT');
+                    obj.dispMsg('status', 'Unable to find ''git'' executable...');
+                    obj.dispMsg('status', msg);
+                    obj.dispMsg('header', 'EXIT');
                     
                     return
+                    
                 end
                 
                 option.git = deblank(strtrim(gitPath));
+                
             end
             
-            Chromatography.dispMsg(option.verbose, 'status',...
-                ['Using ', option.git, '...']);
+            obj.dispMsg('status', ['Using ', option.git, '...']);
             
             % ---------------------------------------
             % Check permissions
@@ -428,50 +431,48 @@ classdef Chromatography
             % ---------------------------------------
             % Check system git
             % ---------------------------------------
-            [gitTest, ~] = system([option.git, ' --version']);
+            [gitTest, ~] = system(['"', option.git, '" --version']);
             
             if gitTest
-
-                Chromatography.dispMsg(option.verbose, 'error',...
-                    'Error executing ''git --version''...');
-                        
-                Chromatography.dispMsg(option.verbose, 'header',...
-                    'EXIT');
+                
+                obj.dispMsg('error', 'Error executing ''git --version''...');
+                obj.dispMsg('header', 'EXIT');
                 
                 return
+                
             end
             
             % ---------------------------------------
             % Check git repository
             % ---------------------------------------
-            [gitTest, ~] = system([option.git, ' status']);
+            [gitTest, ~] = system(['"', option.git, '" status']);
             
             if gitTest
                 
-                Chromatography.dispMsg(option.verbose, 'status',...
-                    'Initializing git repository...');
+                obj.dispMsg('status', 'Initializing git repository...');
 
-                [~,~] = system([git, ' init']);
-                [~,~] = system([git, ' remote add origin ', Chromatography.url, '.git']);
+                [~,~] = system(['"', git, '" init']);
+                [~,~] = system(['"', git, '" remote add origin ', obj.url, '.git']);
+                
             end
             
             % ---------------------------------------
             % Fetch latest updates
             % ---------------------------------------
-            Chromatography.dispMsg(option.verbose, 'status',...
-                    ['Fetching latest updates from ', Chromatography.url]);
+            obj.dispMsg('status', ['Fetching latest updates from ', obj.url]);
 
-            [~,~] = system([option.git, ' pull']);
+            [~,~] = system(['"', option.git, '" pull']);
             
             if gitTest
 
                 if option.force
-                    gitCmd = ' checkout -f master';
+                    gitCmd = '" checkout -f master';
                 else
-                    gitCmd = ' checkout master';
+                    gitCmd = '" checkout master';
                 end
                 
-                [~,~] = system([option.git, gitCmd]);
+                [~,~] = system(['"', option.git, gitCmd]);
+                
             end
             
             % ---------------------------------------
@@ -480,21 +481,75 @@ classdef Chromatography
             if ~isempty(option.branch)
                 
                 if option.force
-                    gitCmd = [' checkout -f ', option.branch];
+                    gitCmd = ['" checkout -f ', option.branch];
                 else
-                    gitCmd = [' checkout ', option.branch];
+                    gitCmd = ['" checkout ', option.branch];
                 end
                 
-                [~,~] = system([option.git, gitCmd]);
+                [~,~] = system(['"', option.git, gitCmd]);
+                
             end
         
             % ---------------------------------------
             % Status
             % ---------------------------------------
-            Chromatography.dispMsg(option.verbose, 'status', 'Update complete!');
-            Chromatography.dispMsg(option.verbose, 'newline');
-            Chromatography.dispMsg(option.verbose, 'version');
-            Chromatography.dispMsg(option.verbose, 'header', 'EXIT');
+            obj.dispMsg('status', 'Update complete!');
+            obj.dispMsg('newline');
+            obj.dispMsg('version');
+            obj.dispMsg('header', 'EXIT');
+            
+        end
+        
+    end
+    
+    % ---------------------------------------
+    % Methods (private)
+    % ---------------------------------------
+    methods (Access = private)
+        
+        function dispMsg(obj, varargin)
+            
+            if ~obj.verbose
+                return
+            end
+            
+            switch varargin{1}
+                
+                case 'header'
+                    fprintf(['\n', repmat('-',1,50), '\n']);
+                    fprintf(' %s', varargin{2});
+                    fprintf(['\n', repmat('-',1,50), '\n\n']);
+                    
+                case 'counter'
+                    m = num2str(varargin{2});
+                    n = num2str(varargin{3});
+                    m = [repmat('0', 1, length(n)-length(m)), m];
+                    fprintf([' [', m, '/', n, ']']);
+                    
+                case 'status'
+                    fprintf(' STATUS  %s \n', varargin{2});
+                    
+                case 'error'
+                    fprintf(2, '\n ERROR  ');
+                    fprintf('%s \n\n', varargin{2});
+                    
+                case 'version'
+                    fprintf(' Chromatography Toolbox v');
+                    fprintf('%s \n', obj.version);
+                    
+                case 'newline'
+                    fprintf('\n');
+                    
+                case 'string'
+                    fprintf('%s', varargin{2});
+                    
+                case 'bytes'
+                    fprintf('%s', Chromatography.parseFileSize(varargin{2}));
+                    
+                case 'time'
+                    fprintf('%s', Chromatography.parseElapsedTime(varargin{2}));
+                    
+            end
             
         end
         
@@ -506,96 +561,52 @@ classdef Chromatography
     methods (Static = true)
         
         
-        function varargout = getPlatform(varargin)
+        function x = getPlatform()
             
             if ismac()
-                varargout{1} = 'mac';
+                x = 'mac';
             elseif isunix()
-                varargout{1} = 'linux';
+                x = 'linux';
             elseif ispc()
-                varargout{1} = 'windows';
+                x = 'windows';
             else
-                varargout{1} = 'unknown';
+                x = 'unknown';
             end
             
         end
         
-        function varargout = getEnvironment(varargin)
+        function x = getEnvironment()
             
             if ~isempty(ver('MATLAB'))
-                varargout{1} = 'matlab';
+                x = 'matlab';
             elseif ~isempty(ver('OCTAVE'))
-                varargout{1} = 'octave';
+                x = 'octave';
+            else
+                x = 'unknown';
             end
             
         end
-        
-        function dispMsg(varargin)
-            
-            if varargin{1}
-                return
-            end
-            
-            switch varargin{2}
-                
-                case 'header'
-                    fprintf(['\n', repmat('-',1,50), '\n']);
-                    fprintf(' %s', varargin{3});
-                    fprintf(['\n', repmat('-',1,50), '\n\n']);
-                    
-                case 'counter'
-                    m = num2str(varargin{3});
-                    n = num2str(varargin{4});
-                    m = [repmat('0', 1, length(n)-length(m)), m];
-                    fprintf([' [', m, '/', n, ']']);
-                    
-                case 'status'
-                    fprintf(' STATUS  %s \n', varargin{3});
-                    
-                case 'error'
-                    fprintf(2, ' ERROR   ');
-                    fprintf('%s \n', varargin{3});
-                    
-                case 'version'
-                    fprintf(' Chromatography Toolbox v');
-                    fprintf('%s \n', Chromatography.version);
-                    
-                case 'newline'
-                    fprintf('\n');
-                    
-                case 'string'
-                    fprintf('%s', varargin{3});
-                    
-                case 'bytes'
-                    fprintf('%s', parseFileSize(varargin{3}));
-                    
-                case 'time'
-                    fprintf('%s', parseElapsedTime(varargin{3}));
-                    
-            end
-            
-        end
-        
-        function varargout = parseFileSize(varargin)
+
+        function x = parseFileSize(x)
             
             if x > 1E9
-                varargout{1} = [num2str(varargin{1}/1E6, '%.1f'), ' GB'];
+                x = [num2str(x/1E9, '%.1f'), ' GB'];
             elseif x > 1E6
-                varargout{1} = [num2str(varargin{1}/1E6, '%.1f'), ' MB'];
+                x = [num2str(x/1E6, '%.1f'), ' MB'];
             elseif x > 1E3
-                varargout{1} = [num2str(varargin{1}/1E3, '%.1f'), ' KB'];
+                x = [num2str(x/1E3, '%.1f'), ' KB'];
             else
-                varargout{1} = [num2str(varargin{1}/1E3, '%.3f'), ' KB'];
+                x = [num2str(x/1E3, '%.3f'), ' KB'];
             end
             
         end
         
-        function varargout = parseElapsedTime(varargin)
+        function x = parseElapsedTime(x)
             
             if x > 60
-                varargout{1} = [num2str(varargin{1}/60, '%.1f'), ' min'];
+                x = [num2str(x/60, '%.1f'), ' min'];
             else
-                varargout{1} = [num2str(varargin{1}, '%.1f'), ' sec'];
+                x = [num2str(x, '%.1f'), ' sec'];
             end
             
         end
