@@ -1,47 +1,47 @@
 classdef Chromatography
-% ------------------------------------------------------------------------
-% Class       : Chromatography
-% Description : Functions for chromatography and mass spectrometry data
-%
-% Version     : 0.1.6-dev
-% Website     : https://github.com/chemplexity/chromatography
-%------------------------------------------------------------------------
-%
-% ------------------------------------------------------------------------
-% Syntax
-% ------------------------------------------------------------------------
-%   obj = Chromatography;
-%
-% ------------------------------------------------------------------------
-% Methods
-% ------------------------------------------------------------------------
-%   obj.import
-%       Description : import instrument data files
-%       Syntax      : data = obj.import(filetype, Name, Value)
-%
-%   obj.centroid
-%       Description : centroid mass values
-%       Syntax      : data = obj.centroid(data, Name, Value)
-%
-%   obj.baseline
-%       Description : calculate baseline for chromatogram
-%       Syntax      : data = obj.baseline(data, Name, Value)
-%
-%   obj.smooth
-%       Description : smooth chromatogram
-%       Syntax      : data = obj.smooth(data, Name, Value)
-%
-%   obj.integrate
-%       Description : find and integrate peaks in chromatogram
-%       Syntax      : data = obj.integrate(data, Name, Value)
-%
-%   obj.visualize
-%       Description : plot chromatogram or mass spectra
-%       Syntax      : fig = obj.visualize(data, Name, Value)
-%
-%   obj.update
-%       Description : updates toolbox to latest version
-%       Syntax      : obj.update
+    % ------------------------------------------------------------------------
+    % Class       : Chromatography
+    % Description : Functions for chromatography and mass spectrometry data
+    %
+    % Version     : 0.1.6-dev
+    % Website     : https://github.com/chemplexity/chromatography
+    %------------------------------------------------------------------------
+    %
+    % ------------------------------------------------------------------------
+    % Syntax
+    % ------------------------------------------------------------------------
+    %   obj = Chromatography;
+    %
+    % ------------------------------------------------------------------------
+    % Methods
+    % ------------------------------------------------------------------------
+    %   obj.import
+    %       Description : import instrument data files
+    %       Syntax      : data = obj.import(Name, Value)
+    %
+    %   obj.centroid
+    %       Description : centroid mass values
+    %       Syntax      : data = obj.centroid(data, Name, Value)
+    %
+    %   obj.baseline
+    %       Description : calculate baseline for chromatogram
+    %       Syntax      : data = obj.baseline(data, Name, Value)
+    %
+    %   obj.smooth
+    %       Description : smooth chromatogram
+    %       Syntax      : data = obj.smooth(data, Name, Value)
+    %
+    %   obj.integrate
+    %       Description : find and integrate peaks in chromatogram
+    %       Syntax      : data = obj.integrate(data, Name, Value)
+    %
+    %   obj.visualize
+    %       Description : plot chromatogram or mass spectra
+    %       Syntax      : fig = obj.visualize(data, Name, Value)
+    %
+    %   obj.update
+    %       Description : updates toolbox to latest version
+    %       Syntax      : obj.update
     
     % ---------------------------------------
     % Properties
@@ -75,15 +75,15 @@ classdef Chromatography
             
             % ---------------------------------------
             % Path
-            % ---------------------------------------     
+            % ---------------------------------------
             source = fileparts(mfilename('fullpath'));
             source = regexp(source, '.+(?=[@])', 'match');
-
+            
             addpath(source{1});
             addpath(genpath([source{1}, 'examples']));
             addpath(genpath([source{1}, 'src']));
             addpath(genpath([source{1}, 'tests']));
-                                  
+            
             % ---------------------------------------
             % Defaults
             % --------------------------------------
@@ -103,7 +103,7 @@ classdef Chromatography
             % ---------------------------------------
             % Options
             % ---------------------------------------
-            obj.options.import = {...                
+            obj.options.import = {...
                 '.D',   'Agilent (*.D)';
                 '.MS',  'Agilent (*.MS)';
                 '.CH',  'Agilent (*.CH)';
@@ -114,91 +114,6 @@ classdef Chromatography
             obj.options.export = {...
                 '.CSV', '(*.CSV)'};
             
-        end
-        
-        % ---------------------------------------
-        % Reset data
-        % ---------------------------------------
-        function data = reset(~, data, varargin)
-            
-            fprintf(['\n', repmat('-',1,50), '\n']);
-            fprintf(' RESET');
-            fprintf(['\n', repmat('-',1,50), '\n\n']);
-            
-            if ~isstruct(data)
-                
-                fprintf(' ERROR  Input data must be of type ''struct''\n');
-                
-                fprintf(['\n', repmat('-',1,50), '\n']);
-                fprintf(' EXIT');
-                fprintf(['\n', repmat('-',1,50), '\n\n']);
-                
-                return
-            end
-            
-            % ---------------------------------------
-            % Check input
-            % ---------------------------------------
-            input = @(x) find(strcmpi(varargin, x),1);
-            
-            % Option: 'samples'
-            if ~isempty(input('samples'))
-                n = varargin{input('samples')+1};
-                
-                % Input: 'default', 'all'
-                if any(strcmpi(n, {'default', 'all'}))
-                    n = 1:length(data);
-                    
-                % Input: numeric
-                elseif ~isnumeric(n)
-                    n = str2double(n);
-                    
-                    % Check for numeric input
-                    if ~any(isnan(n))
-                        n = round(n);
-                    else
-                        n = 1:length(data);
-                    end
-                    
-                    % Check input limits
-                    n = n(n <= length(data));
-                    n = n(n >= 1);
-                end
-                
-            else
-                
-                % Default: 'all'
-                n = 1:length(data);
-            end
-            
-            % ---------------------------------------
-            % Restore data to original values
-            % ---------------------------------------
-            fprintf([' STATUS  Restoring ', num2str(numel(n)), ' files...\n']);
-            
-            for i = 1:length(n)
-                
-                id = n(i);
-                
-                data(id).time       = data(id).backup.time;
-                data(id).tic.values = data(id).backup.tic;
-                data(id).xic.values = data(id).backup.xic;
-                data(id).mz         = data(id).backup.mz;
-                
-                data(id).tic.baseline = [];
-                data(id).xic.baseline = [];
-                
-                data(id).status.centroid  = 'N';
-                data(id).status.smoothed  = 'N';
-                data(id).status.baseline  = 'N';
-                data(id).status.integrate = 'N';
-                
-            end
-            
-            fprintf(['\n', repmat('-',1,50), '\n']);
-            fprintf(' EXIT');
-            fprintf(['\n', repmat('-',1,50), '\n\n']);
-
         end
         
         % ---------------------------------------
@@ -287,17 +202,13 @@ classdef Chromatography
                 data = check(data, basic);
                 
                 for i = 1:length(data)
-                    
                     data(i).file      = check(data(i).file, file);
                     data(i).sample    = check(data(i).sample, sample);
                     data(i).method    = check(data(i).method, method);
-                    
                     data(i).tic       = check(data(i).tic, tic);
                     data(i).tic.peaks = check(data(i).tic.peaks, peaks);
-                    
                     data(i).xic       = check(data(i).xic, xic);
                     data(i).xic.peaks = check(data(i).xic.peaks, peaks);
-                    
                     data(i).backup    = check(data(i).backup, backup);
                     data(i).status    = check(data(i).status, status);
                 end
@@ -349,110 +260,183 @@ classdef Chromatography
         end
         
         function update(varargin)
-        % ----------------------------------------------------------------
-        % Method      : Chromatography.update
-        % Description : Update toolbox to latest version (requires git)
-        % ----------------------------------------------------------------
-        %
-        % ----------------------------------------------------------------
-        % Syntax
-        % ----------------------------------------------------------------
-        %    Chromatography.update
+            % ------------------------------------------------------------
+            % Method      : Chromatography.update
+            % Description : Update toolbox to latest version
+            % ------------------------------------------------------------
+            %
+            % ------------------------------------------------------------
+            % Syntax
+            % ------------------------------------------------------------
+            %    Chromatography.update()
+            %    Chromatography.update(Name, Value)
+            %
+            % ------------------------------------------------------------
+            % Input (Name, Value)
+            % ------------------------------------------------------------
+            %   'git' -- path to git executable
+            %       empty (default) | string
+            %
+            %   'branch' -- select branch to checkout
+            %       empty (default) | 'master' | 'dev'
+            %
+            %   'force' -- force update and throwaway local changes
+            %       false (default) | true
+            %
+            %   'verbose' -- show progress in command window
+            %       true (default) | false
             
-            fprintf(['\n', repmat('-',1,50), '\n']);
-            fprintf(' UPDATE');
-            fprintf(['\n', repmat('-',1,50), '\n\n']);
+            % ---------------------------------------
+            % Defaults
+            % ---------------------------------------
+            default.git     = [];
+            default.branch  = [];
+            default.force   = false;
+            default.verbose = true;
             
-            fprintf([' Chromatography Toolbox v', Chromatography.version, '\n\n']);
+            % ---------------------------------------
+            % Variables
+            % ---------------------------------------
+            link.windows = 'https://git-scm.com/download/windows';
+            link.mac     = 'https://git-scm.com/download/mac';
+            link.linux   = 'https://git-scm.com/download/linux';
             
+            % ---------------------------------------
+            % Input
+            % ---------------------------------------
+            p = inputParser;
+            
+            addParameter(p, 'git',     default.git,    @ischar);
+            addParameter(p, 'branch',  default.branch, @ischar);
+            addParameter(p, 'force',   default.force);
+            addParameter(p, 'verbose', default.verbose);
+            
+            % ---------------------------------------
+            % Options
+            % ---------------------------------------
+            option.git     = p.Results.git;
+            option.branch  = p.Results.branch;
+            option.force   = p.Results.force;
+            option.verbose = p.Results.verbose;
+            
+            % ---------------------------------------
+            % Validate
+            % ---------------------------------------
+
+            % Parameter: 'git'
+            option.git = validateFile(option.git);
+            
+            % Parameter: 'branch'
+            validBranch = {'master', 'dev'};
+            
+            if ~isempty(option.branch) && ~any(strcmpi(option.branch, validBranch))
+                option.branch = [];
+            end
+            
+            % Parameter: 'force'
+            option.force = validateLogical(option.force, default.force);
+            
+            % Parameter: 'verbose'
+            option.verbose = validateLogical(option.verbose, default.verbose);
+                        
             % ---------------------------------------
             % Path
             % ---------------------------------------
-            source = fileparts(which('Chromatography'));
-            source = regexp(source, '.+(?=[@])', 'match');
+            Chromatography.dispMsg(option.verbose, 'header', 'UPDATE');
+            Chromatography.dispMsg(option.verbose, 'version');    
+            Chromatography.dispMsg(option.verbose, 'status', ...
+                'Checking online for updates...');
             
-            cd(source{1});
+            sourcePath = fileparts(mfilename('fullpath'));
+            sourcePath = regexp(sourcePath, '.+(?=[@])', 'match');
             
-            fprintf(' STATUS Checking online for updates... \n');
+            cd(sourcePath{1});
             
             % ---------------------------------------
             % Windows
             % ---------------------------------------
-            if ispc
+            if ispc && isempty(option.git)
                 
-                [status, ~] = system('where git');
+                [gitStatus, gitPath] = system('where git');
                 
-                if status
+                if gitStatus
+
+                    Chromatography.dispMsg(option.verbose, 'status',...
+                        'Searching system for ''git.exe''...');
                     
-                    fprintf(' STATUS  Searching system for ''git.exe''... \n');
+                    [gitStatus, gitPath] = system('dir C:\Users\*git.exe /s');
                     
-                    [status, output] = system('dir C:\Users\*git.exe /s');
-                    
-                    if status
+                    if gitStatus
                         
-                        link = 'https://git-scm.com/download/windows';
+                        Chromatography.dispMsg(option.verbose, 'status',...
+                            'Unable to find ''git.exe''...');
                         
-                        fprintf(' STATUS  Unable to find ''git.exe''... \n');
-                        fprintf(' STATUS  Visit ''%s'' to install Git for Windows...\n', link);
+                        Chromatography.dispMsg(option.verbose, 'status',...
+                            ['Visit ', link.windows, ' to and install Git for Windows...']);
                         
-                        fprintf(['\n', repmat('-',1,50), '\n']);
-                        fprintf(' EXIT');
-                        fprintf(['\n', repmat('-',1,50), '\n\n']);
+                        Chromatography.dispMsg(option.verbose, 'header',...
+                            'EXIT');
                         
                         return
                     end
                     
-                    git = regexp(output,'(?i)(?!of)\S[:]\\(\\|\w)*', 'match');
-                    git = [git{1}, '\git.exe'];
-                    
-                else
-                    git = 'git';
+                    gitPath = regexp(gitPath,'(?i)(?!of)\S[:]\\(\\|\w)*', 'match');
+                    gitPath = [gitPath{1}, filesep, 'git.exe'];
                 end
                 
-                % Update folder access
-                [~, ~] = system(['icacls "', source{1}, '\" /grant Users:(OI)(CI)F']);
-                
+                option.git = deblank(strtrim(gitPath));
+                                
             % ---------------------------------------
             % Unix
             % ---------------------------------------
-            elseif isunix
+            elseif isunix && isempty(option.git)
+
+                [gitStatus, gitPath] = system('which git');
                 
-                [status, ~] = system('which git');
-                
-                if status
+                if gitStatus
                     
+                    Chromatography.dispMsg(option.verbose, 'status',...
+                        'Unable to find ''git'' executable...');
+
                     if ismac
-                        link = 'https://git-scm.com/download/mac';
-                        fprintf(' STATUS  Visit ''%s'' to install Git for OSX...\n', link);
+                        Chromatography.dispMsg(option.verbose, 'status',...
+                            ['Visit ', link.mac, ' to and install Git for OSX...']);
                     else
-                        link = 'https://git-scm.com/download/linux';
-                        fprintf(' STATUS  Visit ''%s'' to install Git for Linux...\n', link);
+                        Chromatography.dispMsg(option.verbose, 'status',...
+                            ['Visit ', link.linux, ' to and install Git for Linux...']);
                     end
                     
-                    fprintf(['\n', repmat('-',1,50), '\n']);
-                    fprintf(' EXIT');
-                    fprintf(['\n', repmat('-',1,50), '\n\n']);
+                    Chromatography.dispMsg(option.verbose, 'header',...
+                        'EXIT');
                     
                     return
-                    
-                else
-                    git = 'git';
                 end
                 
+                option.git = deblank(strtrim(gitPath));
             end
-
+            
+            Chromatography.dispMsg(option.verbose, 'status',...
+                ['Using ', option.git, '...']);
+            
+            % ---------------------------------------
+            % Check permissions
+            % ---------------------------------------
+            if ispc
+                [~, ~] = system(['icacls "', option.git, '\" /grant Users:(OI)(CI)F']);
+            end
+            
             % ---------------------------------------
             % Check system git
             % ---------------------------------------
-            [status, ~] = system([git, ' --version']);
+            [gitTest, ~] = system([option.git, ' --version']);
             
-            if status
-                
-                fprintf(' STATUS  Error executing ''git --version''... \n');
-                
-                fprintf(['\n', repmat('-',1,50), '\n']);
-                fprintf(' EXIT');
-                fprintf(['\n', repmat('-',1,50), '\n\n']);
+            if gitTest
+
+                Chromatography.dispMsg(option.verbose, 'error',...
+                    'Error executing ''git --version''...');
+                        
+                Chromatography.dispMsg(option.verbose, 'header',...
+                    'EXIT');
                 
                 return
             end
@@ -460,57 +444,67 @@ classdef Chromatography
             % ---------------------------------------
             % Check git repository
             % ---------------------------------------
-            [status, ~] = system([git, ' status']);
+            [gitTest, ~] = system([option.git, ' status']);
             
-            if status
+            if gitTest
                 
-                fprintf(' STATUS  Initializing git repository... \n');
-                
+                Chromatography.dispMsg(option.verbose, 'status',...
+                    'Initializing git repository...');
+
                 [~,~] = system([git, ' init']);
                 [~,~] = system([git, ' remote add origin ', Chromatography.url, '.git']);
-                
             end
             
             % ---------------------------------------
             % Fetch latest updates
             % ---------------------------------------
-            fprintf(' STATUS  Fetching latest updates from ''%s''...\n', Chromatography.url);
+            Chromatography.dispMsg(option.verbose, 'status',...
+                    ['Fetching latest updates from ', Chromatography.url]);
+
+            [~,~] = system([option.git, ' pull']);
             
-            [~,~] = system([git, ' pull']);
-            
-            if status
-                [~,~] = system([git, ' checkout -f master']);
+            if gitTest
+
+                if option.force
+                    gitCmd = ' checkout -f master';
+                else
+                    gitCmd = ' checkout master';
+                end
+                
+                [~,~] = system([option.git, gitCmd]);
             end
             
             % ---------------------------------------
             % Checkout branch
             % ---------------------------------------
-            if nargin > 0 && ischar(varargin{1})
+            if ~isempty(option.branch)
                 
-                switch varargin{1}
-                    
-                    case {'master'}
-                        [~,~] = system([git, ' checkout -f master']);
-                        
-                    case {'dev', 'development'}
-                        [~,~] = system([git, ' checkout -f dev']);
+                if option.force
+                    gitCmd = [' checkout -f ', option.branch];
+                else
+                    gitCmd = [' checkout ', option.branch];
                 end
+                
+                [~,~] = system([option.git, gitCmd]);
             end
-            
-            fprintf([' STATUS  Update complete!', '\n\n']);
-            fprintf([' Chromatography Toolbox v', Chromatography.version, '\n']);
-            
-            fprintf(['\n', repmat('-',1,50), '\n']);
-            fprintf(' EXIT');
-            fprintf(['\n', repmat('-',1,50), '\n\n']);
+        
+            % ---------------------------------------
+            % Status
+            % ---------------------------------------
+            Chromatography.dispMsg(option.verbose, 'status', 'Update complete!');
+            Chromatography.dispMsg(option.verbose, 'newline');
+            Chromatography.dispMsg(option.verbose, 'version');
+            Chromatography.dispMsg(option.verbose, 'header', 'EXIT');
             
         end
+        
     end
     
     % ---------------------------------------
     % Methods (static)
     % ---------------------------------------
     methods (Static = true)
+        
         
         function varargout = getPlatform(varargin)
             
@@ -522,12 +516,12 @@ classdef Chromatography
                 varargout{1} = 'windows';
             else
                 varargout{1} = 'unknown';
-            end 
+            end
             
         end
         
         function varargout = getEnvironment(varargin)
-           
+            
             if ~isempty(ver('MATLAB'))
                 varargout{1} = 'matlab';
             elseif ~isempty(ver('OCTAVE'))
@@ -535,5 +529,113 @@ classdef Chromatography
             end
             
         end
+        
+        function dispMsg(varargin)
+            
+            if varargin{1}
+                return
+            end
+            
+            switch varargin{2}
+                
+                case 'header'
+                    fprintf(['\n', repmat('-',1,50), '\n']);
+                    fprintf(' %s', varargin{3});
+                    fprintf(['\n', repmat('-',1,50), '\n\n']);
+                    
+                case 'counter'
+                    m = num2str(varargin{3});
+                    n = num2str(varargin{4});
+                    m = [repmat('0', 1, length(n)-length(m)), m];
+                    fprintf([' [', m, '/', n, ']']);
+                    
+                case 'status'
+                    fprintf(' STATUS  %s \n', varargin{3});
+                    
+                case 'error'
+                    fprintf(2, ' ERROR   ');
+                    fprintf('%s \n', varargin{3});
+                    
+                case 'version'
+                    fprintf(' Chromatography Toolbox v');
+                    fprintf('%s \n', Chromatography.version);
+                    
+                case 'newline'
+                    fprintf('\n');
+                    
+                case 'string'
+                    fprintf('%s', varargin{3});
+                    
+                case 'bytes'
+                    fprintf('%s', parseFileSize(varargin{3}));
+                    
+                case 'time'
+                    fprintf('%s', parseElapsedTime(varargin{3}));
+                    
+            end
+            
+        end
+        
+        function varargout = parseFileSize(varargin)
+            
+            if x > 1E9
+                varargout{1} = [num2str(varargin{1}/1E6, '%.1f'), ' GB'];
+            elseif x > 1E6
+                varargout{1} = [num2str(varargin{1}/1E6, '%.1f'), ' MB'];
+            elseif x > 1E3
+                varargout{1} = [num2str(varargin{1}/1E3, '%.1f'), ' KB'];
+            else
+                varargout{1} = [num2str(varargin{1}/1E3, '%.3f'), ' KB'];
+            end
+            
+        end
+        
+        function varargout = parseElapsedTime(varargin)
+            
+            if x > 60
+                varargout{1} = [num2str(varargin{1}/60, '%.1f'), ' min'];
+            else
+                varargout{1} = [num2str(varargin{1}, '%.1f'), ' sec'];
+            end
+            
+        end
+        
+        function x = validateFile(x)
+           
+            if isempty(x) || ~ischar(x)
+                x = [];
+                return
+            else
+                [~, x] = fileattrib(x);
+            end
+            
+            if isstruct(x)
+                x = x.Name;
+            else
+                x = [];
+            end
+            
+        end
+        
+        function x = validateLogical(x, default)
+            
+            isTrue  = {'on',  't', 'true',  'y', 'yes', '1'};
+            isFalse = {'off', 'f', 'false', 'n', 'no',  '0'};
+            
+            if ischar(x) && any(strcmpi(x, isTrue))
+                x = true;
+            elseif ischar(x) && any(strcmpi(x, isFalse))
+                x = false;
+            elseif isnumeric(x) && x == 1
+                x = true;
+            elseif isnumeric(x) && x == 0
+                x = false;
+            elseif ~islogical(x)
+                x = default;
+            end
+            
+        end
+        
     end
+    
 end
