@@ -39,13 +39,6 @@ function varargout = ImportThermo(varargin)
 % References
 % ------------------------------------------------------------------------
 %   'unfinnigan'
-%
-% ------------------------------------------------------------------------
-% Issues
-% ------------------------------------------------------------------------
-%   * Large files > 200 MB
-%   * Unable to import 'profile' MS/MS data
-%   * Supported file versions: V.57, V.62, V.63
 
 % ---------------------------------------
 % Defaults
@@ -181,7 +174,7 @@ for i = 1:length(file)
     % ---------------------------------------
     % Permissions
     % ---------------------------------------
-    if ~file(i).UserRead
+    if ~file(i).UserRead || file(i).directory
         continue
     end
     
@@ -190,19 +183,19 @@ for i = 1:length(file)
     % ---------------------------------------
     [filePath, fileName, fileExt] = fileparts(file(i).Name);
     
-    data(i,1).file_path = filePath;
-    data(i,1).file_name = [fileName, fileExt];
-    data(i,1).file_size = subsref(dir(file(i).Name), substruct('.', 'bytes'));   
+    data.file_path = filePath;
+    data.file_name = [fileName, fileExt];
+    data.file_size = subsref(dir(file(i).Name), substruct('.', 'bytes'));   
     
     % ---------------------------------------
     % Status
     % ---------------------------------------
-    [~, statusPath] = fileparts(data(i,1).file_path);
-    statusPath = ['..', filesep, statusPath, filesep, data(i,1).file_name];
+    [~, statusPath] = fileparts(data.file_path);
+    statusPath = ['..', filesep, statusPath, filesep, data.file_name];
     
     status(option.verbose, 'loading_file', i, length(file));
     status(option.verbose, 'file_name', statusPath);
-    status(option.verbose, 'loading_stats', data(i,1).file_size);
+    status(option.verbose, 'loading_stats', data.file_size);
     
     % ---------------------------------------
     % Read
@@ -213,12 +206,12 @@ for i = 1:length(file)
         
         case {'all', 'default'}
             
-            data = parseinfo(f, data(i,1));
+            datao{i} = parseinfo(f, data);
             %data(i,1) = parsedata(f, data(i,1));
             
         case {'header'}
             
-            data = parseinfo(f, data(i,1));
+            datao{i} = parseinfo(f, data);
             
     end
     
@@ -229,10 +222,10 @@ end
 % ---------------------------------------
 % Exit
 % ---------------------------------------
-status(option.verbose, 'stats', length(data), toc, sum([data.file_size]));
+%status(option.verbose, 'stats', length(datao), toc, sum([data.file_size]));
 status(option.verbose, 'exit');
 
-varargout{1} = data;
+varargout{1} = datao;
 
 end
 
@@ -250,7 +243,7 @@ switch varargin{2}
     case 'exit'
         fprintf(['\n', repmat('-',1,50), '\n']);
         fprintf(' EXIT');
-        fprintf(['\n', repmat('-',1,50), '\n']);
+        fprintf(['\n', repmat('-',1,50), '\n\n']);
         
     case 'file_count'
         fprintf([' STATUS  Importing ', num2str(varargin{3}), ' files...', '\n\n']);
@@ -418,7 +411,7 @@ end
 function str = parsebytes(x)
 
 if x > 1E9
-    str = [num2str(x/1E6, '%.1f'), ' GB'];
+    str = [num2str(x/1E9, '%.1f'), ' GB'];
 elseif x > 1E6
     str = [num2str(x/1E6, '%.1f'), ' MB'];
 elseif x > 1E3
@@ -510,6 +503,10 @@ end
 data.instrument_id_offset = ftell(f);
 data.instrument_id = InstID(f, data.instrument_id_offset);
 
+end
+
+function data = parsedata(f, data)
+
 % Data: method file
 
 % Data: scan data
@@ -526,9 +523,6 @@ data.instrument_id = InstID(f, data.instrument_id_offset);
 % Data: tune file
 
 % Data: scan index stream
-
-% Data: scan event stream
-%data.scan_trailer_offset    = data.run_header.scan_trailer_address;
 
 end
 

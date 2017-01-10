@@ -82,13 +82,17 @@ classdef Chromatography
             % ---------------------------------------
             % Path
             % ---------------------------------------
-            source = fileparts(mfilename('fullpath'));
-            source = regexp(source, '.+(?=[@])', 'match');
+            sourceFile = fileparts(mfilename('fullpath'));
+            [sourcePath, sourceFile] = fileparts(sourceFile);
             
-            addpath(source{1});
-            addpath(genpath([source{1}, 'examples']));
-            addpath(genpath([source{1}, 'src']));
-            addpath(genpath([source{1}, 'tests']));
+            if ~strcmpi(sourceFile, '@Chromatography')
+                sourcePath = [sourcePath, filesep, sourceFile];
+            end
+            
+            addpath(sourcePath);
+            addpath(genpath([sourcePath, filesep, 'examples']));
+            addpath(genpath([sourcePath, filesep, 'src']));
+            addpath(genpath([sourcePath, filesep, 'tests']));
             
             % ---------------------------------------
             % Defaults
@@ -332,20 +336,20 @@ classdef Chromatography
             % ---------------------------------------
 
             % Parameter: 'git'
-            option.git = Chromatography.validateFile(option.git);
+            option.git = obj.validateFile(option.git);
             
             % Parameter: 'branch'
             validBranch = {'master', 'dev'};
             
             if ~isempty(option.branch) && ~any(strcmpi(option.branch, validBranch))
-                option.branch = [];
+                option.branch = default.branch;
             end
             
             % Parameter: 'force'
-            option.force = Chromatography.validateLogical(option.force, default.force);
+            option.force = obj.validateLogical(option.force, default.force);
             
             % Parameter: 'verbose'
-            obj.verbose = Chromatography.validateLogical(option.verbose, default.verbose);
+            obj.verbose = obj.validateLogical(option.verbose, default.verbose);
              
             % ---------------------------------------
             % Path
@@ -355,10 +359,14 @@ classdef Chromatography
             obj.dispMsg('newline');
             obj.dispMsg('status', 'Checking online for updates...');
             
-            sourcePath = fileparts(mfilename('fullpath'));
-            sourcePath = regexp(sourcePath, '.+(?=[@])', 'match');
+            sourceFile = fileparts(mfilename('fullpath'));
+            [sourcePath, sourceFile] = fileparts(sourceFile);
             
-            cd(sourcePath{1});
+            if ~strcmpi(sourceFile, '@Chromatography')
+                sourcePath = [sourcePath, filesep, sourceFile];
+            end
+            
+            cd(sourcePath);
             
             % ---------------------------------------
             % Windows
