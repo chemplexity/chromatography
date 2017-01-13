@@ -39,7 +39,7 @@ function data = baseline(obj, varargin)
 %
 %   'verbose' -- show progress in command window
 %       true (default) | false
-%            
+%
 % ------------------------------------------------------------------------
 % Examples
 % ------------------------------------------------------------------------
