@@ -277,6 +277,10 @@ for i = 1:length(file)
                     data{end}.mz(:,1)= [];
                 end
                 
+                if ~isempty(data{end}.xic.values) && isempty(data{end}.mz)
+                    data{end}.mz = 0;
+                end
+                
                 totalBytes = loadstats(file(i), data{end}, option, totalBytes);
                 
             end
@@ -759,8 +763,6 @@ if any(cellfun(@(x) any(strcmpi(x, {'agilent', 'd'})), str))
     str(cellfun(@(x) any(strcmpi(x, {'agilent', 'd'})), str)) = [];
     str = [str, 'ms', 'ch', 'uv'];
 end
-
-
 
 if any(strcmpi(str, 'netcdf'))
     str(strcmpi(str, 'netcdf')) = [];

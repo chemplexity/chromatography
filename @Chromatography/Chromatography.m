@@ -97,8 +97,6 @@ classdef Chromatography
             % ---------------------------------------
             % Defaults
             % --------------------------------------
-            obj.defaults.baseline_smoothness  = 1E6;
-            obj.defaults.baseline_asymmetry   = 1E-4;
             obj.defaults.smoothing_smoothness = 0.5;
             obj.defaults.smoothing_asymmetry  = 0.5;
             obj.defaults.integrate_model      = 'emg';
@@ -538,8 +536,8 @@ classdef Chromatography
                     fprintf(' STATUS  %s \n', varargin{2});
                     
                 case 'error'
-                    fprintf(2, '\n ERROR  ');
-                    fprintf('%s \n\n', varargin{2});
+                    fprintf(2, ' ERROR  ');
+                    fprintf('%s \n', varargin{2});
                     
                 case 'version'
                     fprintf(' Chromatography Toolbox v');
@@ -594,7 +592,7 @@ classdef Chromatography
             end
             
         end
-
+        
         function x = parseFileSize(x)
             
             if x > 1E9
@@ -620,7 +618,7 @@ classdef Chromatography
         end
         
         function x = validateFile(x)
-           
+            
             if isempty(x) || ~ischar(x)
                 x = [];
                 return
@@ -651,6 +649,48 @@ classdef Chromatography
                 x = false;
             elseif ~islogical(x)
                 x = default;
+            end
+            
+        end
+        
+        function x = validateSample(x, n)
+            
+            if n == 0
+                return
+            end
+            
+            if ischar(x) && strcmpi(x, 'all')
+                x = 1:n;
+            elseif ischar(x)
+                x = str2double(x);
+            end
+            
+            if isnumeric(x)
+                x = unique(round(x));
+                x(x > n | x < 1 | isnan(x)) = [];
+            end
+            
+        end
+        
+        function x = validateChannel(x, n)
+            
+            if n == 0
+                x = 0;
+            end
+            
+            if ischar(x) && strcmpi(x, 'tic')
+                x = repmat({1}, length(n), 1);
+            elseif ischar(x) && strcmpi(x, 'all')
+                x = arrayfun(@(x) repmat({1:x}, 1, 1), n);
+            end
+            
+            if isnumeric(x)
+                x = unique(round(x));
+                x = repmat({x}, length(n), 1);
+            end
+            
+            for i = 1:length(n)
+                x{i}(x{i} > n(i) | x{i} < 1 | isnan(x{i})) = [];
             end
             
         end
