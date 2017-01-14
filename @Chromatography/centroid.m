@@ -1,4 +1,4 @@
-function varargout = centroid(obj, varargin)
+function data = centroid(obj, varargin)
 % ------------------------------------------------------------------------
 % Method      : Chromatography.centroid
 % Description : Centroid mass values
@@ -20,7 +20,19 @@ function varargout = centroid(obj, varargin)
 % Input (Name, Value)
 % ------------------------------------------------------------------------
 %   'samples' -- index of samples in data
-%       'all' | number
+%       'all' (default) | number
+%
+%   'tolerance' -- maximum bin size used for centroiding
+%       1 (default) | number
+%
+%   'iterations' -- number of iterations to perform centroiding
+%       10 (default) | number
+%
+%   'blocksize' -- maximum number of bytes to process at a single time
+%       10E6 (default) | number
+%
+%   'verbose' -- show progress in command window
+%       true (default) | false
 %
 % ------------------------------------------------------------------------
 % Examples
@@ -28,148 +40,97 @@ function varargout = centroid(obj, varargin)
 %   data = obj.centroid(data)
 %   data = obj.centroid(data, 'samples', [2:5, 8, 10])
 
-% Check input
-[data, options] = parse(obj, varargin);
+% ---------------------------------------
+% Defaults
+% ---------------------------------------
+default.samples    = 'all';
+default.tolerance  = 1;
+default.iterations = 10;
+default.blocksize  = 10E6;
+default.verbose    = true;
 
-% Variables
-samples = options.samples;
+% ---------------------------------------
+% Input
+% ---------------------------------------
+p = inputParser;
 
-count.before = 0;
-count.after = 0;
-count.removed = 0;
-timer = 0;
+addRequired(p, 'data', @isstruct);
 
-fprintf([...
-    '\n[CENTROID]\n',...
-    '\nCentroiding mass values for ', num2str(length(samples)), ' samples...\n\n']);
+addParameter(p, 'samples',    default.samples);
+addParameter(p, 'tolerance',  default.tolerance,  @isscalar);
+addParameter(p, 'iterations', default.iterations, @isscalar);
+addParameter(p, 'blocksize',  default.blocksize,  @isscalar);
+addParameter(p, 'verbose',    default.verbose);
 
-for i = 1:length(samples)
-    tic;
+parse(p, varargin{:});
+
+% ---------------------------------------
+% Options
+% ---------------------------------------
+data = p.Results.data;
+
+option.samples    = p.Results.samples;
+option.tolerance  = p.Results.tolerance;
+option.iterations = p.Results.iterations;
+option.blocksize  = p.Results.blocksize;
+option.verbose    = p.Results.verbose;
+
+% ---------------------------------------
+% Validate
+% ---------------------------------------
+
+% Input: data
+data = obj.format('validate', data);
+
+% Parameter: 'samples'
+n = length(data);
+option.samples = obj.validateSample(option.samples, n);
+
+% Parameter: 'verbose'
+obj.verbose = obj.validateLogical(option.verbose, default.verbose);
+
+% ---------------------------------------
+% Status
+% ---------------------------------------
+obj.dispMsg('header', 'CENTROID');
+
+if isempty(option.samples)
+    obj.dispMsg('error', 'Invalid sample selection...');
+    obj.dispMsg('header', 'EXIT');
+    return
+end
+
+% ---------------------------------------
+% Centroid
+% ---------------------------------------
+for i = 1:length(option.samples)
+
+    row = option.samples(i);
+    col = length(data(row).mz);
     
-    % Display progress
-    fprintf(['[', num2str(i), '/', num2str(length(samples)), ']']);
+    obj.dispMsg('counter', i, length(option.samples));
+    obj.dispMsg('sample', row);
     
-    % Input values
-    y = data(samples(i)).xic.values;
-    mz = data(samples(i)).mz;
-    n = length(mz);
-    
-    % Centroid data
-    if length(mz) > 1
-        [mz, y] = Centroid(mz, y);
+    if col > 1
+        obj.dispMsg('channel', 'xic', col);
+    else
+        obj.dispMsg('channel', 'xic', 0);
+        continue
     end
     
-    % Output values
-    data(samples(i)).xic.values = y;
-    data(samples(i)).mz = mz;
+    [data(row).mz, data(row).xic.values] = Centroid(...
+        data(row).mz, ...
+        data(row).xic.values,...
+        'tolerance',  option.tolerance,...
+        'iterations', option.iterations,...
+        'blocksize',  option.blocksize);
     
-    % Clear baseline
-    data(samples(i)).xic.baseline = [];
-    
-    % Elapsed time
-    timer = timer + toc;
-    fprintf([' in ', num2str(timer, '%.1f'), ' sec']);
-    
-    % Data processed (before|after|removed)
-    count.before = count.before + n;
-    count.after = count.after + length(mz);
-    count.removed = count.removed + (n - length(mz));
-    
-    fprintf([' (', num2str(n), '|', num2str(length(mz)), '|', num2str(n - length(mz)), ')\n']);
-    
-    % Update status
-    data(samples(i)).status.centroid = 'Y';
-end
-
-% Return data
-varargout{1} = data;
-
-% Display summary
-if timer > 60
-    elapsed = [num2str(timer/60, '%.1f'), ' min'];
-else
-    elapsed = [num2str(timer, '%.1f'), ' sec'];
-end
-
-if count.before > 0
-    compression = num2str(100-(count.after/count.before)*100, '%.1f');
-else
-    compression = '0.0';
-end
-
-fprintf(['\n',...
-    'Samples     : ', num2str(length(samples)), '\n',...
-    'Elapsed     : ', elapsed, '\n',...
-    'In/Out      : ', num2str(count.before), '/', num2str(count.after), '\n'...
-    'Compression : ', compression, ' %%\n']);
-
-fprintf('\n[COMPLETE]\n\n');
-
-end
-
-% Parse input
-function varargout = parse(obj, varargin)
-
-varargin = varargin{1};
-nargin = length(varargin);
-
-% Check input
-if nargin < 1
-    error('Not enough input arguments.');
-    
-elseif isstruct(varargin{1})
-    data = obj.format('validate', varargin{1});
-    
-else
-    error('Undefined input arguments of type ''data''.');
-end
-
-% Check user input
-input = @(x) find(strcmpi(varargin, x),1);
-
-% Sample options
-if ~isempty(input('samples'))
-    samples = varargin{input('samples')+1};
-    
-    % Set keywords
-    samples_all = {'default', 'all'};
-    
-    % Check for valid input
-    if any(strcmpi(samples, samples_all))
-        samples = 1:length(data);
-        
-        
-    elseif ~isnumeric(samples)
-        
-        % Check string input
-        samples = str2double(samples);
-        
-        % Check for numeric input
-        if ~any(isnan(samples))
-            samples = round(samples);
-        else
-            samples = 1:length(data);
-        end
+    if length(data(row).mz) < col
+        data(row).xic.baseline = [];
     end
     
-    % Check maximum input value
-    if max(samples) > length(data)
-        samples = samples(samples <= length(data));
-    end
-    
-    % Check minimum input value
-    if min(samples < 1)
-        samples = samples(samples >= 1);
-    end
-    
-    options.samples = samples;
-    
-else
-    options.samples = 1:length(data);
 end
 
-% Return input
-varargout{1} = data;
-varargout{2} = options;
+obj.dispMsg('header', 'EXIT');
 
 end

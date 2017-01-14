@@ -539,6 +539,17 @@ classdef Chromatography
                     fprintf(2, ' ERROR  ');
                     fprintf('%s \n', varargin{2});
                     
+                case 'sample'
+                    fprintf([' Sample #', num2str(varargin{2})]);
+                    
+                case 'channel'
+                    if varargin{3} == 1
+                        n = '1 channel';
+                    else
+                        n = [num2str(varargin{3}), ' channels'];
+                    end
+                    fprintf([', ', upper(varargin{2}), ' (', n, ')\n']);
+                    
                 case 'version'
                     fprintf(' Chromatography Toolbox v');
                     fprintf('%s \n', obj.version);

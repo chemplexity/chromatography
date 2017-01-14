@@ -83,6 +83,8 @@ end
 % Parameter: 'order' 
 if order < 0
     order = 0;
+else
+    order = round(order(1));
 end
 
 % ---------------------------------------
@@ -90,9 +92,8 @@ end
 % ---------------------------------------
 dx = x;
 dy = y;
-n  = round(order(1));
 
-for i = 1:n
+for i = 1:order
     
     dy = bsxfun(@rdivide,...
         bsxfun(@minus, dy, circshift(dy,[1,0])),...

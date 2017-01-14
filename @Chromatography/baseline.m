@@ -138,8 +138,10 @@ for i = 1:length(option.samples)
     row = option.samples(i);
     col = option.ions{i};
     
-    updateMsg(obj, i, length(option.samples), row, field, length(col));
-    
+    obj.dispMsg('counter', i, length(option.samples));
+    obj.dispMsg('sample', row);
+    obj.dispMsg('channel', field, length(col));
+        
     y = data(row).(field).values;
     b = data(row).(field).baseline;
     
@@ -162,22 +164,5 @@ for i = 1:length(option.samples)
 end
 
 obj.dispMsg('header', 'EXIT');
-
-end
-
-function updateMsg(obj, m, n, sample, type, channel)
-
-obj.dispMsg('counter', m, n);
-    
-obj.dispMsg('string', [' Sample #', num2str(sample)]);
-obj.dispMsg('string', [', ', upper(type), ' (']);
-
-if channel == 1
-    obj.dispMsg('string', '1 baseline)...');
-else
-    obj.dispMsg('string', [num2str(channel), ' baselines)...']);
-end
-
-obj.dispMsg('newline');
 
 end
