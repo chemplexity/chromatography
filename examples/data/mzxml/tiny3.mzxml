@@ -1,0 +1,70 @@
+<?xml version="1.0" encoding="ISO-8859-1"?>
+<mzXML
+ xmlns="http://sashimi.sourceforge.net/schema_revision/mzXML_3.0"
+ xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+ xsi:schemaLocation="http://sashimi.sourceforge.net/schema_revision/mzXML_3.0 http://sashimi.sourceforge.net/schema_revision/mzXML_3.0/mzXML_idx_3.0.xsd">
+ <msRun scanCount="3113"
+        startTime="PT5.0005S"
+        endTime="PT119.982S">
+  <parentFile fileName="file://PROTEOMICSDEV01/Inetpub/wwwroot/ISB/data/class/day1/runsearch/ICAT_test4.RAW"
+              fileType="RAWData"
+              fileSha1="71be39fb2700ab2f3c8b2234b91274968b6899b1"/>
+  <msInstrument>
+	<msManufacturer category="msManufacturer" value="ThermoFinnigan"/>
+  	<msModel category="msModel" value="LCQ Deca"/>
+ 	<msIonisation category="msIonisation" value="ESI"/>
+	<msMassAnalyzer category="msMassAnalyzer" value="Ion Trap"/>
+	<msDetector category="msDetector" value="EMT"/>
+    <software type="acquisition"
+              name="Xcalibur"
+              version="1.3 alpha 8"/>
+  </msInstrument>
+  <dataProcessing centroided="0">
+    <software type="conversion"
+              name="ReAdW.exe"
+              version="1.2"/>
+  </dataProcessing>
+  <scan num="19"
+        msLevel="1"
+        peaksCount="1313"
+        polarity="+"
+        scanType="Full"
+        retentionTime="PT353.43S"
+        lowMz="400.39"
+        highMz="1795.56"
+	basePeakMz="445.347"
+	basePeakIntensity="120053"
+	totIonCurrent="1.66755e+007">
+    <peaks precision="32"
+           byteOrder="network"
+           contentType="m/z-int"
+           compressionType="zlib"
+           compressedLen="782">eJylzskRUEEIBNAJjdAmNELzoBx89VtG5ULRK31+Tp/f5/7aFfjibnDv2ZOrz1779SW9eTPmdMA33unA+4e89/Q0u9hbj3nbP7Pt17f9kfrtae7R6fMf8ZmU61Zvnri95iSdPVuue+M33fT5R7rFU86B3/KTLukT7vwt/jqpP+FJN7uCvsO96ba/kj7xd8G37bz6mjv5a+lLPvP7fM/gBW5/6ttyb+DFky5NBV9x34An3XZv+NbXbHPE9aV8+xMur87cZqe8G3TbH/bq68Crc1KPvLnNnXwzxX7t9bb/VT97+jvwKa/Ak978RtfozNGnzjv11PkedeKppwIub37qu9yp/3Dbn3LtTbj98v6x5aV8ffrv+Z4tT7859rz6K/DFbc6MutRjzgHXJ7/dW06f79Hnlp+pkH/h021/seUddemPtNV525/41D9Ti++13zz1he6GveU64g2eegdvduLtu+Bzpxz/UJfytz82n33i9ovbm/jUZ/4NeAVcnzr/sDf1zKiXT75a8D7fIz+3/cl/4M3xH3P0zb7sLS/pks/8u/DiqT/5nPlH/zaj64DLu1OO/bXgadIf4vJb733k0x/uyUn/iaf/3PZPjj779aVJPZu/4dUV9/CbT968hM/W7x+J9x+3Pf7h6P9XXS93ymvuTVds/eq3fveMPdtfh/v1L/kKuPp0b/kzqWfr1ZfyOuhe/9Jvftqpx7yk17fd6a8Ze7dJuc3edOmfpGt08uKJ93bss9epJTf9kXzFnf7QfwOuz3/sF5e3f7Y9db5n6+1FVwv+v33y9iXdTLOTP+Wbm3Zzm1Potlz5lJd8qe+A69v+cr/me9vrXWz94m55/3Kb673h9hz4pK/z5zF37rvcKeeC2z93s9XdgMunHnl75FNf6m92cSd/0t2Ay2/bvw63Ov8RT/1pzNdXAXf7z4x/vfaYZ27SmedOfv957ZupoDP3wM/WX2z7HHXJ51/2Jp254vqLO/1RbHO2O+ENbs+ma+6z8OLmq0s7/bP9Ze/wFz5tdSlXnz1Ows37AU1Iy5A=</peaks>
+  <scan num="20"
+        msLevel="2"
+        peaksCount="43"
+        polarity="+"
+        scanType="Full"
+        retentionTime="PT356.68S"
+        collisionEnergy="35"
+        lowMz="223.089"
+        highMz="531.078"
+	basePeakMz="428.905"
+	basePeakIntensity="301045"
+	totIonCurrent="764637">
+    <precursorMz precursorIntensity="120053">445.3466797</precursorMz>
+    <peaks precision="32"
+           byteOrder="network"
+           contentType="m/z-int"
+           compressionType="zlib"
+           compressedLen="55">eJw7wAABDQzYAbr4ARzyB9DoBhw0OnDAYQ66uAOaPDqNbh6x7kC3DxeA6UO3D10cxgcA3f0RQQ==</peaks>
+  </scan>
+  </scan>
+ </msRun>
+  <index name="scan">
+    <offset id="19">1209</offset>
+    <offset id="20">2577</offset>
+  </index>
+  <indexOffset>31713417</indexOffset>
+  <sha1>e83e234ed25a2e675ad8a3fbcd56f16585a237c2</sha1>
+</mzXML>

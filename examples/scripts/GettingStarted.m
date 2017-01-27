@@ -1,37 +1,35 @@
 %% Chromatography Toolbox - Getting Started
 %  -Data processing methods for liquid and gas chromatography
 %
-%  Try the following examples with the sample data provided (./Examples/Data)
+%  Try the following examples with the sample data provided (./examples/data)
 %
 %  Contents
 %
 %    1.0 Initialize
 %
 %    2.0 Import Data
-%    2.1 Append Data
+%    2.1 Import/Append Data
 %
 %    3.0 Centroid
 %    3.1 Centroid Parameters
 %
 %    4.0 Baseline
 %    4.1 Baseline Parameters
-%    4.2 Baseline Selection
+%    4.2 Baseline Parameters
 %
 %    5.0 Smooth
 %    5.1 Smoothing Parameters
-%    5.2 Smoothing Selection
+%    5.2 Smoothing Parameters
 %
 %    6.0 Peak Integration
 %    6.1 Peak Parameters
-%    6.2 Peak Selection
+%    6.2 Peak Parameters
 %
 %    7.0 Visualize
 %    7.1 Visualize Parameters
 %
-%    8.0 Reset Data
-%
-%    9.0 Mass Spectra
-%    9.1 Mass Spectra Export
+%    8.0 Mass Spectra
+%    8.1 Mass Spectra Export
 
 
 %% 1.0 Initialize
@@ -42,14 +40,14 @@ obj = Chromatography;
 %% 2.0 Import Data
 
 % Import Agilent .D files
-data = obj.import('.D');
+data = obj.import('filetype', '.D', 'depth', 3);
 
-%% 2.1 Append Data
+%% 2.1 Import and Append Existing Data
 
 % Import .CDF files and append exisiting data
-data = obj.import('.CDF', 'append', data);
+data = obj.import('filetype', '.CDF', 'append', data);
 
-%% 3.0 Centroid
+%% 3.0 Centroid (MS DATA ONLY)
 
 % Centroid mass values for all samples
 data = obj.centroid(data);
@@ -89,7 +87,7 @@ plot([data(i).tic.values, b]);
 
 clear b
 
-%% 4.2 Baseline Selection
+%% 4.2 Baseline Parameters
 
 % Calculate baselines for ion chromatograms from selected sample
 data = obj.baseline(data,...
@@ -134,7 +132,7 @@ tic(:,3) = data(i).tic.values;
 cla;
 plot(tic);
 
-%% 5.2 Smooth Selection
+%% 5.2 Smooth Parameters
 i = 2;
 
 % Smooth all ion chromatograms from selected sample index
@@ -166,7 +164,7 @@ data = obj.integrate(data, 'center', 16.2, 'width', 1);
 
 plot(data(i).time, [data(i).tic.values, data(i).tic.peaks.fit{1,1}]);
 
-%% 6.2 Peak Selection
+%% 6.2 Peak Parameters
 i = 2;
 
 % Find largest peak for each ion chromatogram
@@ -226,12 +224,7 @@ obj.visualize(data, ...
     'baseline', 'corrected',...
     'export',   'off');
 
-%% 8.0 Reset Data
-
-% Restore processed data to original state
-data = obj.reset(data);
-
-%% 9.0 Mass Spectra
+%% 8.0 Mass Spectra
 i = 2;
 
 % Plot mass spectra for largest peak in TIC
@@ -253,7 +246,7 @@ MassSpectra(mz, y(index, :))
 
 clear x y z center width index
 
-%% 9.1 Mass Spectra Export
+%% 8.1 Mass Spectra Export
 i = 2;
 
 % Export mass spectra to 300 dpi .PNG file
