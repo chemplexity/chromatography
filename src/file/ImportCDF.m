@@ -1,7 +1,7 @@
 function data = ImportCDF(varargin)
 % ------------------------------------------------------------------------
 % Method      : ImportCDF
-% Description : Read netCDF data files (.CDF)
+% Description : Read netCDF data files (.CDF, .NC)
 % ------------------------------------------------------------------------
 %
 % ------------------------------------------------------------------------
@@ -47,7 +47,7 @@ default.file    = [];
 default.depth   = 1;
 default.content = 'all';
 default.verbose = 'on';
-default.formats = {'.CDF'};
+default.formats = {'.CDF', '.NC'};
 
 % ---------------------------------------
 % Platform
@@ -197,6 +197,10 @@ for i = 1:length(file)
     status(option.verbose, 'file_name', statusPath);
     status(option.verbose, 'loading_stats', data(i,1).file_size);
     
+    if data(i,1).file_size == 0
+        continue
+    end
+    
     % ---------------------------------------
     % Read
     % ---------------------------------------
@@ -308,8 +312,9 @@ fc.setAcceptAllFileFilterUsed(false);
 % Filter: netCDF (.CDF)
 netcdf = com.mathworks.hg.util.dFilter;
 
-netcdf.setDescription('netCDF files (*.CDF');
+netcdf.setDescription('netCDF files (*.CDF, *.NC)');
 netcdf.addExtension('cdf');
+netcdf.addExtension('nc');
 
 fc.addChoosableFileFilter(netcdf);
 
@@ -493,7 +498,9 @@ for i = 1:numVar
     if ischar(varVal)
         varVal = strtrim(deblank(varVal'));
     elseif isnumeric(varVal)
-        if all(varVal == -9999) || ~any(varVal) || all(varVal > 9E36)
+        if all(all(varVal == -9999)) || all(all(varVal > 9E36))
+            varVal = [];
+        elseif all(~any(varVal))
             varVal = [];
         end
     end

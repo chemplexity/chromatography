@@ -1,6 +1,6 @@
 function checksum = MD5(varargin)
 % ------------------------------------------------------------------------
-% Function      : MD5
+% Method      : MD5
 % Description : Returns the MD5 checksum of file
 % ------------------------------------------------------------------------
 %

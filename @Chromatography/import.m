@@ -14,9 +14,10 @@ function varargout = import(obj, varargin)
 % Input (Name, Value)
 % ------------------------------------------------------------------------
 %   'file' -- name of file or folder path
-%       empty (default) | cell array of strings
+%       empty (default) | char | cell array of strings
 %
 %   'filetype' -- file extension or manufacturer name
+%       'all' (default) 
 %       'agilent' | '.D', '.MS', '.CH'
 %       'netcdf'  | '.CDF'
 %       'nist'    | '.MSP'
@@ -37,10 +38,14 @@ function varargout = import(obj, varargin)
 % ------------------------------------------------------------------------
 % Examples
 % ------------------------------------------------------------------------
-%   data = obj.import('.CDF')
-%   data = obj.import('.D', 'append', data)
-%   data = obj.import('.MS', 'verbose', 'off', 'precision', 2)
-%   data = obj.import('.RAW', 'append', data, 'verbose', 'on')
+%   data = obj.import()
+%   data = obj.import('depth', 5)
+%   data = obj.import('file', pwd, 'depth', 2)
+%   data = obj.import('verbose', 'off')
+%   data = obj.import('filetype', '.CDF', 'depth', 3)
+%   data = obj.import('filetype', '.D', 'depth', 5, 'append', data)
+%   data = obj.import('filetype', '.MS', 'verbose', 'off')
+%   data = obj.import('filetype', '.RAW', 'append', data, 'verbose', 'on')
 
 % ---------------------------------------
 % Defaults
@@ -51,7 +56,7 @@ default.append  = [];
 default.depth   = 1;
 default.content = 'all';
 default.verbose = 'on';
-default.formats = {'d', 'ms', 'ch', 'uv', 'cdf', 'msp', 'raw'};
+default.formats = {'d', 'ms', 'ch', 'uv', 'cdf', 'nc', 'msp', 'raw'};
 
 % ---------------------------------------
 % Variables
@@ -246,6 +251,10 @@ for i = 1:length(file)
             % ---------------------------------------
             x = loadfile(file(i), option, 'agilent');
             
+            if isempty(x)
+                continue
+            end
+            
             for j = 1:length(x)
                 
                 data{end+1} = obj.format('validate', []);
@@ -254,7 +263,7 @@ for i = 1:length(file)
                 data{end}.file.name         = parsefield(x(j), {'file_name'});
                 data{end}.file.bytes        = parsefield(x(j), {'file_size'});
                 data{end}.sample.name       = parsefield(x(j), {'sample_name'});
-                data{end}.sample.info       = parsefield(x(j), {'barcode', 'misc_info'});
+                data{end}.sample.info       = parsefield(x(j), {'barcode', 'sample_info'});
                 data{end}.sample.sequence   = parsefield(x(j), {'seqindex'});
                 data{end}.sample.vial       = parsefield(x(j), {'vial'});
                 data{end}.sample.replicate  = parsefield(x(j), {'replicate'});
@@ -285,12 +294,16 @@ for i = 1:length(file)
                 
             end
             
-        case {'.cdf'}
+        case {'.cdf', '.nc'}
             
             % ---------------------------------------
             % netCDF
             % ---------------------------------------
             x = loadfile(file(i), option, 'netcdf');
+            
+            if isempty(x)
+                continue
+            end
             
             for j = 1:length(x)
                 
@@ -327,6 +340,10 @@ for i = 1:length(file)
             % ---------------------------------------
             x = loadfile(file(i), option, 'nist');
             
+            if isempty(x)
+                continue
+            end
+            
             for j = 1:length(x)
                 
                 data{end+1} = obj.format('validate', []);
@@ -353,6 +370,10 @@ for i = 1:length(file)
             % Thermo
             % ---------------------------------------
             x = loadfile(file(i), option, 'thermo');
+            
+            if isempty(x)
+                continue
+            end
             
             for j = 1:length(x)
                 
@@ -508,54 +529,63 @@ if ~usejava('swing')
     return
 end
 
+% Options
 fc = javax.swing.JFileChooser(java.io.File(pwd));
 
-% Options
 fc.setFileSelectionMode(fc.FILES_AND_DIRECTORIES);
 fc.setMultiSelectionEnabled(true);
 fc.setAcceptAllFileFilterUsed(false);
 
 % Filter: Agilent (.D, .MS, .CH, .UV)
-agilent = com.mathworks.hg.util.dFilter;
-
-agilent.setDescription('Agilent files (*.D, *.MS, *.CH, *.UV)');
-agilent.addExtension('d');
-agilent.addExtension('ms');
-agilent.addExtension('ch');
-agilent.addExtension('uv');
-
-if any(cellfun(@(x) any(strcmpi(x, {'agilent', 'd', 'ms', 'cd', 'uv'})), fileExtension))
+if any(cellfun(@(x) any(strcmpi(x, {'agilent', 'd', 'ms', 'ch', 'uv'})), fileExtension))
+    
+    agilent = com.mathworks.hg.util.dFilter;
+    
+    agilent.setDescription('Agilent files (*.D, *.MS, *.CH, *.UV)');
+    agilent.addExtension('d');
+    agilent.addExtension('ms');
+    agilent.addExtension('ch');
+    agilent.addExtension('uv');
+    
     fc.addChoosableFileFilter(agilent);
+    
 end
 
 % Filter: netCDF (.CDF)
-netcdf = com.mathworks.hg.util.dFilter;
-
-netcdf.setDescription('netCDF files (*.CDF)');
-netcdf.addExtension('cdf');
-
-if any(cellfun(@(x) any(strcmpi(x, {'netcdf', 'cdf'})), fileExtension))
+if any(cellfun(@(x) any(strcmpi(x, {'netcdf', 'cdf', 'nc'})), fileExtension))
+    
+    netcdf = com.mathworks.hg.util.dFilter;
+    
+    netcdf.setDescription('netCDF files (*.CDF, *.NC)');
+    netcdf.addExtension('cdf');
+    netcdf.addExtension('nc');
+    
     fc.addChoosableFileFilter(netcdf);
+    
 end
 
 % Filter: NIST (.MSP)
-nist = com.mathworks.hg.util.dFilter;
-
-nist.setDescription('NIST files (*.MSP)');
-nist.addExtension('msp');
-
 if any(cellfun(@(x) any(strcmpi(x, {'nist', 'msp'})), fileExtension))
+    
+    nist = com.mathworks.hg.util.dFilter;
+    
+    nist.setDescription('NIST files (*.MSP)');
+    nist.addExtension('msp');
+    
     fc.addChoosableFileFilter(nist);
+    
 end
 
 % Filter: Thermo (.RAW)
-thermo = com.mathworks.hg.util.dFilter;
-
-thermo.setDescription('Thermo files (*.RAW)');
-thermo.addExtension('raw');
-
 if any(cellfun(@(x) any(strcmpi(x, {'thermo', 'raw'})), fileExtension))
+    
+    thermo = com.mathworks.hg.util.dFilter;
+    
+    thermo.setDescription('Thermo files (*.RAW)');
+    thermo.addExtension('raw');
+    
     fc.addChoosableFileFilter(thermo);
+    
 end
 
 % Initialize UI
@@ -766,7 +796,7 @@ end
 
 if any(strcmpi(str, 'netcdf'))
     str(strcmpi(str, 'netcdf')) = [];
-    str = [str, 'cdf'];
+    str = [str, 'cdf', 'nc'];
 end
 
 if any(strcmpi(str, 'nist'))

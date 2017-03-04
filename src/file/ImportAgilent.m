@@ -44,6 +44,7 @@ data.file_size       = [];
 data.file_info       = [];
 data.file_version    = [];
 data.sample_name     = [];
+data.sample_info     = [];
 data.barcode         = [];
 data.operator        = [];
 data.datetime        = [];
@@ -58,6 +59,16 @@ data.glp_flag        = [];
 data.data_source     = [];
 data.firmware_rev    = [];
 data.software_rev    = [];
+data.dir_type        = [];
+data.dir_offset      = [];
+data.data_offset     = [];
+data.num_records     = [];
+data.start_time      = [];
+data.end_time        = [];
+data.channel_max      = [];
+data.channel_min      = [];
+data.channel_detector = [];
+data.channel_desc     = [];
 data.sampling_rate   = [];
 data.time            = [];
 data.intensity       = [];
@@ -200,7 +211,7 @@ for i = 1:length(file)
     % ---------------------------------------
     % Permissions
     % ---------------------------------------
-    if ~file(i).UserRead
+    if ~file(i).UserRead || file(i). directory
         continue
     end
     
@@ -219,7 +230,7 @@ for i = 1:length(file)
     end
     
     data(i,1).file_size = subsref(dir(file(i).Name), substruct('.', 'bytes'));
-        
+    
     % ---------------------------------------
     % Status
     % ---------------------------------------
@@ -229,6 +240,10 @@ for i = 1:length(file)
     status(option.verbose, 'loading_file', i, length(file));
     status(option.verbose, 'file_name', statusPath);
     status(option.verbose, 'loading_stats', data(i,1).file_size);
+    
+    if data(i,1).file_size == 0
+        continue
+    end
     
     % ---------------------------------------
     % Read
@@ -255,7 +270,7 @@ end
 % ---------------------------------------
 % Exit
 % ---------------------------------------
-status(option.verbose, 'summary_stats', length(data), toc, sum([data.file_size]));
+status(option.verbose, 'stats', length(data), toc, sum([data.file_size]));
 status(option.verbose, 'exit');
 
 end
@@ -440,7 +455,7 @@ end
 end
 
 % ---------------------------------------
-% Data = byte string
+% Format byte string
 % ---------------------------------------
 function str = parsebytes(x)
 
@@ -457,7 +472,7 @@ end
 end
 
 % ---------------------------------------
-% Data = time string
+% Format time string
 % ---------------------------------------
 function str = parsetime(x)
 
@@ -486,51 +501,120 @@ end
 
 switch data.file_version
     
-    case {'2', '8', '81', '30', '31'}
+    case {'2'}
+        data.file_info        = fpascal(f,   4,    'uint8');
+        data.sample_name      = fpascal(f,   24,   'uint8');
+        data.sample_info      = fpascal(f,   86,   'uint8');
+        data.operator         = fpascal(f,   148,  'uint8');
+        data.datetime         = fpascal(f,   178,  'uint8');
+        data.instmodel        = fpascal(f,   208,  'uint8');
+        data.inlet            = fpascal(f,   218,  'uint8');
+        data.method_name      = fpascal(f,   228,  'uint8');
+        data.seqindex         = fnumeric(f,  252,  'int16');
+        data.vial             = fnumeric(f,  254,  'int16');
+        data.replicate        = fnumeric(f,  256,  'int16');
         
-        data.file_info    = fpascal(f,  4,    'uint8');
-        data.sample_name  = fpascal(f,  24,   'uint8');
-        data.barcode      = fpascal(f,  86,   'uint8');
-        data.operator     = fpascal(f,  148,  'uint8');
-        data.datetime     = fpascal(f,  178,  'uint8');
-        data.instmodel    = fpascal(f,  208,  'uint8');
-        data.inlet        = fpascal(f,  218,  'uint8');
-        data.method_name  = fpascal(f,  228,  'uint8');
-        data.seqindex     = fnumeric(f, 252,  'int16');
-        data.vial         = fnumeric(f, 254,  'int16');
-        data.replicate    = fnumeric(f, 256,  'int16');
+    case {'8', '81', '30', '31'}
+        data.file_info        = fpascal(f,   4,    'uint8');
+        data.sample_name      = fpascal(f,   24,   'uint8');
+        data.barcode          = fpascal(f,   86,   'uint8');
+        data.operator         = fpascal(f,   148,  'uint8');
+        data.datetime         = fpascal(f,   178,  'uint8');
+        data.instmodel        = fpascal(f,   208,  'uint8');
+        data.inlet            = fpascal(f,   218,  'uint8');
+        data.method_name      = fpascal(f,   228,  'uint8');
+        data.seqindex         = fnumeric(f,  252,  'int16');
+        data.vial             = fnumeric(f,  254,  'int16');
+        data.replicate        = fnumeric(f,  256,  'int16');
         
     case {'130', '131', '179', '181'}
-        
-        data.file_info    = fpascal(f,  347,  'uint16');
-        data.sample_name  = fpascal(f,  858,  'uint16');
-        data.barcode      = fpascal(f,  1369, 'uint16');
-        data.operator     = fpascal(f,  1880, 'uint16');
-        data.datetime     = fpascal(f,  2391, 'uint16');
-        data.instmodel    = fpascal(f,  2492, 'uint16');
-        data.inlet        = fpascal(f,  2533, 'uint16');
-        data.method_name  = fpascal(f,  2574, 'uint16');
-        data.seqindex     = fnumeric(f, 252,  'int16');
-        data.vial         = fnumeric(f, 254,  'int16');
-        data.replicate    = fnumeric(f, 256,  'int16');
+        data.file_info        = fpascal(f,   347,  'uint16');
+        data.sample_name      = fpascal(f,   858,  'uint16');
+        data.barcode          = fpascal(f,   1369, 'uint16');
+        data.operator         = fpascal(f,   1880, 'uint16');
+        data.datetime         = fpascal(f,   2391, 'uint16');
+        data.instmodel        = fpascal(f,   2492, 'uint16');
+        data.inlet            = fpascal(f,   2533, 'uint16');
+        data.method_name      = fpascal(f,   2574, 'uint16');
+        data.seqindex         = fnumeric(f,  252,  'int16');
+        data.vial             = fnumeric(f,  254,  'int16');
+        data.replicate        = fnumeric(f,  256,  'int16');
         
 end
 
 switch data.file_version
-   
-    case {'30'}
-        
-        data.glp_flag     = fnumeric(f, 318,  'int32');
-        data.data_source  = fpascal(f,  322,  'uint16');
-        data.firmware_rev = fpascal(f,  355,  'uint16');
-        data.software_rev = fpascal(f,  405,  'uint16');
     
-    case {'130', '179'}
+    case {'81', '179', '181'}
+        data.start_time       = fnumeric(f,  282,  'float32') / 6E4;
+        data.end_time         = fnumeric(f,  286,  'float32') / 6E4;
+        data.channel_max      = fnumeric(f,  290,  'float32');
+        data.channel_min      = fnumeric(f,  294,  'float32');
         
-        data.glp_flag     = fnumeric(f, 3085, 'int32');
-        data.data_source  = fpascal(f,  3089, 'uint16');
-        data.firmware_rev = fpascal(f,  3601, 'uint16');
-        data.software_rev = fpascal(f,  3802, 'uint16');
+    case {'2', '8', '30', '31', '130', '131'}
+        data.start_time       = fnumeric(f,  282,  'int32') / 6E4;
+        data.end_time         = fnumeric(f,  286,  'int32') / 6E4;
+        data.channel_max      = fnumeric(f,  290,  'int32');
+        data.channel_min      = fnumeric(f,  294,  'int32');
+        
+end
+
+switch data.file_version
+    
+    case {'2'}
+        data.dir_type         = fnumeric(f,  258,  'int16');
+        data.dir_offset       = fnumeric(f,  260,  'int32') * 2 - 2;
+        data.data_offset      = fnumeric(f,  264,  'int32') * 2 - 2;
+        data.num_records      = fnumeric(f,  278,  'int32');
+        
+    case {'8', '30', '31', '81', '130', '131', '179', '181'}
+        data.dir_type         = fnumeric(f,  258,  'int16');
+        data.dir_offset       = fnumeric(f,  260,  'int32');
+        data.data_offset      = (fnumeric(f, 264,  'int32') - 1) * 512;
+        data.num_records      = fnumeric(f,  278,  'int32');
+        
+        if data.dir_type
+            data.dir_offset = (data.dir_offset - 1) * 512;
+        end
+        
+end
+
+switch data.file_version
+    
+    case {'30'}
+        data.glp_flag         = fnumeric(f,  318,  'int32');
+        data.data_source      = fpascal(f,   322,  'uint8');
+        data.firmware_rev     = fpascal(f,   355,  'uint8');
+        data.software_rev     = fpascal(f,   405,  'uint8');
+        
+    case {'130', '179'}
+        data.glp_flag         = fnumeric(f,  3085, 'int32');
+        data.data_source      = fpascal(f,   3089, 'uint16');
+        data.firmware_rev     = fpascal(f,   3601, 'uint16');
+        data.software_rev     = fpascal(f,   3802, 'uint16');
+        
+end
+
+switch data.file_version
+    
+    case {'8', '81', '30'}
+        data.channel_detector = fnumeric(f,  514,  'int16');
+        data.channel_units    = fpascal(f,   580,  'uint8');
+        data.channel_desc     = fpascal(f,   596,  'uint8');
+        
+    case {'31'}
+        data.channel_detector = fnumeric(f,  342,  'int16');
+        data.channel_units    = fpascal(f,   326,  'uint8');
+        data.channel_desc     = fpascal(f,   344,  'uint8');
+        
+    case {'130', '179', '181'}
+        data.channel_detector = fnumeric(f,  4106, 'int16');
+        data.channel_units    = fpascal(f,   4172, 'uint16');
+        data.channel_desc     = fpascal(f,   4213, 'uint16');
+        
+    case {'131'}
+        data.channel_detector = fnumeric(f,  3134, 'int16');
+        data.channel_units    = fpascal(f,   3093, 'uint16');
+        data.channel_desc     = fpascal(f,   3136, 'uint16');
         
 end
 
@@ -558,100 +642,58 @@ if isempty(data.file_version)
     return
 end
 
-% Data offset
+% Read total intensity values
 switch data.file_version
     
     case {'2'}
         
-        offset = fnumeric(f, 260, 'int32') * 2 - 2;
-        scans  = fnumeric(f, 278, 'int32');
+        x = fdirectory(f, data.dir_offset, data.num_records);
         
-    case {'8', '81', '179', '181', '30', '130'}
-        
-        offset = (fnumeric(f, 264, 'int32') - 1) * 512 ;
-        scans  = fnumeric(f, 278, 'int32');
+        data.data_offset = x.spectrum_offset;
+        data.time        = x.retention_time;
+        data.intensity   = x.total_abundance;
         
 end
 
-% Time values
-switch data.file_version
-    
-    case {'81', '179', '181'}
-        
-        t0 = fnumeric(f, 282, 'float32') / 60000;
-        t1 = fnumeric(f, 286, 'float32') / 60000;
-        
-    case {'2', '8', '30', '130'}
-        
-        t0 = fnumeric(f, 282, 'int32') / 60000;
-        t1 = fnumeric(f, 286, 'int32') / 60000;
-        
-end
-
-% Intensity values
+% Read intensity values
 switch data.file_version
     
     case {'2'}
         
-        data.intensity = farray(f, offset + 8, 'int32', scans, 8);
-        data.time      = farray(f, offset + 4, 'int32', scans, 8) ./ 60000;
-        
-        offset = farray(f, offset, 'int32', scans, 8) * 2 - 2;
-        data   = fpacket(f, data, offset);
+        data = fpacket(f, data, data.data_offset);
         
     case {'8', '30', '130'}
         
-        data.intensity = fdelta(f, offset);
-        data.time      = ftime(t0, t1, numel(data.intensity));
+        data.intensity  = fdelta(f, data.data_offset);
+        data.time       = ftime(data.start_time, data.end_time, numel(data.intensity));
         
     case {'81', '181'}
         
-        data.intensity = fdoubledelta(f, offset);
-        data.time      = ftime(t0, t1, numel(data.intensity));
+        data.intensity = fdoubledelta(f, data.data_offset);
+        data.time      = ftime(data.start_time, data.end_time, numel(data.intensity));
         
     case {'179'}
         
-        if fnumeric(f, offset, 'int32') == 2048
-            offset = offset + 2048;
+        if fnumeric(f, data.data_offset, 'int32') == 2048
+            data.data_offset = data.data_offset + 2048;
         end
         
-        data.intensity = fdoublearray(f, offset);
-        data.time      = ftime(t0, t1, numel(data.intensity));
-        
+        data.intensity = fdoublearray(f, data.data_offset);
+        data.time      = ftime(data.start_time, data.end_time, numel(data.intensity));
 end
 
 % Units
 switch data.file_version
     
-    case {'2'}
+    case {'2', '8', '30', '31', '81', '130', '131', '179', '181'}
         
-        data.time_units      = 'minutes';
-        data.intensity_units = 'counts';
-        data.channel_units   = 'm/z';
+        if ~isempty(data.time)
+            data.time_units = 'minutes';
+        end
         
-    case {'8', '81', '30'}
-        
-        data.time_units      = 'minutes';
-        data.intensity_units = fpascal(f,  580, 'uint8');
-        data.channel_units   = fpascal(f,  596, 'uint8');
-        
-    case {'31'}
-        
-        data.time_units      = 'minutes';
-        data.intensity_units = fpascal(f, 326, 'uint8');
-        data.channel_units   = '';
-        
-    case {'130', '179', '181'}
-        
-        data.time_units      = 'minutes';
-        data.intensity_units = fpascal(f, 4172, 'uint16');
-        data.channel_units   = fpascal(f, 4213, 'uint16');
-        
-    case {'131'}
-        
-        data.time_units      = 'minutes';
-        data.intensity_units = fpascal(f, 3093, 'uint16');
-        data.channel_units   = '';
+        if ~isempty(data.channel_desc)
+            data.intensity_units = data.channel_desc;
+        end
         
 end
 
@@ -785,7 +827,8 @@ str = [...
     data.file_info,...
     data.inlet,...
     data.instmodel,...
-    data.channel_units];
+    data.channel_units,...
+    data.channel_desc];
 
 if isempty(str)
     return
@@ -797,13 +840,10 @@ switch data.file_version
         
         if instrMatch(str, {'CE'})
             str = 'CE/MS';
-            
         elseif instrMatch(str, {'LC'})
             str = 'LC/MS';
-            
         elseif instrMatch(str, {'GC'})
             str = 'GC/MS';
-            
         else
             str = 'MS';
         end
@@ -820,32 +860,27 @@ switch data.file_version
         
         if instrMatch(str, {'DAD', '1315', '4212', '7117'})
             str = 'LC/DAD';
-            
         elseif instrMatch(str, {'VWD', '1314', '7114'})
             str = 'LC/VWD';
-            
         elseif instrMatch(str, {'MWD', '1365'})
             str = 'LC/MWD';
-            
         elseif instrMatch(str, {'FLD', '1321'})
             str = 'LC/FLD';
-            
         elseif instrMatch(str, {'ELS', '4260', '7102'})
             str = 'LC/ELSD';
-            
         elseif instrMatch(str, {'RID', '1362'})
             str = 'LC/RID';
-            
         elseif instrMatch(str, {'ADC', '35900'})
             str = 'LC/ADC';
-            
         elseif instrMatch(str, {'CE'})
             str = 'CE';
-            
         else
             str = 'LC';
         end
-
+        
+    otherwise
+        str = 'Unknown';
+        
 end
 
 end
@@ -895,30 +930,20 @@ n = [];
 y = [];
 
 for i = 1:length(offset)
-    
     fseek(f, offset(i)+12, 'bof');
-    
-    %x(i,1) = fread(f, 1, 'int32', 6, 'b');
     n(i,1) = fread(f, 1, 'int16', 4, 'b');
     y(:,end+1:end+n(i)) = fread(f, [2, n(i)], 'uint16', 'b');
-    
 end
 
 % Mass values
 y(1,:) = y(1,:) ./ 20;
 
 data.channel = unique(y(1,:));
-
-[~, index] = ismember(y(1,:), data.channel);
-
 data.channel = [0, data.channel];
 
+[~, index] = ismember(y(1,:), data.channel(2:end));
+
 % Intensity values
-data.intensity(numel(data.time), numel(data.channel)) = 0;
-
-n(:,2) = cumsum(n);
-n(:,3) = n(:,2) - n(:,1) + 1;
-
 e = bitand(int32(y(2,:)), int32(49152));
 y = bitand(int32(y(2,:)), int32(16383));
 
@@ -927,6 +952,11 @@ while any(e) ~= 0
     e(e~=0) = e(e~=0) - 16384;
 end
 
+data.intensity(numel(data.time), numel(data.channel)) = 0;
+
+n(:,2) = cumsum(n);
+n(:,3) = n(:,2) - n(:,1) + 1;
+
 for i = 1:numel(data.time)
     data.intensity(i, index(n(i,3):n(i,2))+1) = y(n(i,3):n(i,2));
 end
@@ -934,86 +964,167 @@ end
 end
 
 % ---------------------------------------
-% Data = spectrum
+% Data = mass spectra directory
 % ---------------------------------------
-function spectrum = fspectrum(f, offset, scans, detector)
+function data = fdirectory(f, offset, scans)
 
-spectrum = struct(...
-    'offset',                 [],...
-    'identifier',            [],...
-    'record_length',          [],...
-    'retention_time',         [],...
-    'wavelength_start',       [],...
-    'wavelength_end',         [],...
-    'wavelength_step',        [],...
-    'spectrum_attribute',     [],...
-    'additional_info_length', [],...
-    'additional_info',        [],...
-    'data_points',            [],...
-    'intensity_values',       []...
-);
+data = struct(...
+    'spectrum_offset', [],...
+    'retention_time',  [],...
+    'total_abundance', []...
+    );
 
-for i = 1:scans
+fseek(f, offset, 'bof');
+
+% Read directory contents
+data.spectrum_offset = farray(f, offset,   'int32', scans, 8);
+data.retention_time  = farray(f, offset+4, 'int32', scans, 8);
+data.total_abundance = farray(f, offset+8, 'int32', scans, 8);
+
+% Apply correction factors
+data.spectrum_offset = data.spectrum_offset * 2 - 2;
+data.retention_time  = data.retention_time  / 6E4;
+
+end
+
+% ---------------------------------------
+% Data = mass spectra
+% ---------------------------------------
+function data = fspectra(f, offset)
+
+data = struct(...
+    'spectrum_offset',  [],...
+    'total_words',      [],...
+    'retention_time',   [],...
+    'num_words',        [],...
+    'data_type',        [],...
+    'status_word',      [],...
+    'num_peaks',        [],...
+    'base_mass',        [],...
+    'base_abundance',   [],...
+    'mass_values',      [],...
+    'abundance_values', []...
+    );
+
+for i = 1:length(offset)
     
-    fseek(f, offset, 'bof');
+    fseek(f, offset(i), 'bof');
+    
+    % Read spectra properties
+    data(i).spectrum_offset  = ftell(f);
+    data(i).total_words      = fread(f, 1, 'int16',  'b');
+    data(i).retention_time   = fread(f, 1, 'int32',  'b');
+    data(i).num_words        = fread(f, 1, 'int16',  'b');
+    data(i).data_type        = fread(f, 1, 'int16',  'b');
+    data(i).status_word      = fread(f, 1, 'int16',  'b');
+    data(i).num_peaks        = fread(f, 1, 'int16',  'b');
+    data(i).base_mass        = fread(f, 1, 'uint16', 'b');
+    data(i).base_abundance   = fread(f, 1, 'int16',  'b');
+    
+    % Read spectra data
+    data(i).mass_values      = farray(f, offset(i)+18, 'uint16', data(i).num_peaks, 2);
+    data(i).abundance_values = farray(f, offset(i)+20, 'int16',  data(i).num_peaks, 2);
+    
+    % Apply correction factors
+    data(i).total_words      = data(i).total_words    * 2 - 2;
+    data(i).num_words        = data(i).num_words      * 2 - 2;
+    data(i).retention_time   = data(i).retention_time / 6E4;
+    data(i).base_mass        = data(i).base_mass      / 2E1;
+    data(i).mass_values      = data(i).mass_values    / 2E1;
+    data(i).base_abundance   = unpack(data(i).base_abundance);
+    data(i).abundance_values = unpack(data(i).abundance_values);
+    
+end
 
-    spectrum(i).offset                 = ftell(f);
-    spectrum(i).identifier            = fread(f, 1, 'int16', 'l');
-    spectrum(i).record_length          = fread(f, 1, 'int16', 'l');
-    spectrum(i).retention_time         = fread(f, 1, 'int32', 'l');
-    spectrum(i).wavelength_start       = fread(f, 1, 'int16', 'l');
-    spectrum(i).wavelength_end         = fread(f, 1, 'int16', 'l');
-    spectrum(i).wavelength_step        = fread(f, 1, 'int16', 'l');
-    spectrum(i).spectrum_attribute     = fread(f, 1, 'int16', 'l');
-    spectrum(i).additional_info_length = fread(f, 1, 'int16', 'l');
+end
 
+% ---------------------------------------
+% Data = wavelength spectrum
+% ---------------------------------------
+function data = fspectrum(f, offset, detector)
+
+data = struct(...
+    'spectrum_offset',    [],...
+    'identifier',         [],...
+    'record_length',      [],...
+    'retention_time',     [],...
+    'wavelength_start',   [],...
+    'wavelength_end',     [],...
+    'wavelength_step',    [],...
+    'spectrum_attribute', [],...
+    'additional_info',    [],...
+    'intensity_values',   []...
+    );
+
+for i = 1:length(offset)
+    
+    fseek(f, offset(i), 'bof');
+    
+    % Read spectrum properties
+    data(i).spectrum_offset    = ftell(f);
+    data(i).identifier         = fread(f, 1, 'int16', 'l');
+    data(i).record_length      = fread(f, 1, 'int16', 'l');
+    data(i).retention_time     = fread(f, 1, 'int32', 'l');
+    data(i).wavelength_start   = fread(f, 1, 'int16', 'l');
+    data(i).wavelength_end     = fread(f, 1, 'int16', 'l');
+    data(i).wavelength_step    = fread(f, 1, 'int16', 'l');
+    data(i).spectrum_attribute = fread(f, 1, 'int16', 'l');
+    
+    % Read additional info
+    n = fread(f, 1, 'int16', 'l');
+    
     switch detector
         
         case 1
             % DAD: exposure_time
-            spectrum(i).additional_info = fread(f, 1, 'int32', 'l');
+            data(i).additional_info = fread(f, 1, 'int32', 'l');
             
         case 2
             % FLD: complement_wavelength, scan_speed
-            spectrum(i).additional_info = fread(f, [1,2], 'int16', 'l');
+            data(i).additional_info = fread(f, [1,2], 'int16', 'l');
             
         otherwise
-            fseek(f, spectrum(i).additional_info_length, 'cof');
+            fseek(f, n, 'cof');
             
     end
     
+    % Calculate number of data points
+    n = (data(i).wavelength_end - data(i).wavelength_start) / data(i).wavelength_step + 1;
+    n = floor(n);
     
-    spectrum(i).data_points = floor(...
-        (spectrum(i).wavelength_end - spectrum(i).wavelength_start) / ...
-        spectrum(i).wavelength_step + 1);
- 
-    if spectrum(i).identifier == 65
-        
-        spectrum(i).intensity_values = fread(f, spectrum(i).data_points, 'int32', 'l');
-     
-    else  
-        
-        spectrum(i).intensity_values = zeros(spectrum(i).data_points, 1);
-        x = [0,0];
+    % Read spectrum data
+    data(i).intensity_values = zeros(n, 1);
     
-        for j = 1:spectrum(i).data_points
-    
-            x(1) = fread(f, 1, 'int16', 'l');
+    if data(i).identifier ~= 65        
         
-            if x(1) ~= -32768
-                x(2) = x(1) + x(2);
+        x0 = zeros(2,1);
+        
+        for j = 1:n
+            
+            x0(1) = fread(f, 1, 'int16', 'l');
+            
+            if x0(1) ~= -32768
+                x0(2) = x0(1) + x0(2);
             else
-                x(2) = fread(f, 1, 'int32', 'l');
+                x0(2) = fread(f, 1, 'int32', 'l');
             end
-        
-            spectrum(i).intensity_values(j, 1) = x(2);
-        
+            
+            data(i).intensity_values(j, 1) = x0(2);
+            
         end
         
+    else
+        data(i).intensity_values = fread(f, n, 'int32', 'l');
     end
+    
+    % Apply correction factors
+    data(i).retention_time   = data(i).retention_time   / 6E4;
+    data(i).wavelength_start = data(i).wavelength_start / 2E1;
+    data(i).wavelength_end   = data(i).wavelength_end   / 2E1;
+    data(i).wavelength_step  = data(i).wavelength_step  / 2E1;
+    
 end
- 
- 
+
 end
 
 % ---------------------------------------
@@ -1032,39 +1143,38 @@ end
 % ---------------------------------------
 % Data = delta compression
 % ---------------------------------------
-function y = fdelta(f, offset)
+function x = fdelta(f, offset)
 
 fseek(f, 0, 'eof');
 n = ftell(f);
 
 fseek(f, offset, 'bof');
-y = zeros(floor(n/2), 1);
-
-buffer = [0,0,0,0,0];
+x  = zeros(floor(n/2), 1);
+x0 = zeros(5,1);
 
 while ftell(f) < n
     
-    buffer(1) = fread(f, 1, 'int16', 'b');
-    buffer(2) = buffer(4);
+    x0(1) = fread(f, 1, 'int16', 'b');
+    x0(2) = x0(4);
     
-    if bitshift(int16(buffer(1)), -12) ~= 0
+    if bitshift(int16(x0(1)), -12) ~= 0
         
-        for j = 1:bitand(int16(buffer(1)), int16(4095))
+        for j = 1:bitand(int16(x0(1)), int16(4095))
             
-            buffer(3) = fread(f, 1, 'int16', 'b');
-            buffer(5) = buffer(5) + 1;
+            x0(3) = fread(f, 1, 'int16', 'b');
+            x0(5) = x0(5) + 1;
             
-            if buffer(3) ~= -32768
-                buffer(2) = buffer(2) + buffer(3);
+            if x0(3) ~= -32768
+                x0(2) = x0(2) + x0(3);
             else
-                buffer(2) = fread(f, 1, 'int32', 'b');
+                x0(2) = fread(f, 1, 'int32', 'b');
             end
             
-            y(buffer(5),1) = buffer(2);
+            x(x0(5),1) = x0(2);
             
         end
         
-        buffer(4) = buffer(2);
+        x0(4) = x0(2);
         
     else
         break
@@ -1072,8 +1182,8 @@ while ftell(f) < n
     
 end
 
-if buffer(5)+1 < length(y)
-    y(buffer(5)+1:end) = [];
+if x0(5)+1 < length(x)
+    x(x0(5)+1:end) = [];
 end
 
 end
@@ -1081,36 +1191,35 @@ end
 % ---------------------------------------
 % Data = double delta compression
 % ---------------------------------------
-function y = fdoubledelta(f, offset)
+function x = fdoubledelta(f, offset)
 
 fseek(f, 0, 'eof');
-n = ftell(f);
+n  = ftell(f);
 
 fseek(f, offset, 'bof');
-y = zeros(floor(n/2), 1);
-
-buffer = [0,0,0,0];
+x  = zeros(floor(n/2), 1);
+x0 = zeros(4,1);
 
 while ftell(f) < n
     
-    buffer(3) = fread(f, 1, 'int16', 'b');
-    buffer(4) = buffer(4) + 1;
+    x0(3) = fread(f, 1, 'int16', 'b');
+    x0(4) = x0(4) + 1;
     
-    if buffer(3) ~= 32767
-        buffer(2) = buffer(2) + buffer(3);
-        buffer(1) = buffer(1) + buffer(2);
+    if x0(3) ~= 32767
+        x0(2) = x0(2) + x0(3);
+        x0(1) = x0(1) + x0(2);
     else
-        buffer(1) = fread(f, 1, 'int16', 'b') * 4294967296;
-        buffer(1) = fread(f, 1, 'int32', 'b') + buffer(1);
-        buffer(2) = 0;
+        x0(1) = fread(f, 1, 'int16', 'b') * 4294967296;
+        x0(1) = fread(f, 1, 'uint32', 'b') + x0(1);
+        x0(2) = 0;
     end
     
-    y(buffer(4),1) = buffer(1);
+    x(x0(4),1) = x0(1);
     
 end
 
-if buffer(4)+1 < length(y)
-    y(buffer(4)+1:end) = [];
+if x0(4)+1 < length(x)
+    x(x0(4)+1:end) = [];
 end
 
 end
@@ -1118,12 +1227,27 @@ end
 % ---------------------------------------
 % Data = double array
 % ---------------------------------------
-function y = fdoublearray(f, offset)
+function x = fdoublearray(f, offset)
 
 fseek(f, 0, 'eof');
 n = floor((ftell(f) - offset) / 8);
 
 fseek(f, offset, 'bof');
-y = fread(f, n, 'float64', 'l');
+x = fread(f, n, 'float64', 'l');
+
+end
+
+% ---------------------------------------
+% Data = int16 to int32
+% ---------------------------------------
+function x = unpack(x)
+
+e = bitand(int32(x), int32(49152));
+x = bitand(int32(x), int32(16383));
+
+while any(e) ~= 0
+    x(e~=0) = bitshift(int32(x(e~=0)), 3);
+    e(e~=0) = e(e~=0) - 16384;
+end
 
 end

@@ -1,20 +1,20 @@
 classdef Chromatography
-    % ------------------------------------------------------------------------
+    % ---------------------------------------------------------------------
     % Class       : Chromatography
     % Description : Functions for chromatography and mass spectrometry data
     %
-    % Version     : 0.1.6-dev
+    % Version     : v0.1.6-dev
     % Website     : https://github.com/chemplexity/chromatography
-    %------------------------------------------------------------------------
+    %----------------------------------------------------------------------
     %
-    % ------------------------------------------------------------------------
+    % ---------------------------------------------------------------------
     % Syntax
-    % ------------------------------------------------------------------------
+    % ---------------------------------------------------------------------
     %   obj = Chromatography;
     %
-    % ------------------------------------------------------------------------
+    % ---------------------------------------------------------------------
     % Methods
-    % ------------------------------------------------------------------------
+    % ---------------------------------------------------------------------
     %   obj.import
     %       Description : import instrument data files
     %       Syntax      : data = obj.import(Name, Value)
@@ -48,8 +48,9 @@ classdef Chromatography
     % ---------------------------------------
     properties (Constant = true)
         
-        url     = 'https://github.com/chemplexity/chromatography';
-        version = '0.1.6-dev';
+        name        = 'Chromatography Toolbox';
+        url         = 'https://github.com/chemplexity/chromatography';
+        version     = 'v0.1.6.20170303';
         
         platform    = Chromatography.getPlatform();
         environment = Chromatography.getEnvironment();
@@ -115,7 +116,7 @@ classdef Chromatography
                 '.D',   'Agilent (*.D)';
                 '.MS',  'Agilent (*.MS)';
                 '.CH',  'Agilent (*.CH)';
-                '.CDF', 'netCDF (*.CDF)';
+                '.CDF', 'netCDF (*.CDF, *.NC)';
                 '.MSP', 'NIST (*.MSP)';
                 '.RAW', 'Thermo (*.RAW)'};
             
@@ -282,7 +283,7 @@ classdef Chromatography
             % ------------------------------------------------------------
             % Input (Name, Value)
             % ------------------------------------------------------------
-            %   'git' -- path to git executable
+            %   'gitpath' -- path to git executable
             %       empty (default) | string
             %
             %   'branch' -- select branch to checkout
@@ -293,14 +294,19 @@ classdef Chromatography
             %
             %   'verbose' -- show progress in command window
             %       true (default) | false
+            %
+            %   'reset' -- hard reset to match online repository
+            %       false (default) | true
+            %
             
             % ---------------------------------------
             % Defaults
             % ---------------------------------------
-            default.git     = [];
+            default.gitpath = [];
             default.branch  = [];
             default.force   = false;
             default.verbose = true;
+            default.reset   = false;
             
             % ---------------------------------------
             % Variables
@@ -314,20 +320,22 @@ classdef Chromatography
             % ---------------------------------------
             p = inputParser;
             
-            addParameter(p, 'git',     default.git,    @ischar);
-            addParameter(p, 'branch',  default.branch, @ischar);
+            addParameter(p, 'gitpath', default.gitpath, @ischar);
+            addParameter(p, 'branch',  default.branch,  @ischar);
             addParameter(p, 'force',   default.force);
             addParameter(p, 'verbose', default.verbose);
+            addParameter(p, 'reset',   default.reset);
             
             parse(p, varargin{:});
             
             % ---------------------------------------
             % Options
             % ---------------------------------------
-            option.git     = p.Results.git;
+            option.git     = p.Results.gitpath;
             option.branch  = p.Results.branch;
             option.force   = p.Results.force;
             option.verbose = p.Results.verbose;
+            option.reset   = p.Results.reset;
             
             % ---------------------------------------
             % Validate
@@ -335,6 +343,18 @@ classdef Chromatography
 
             % Parameter: 'git'
             option.git = obj.validateFile(option.git);
+            
+            if ~isempty(option.git)
+                
+                [~, gitExe] = fileparts(option.git);
+                
+                if isempty(regexp(gitExe, 'git', 'match'))
+                    option.git = 'git';
+                end
+                
+            else
+                option.git = 'git';
+            end
             
             % Parameter: 'branch'
             validBranch = {'master', 'dev'};
@@ -349,8 +369,11 @@ classdef Chromatography
             % Parameter: 'verbose'
             obj.verbose = obj.validateLogical(option.verbose, default.verbose);
              
+            % Parameter: 'reset'
+            option.reset = obj.validateLogical(option.reset, default.reset);
+            
             % ---------------------------------------
-            % Path
+            % Project Path
             % ---------------------------------------
             obj.dispMsg('header', 'UPDATE');
             obj.dispMsg('version');
@@ -364,7 +387,14 @@ classdef Chromatography
                 sourcePath = [sourcePath, filesep, sourceFile];
             end
             
+            userPath = pwd;
             cd(sourcePath);
+            
+            [gitStatus, ~] = system([option.git, ' --version']);
+            
+            if gitStatus
+                option.git = [];
+            end
             
             % ---------------------------------------
             % Windows
@@ -374,19 +404,34 @@ classdef Chromatography
                 [gitStatus, gitPath] = system('where git');
                 
                 if gitStatus
-
+                    
                     obj.dispMsg('status', 'Searching system for ''git.exe''...');
                     
-                    [gitStatus, gitPath] = system('dir C:\Users\*git.exe /s');
+                    windowsGit = {...
+                        '"C:\Program Files\Git\*git.exe"',...
+                        '"C:\Program Files (x86)\Git\*git.exe"',...
+                        '"C:\Users\*git.exe"'};
                     
-                    if gitStatus
+                    for i = 1:length(windowsGit)
                         
-                        msg = ['Visit ', link.windows, ' to and install Git for Windows...'];
+                        [gitStatus, gitPath] = system(['dir ', windowsGit{i}, ' /S']);
+                        
+                        if ~gitStatus
+                            option.git = gitPath;
+                            break
+                        end
+                        
+                    end
+                    
+                    if isempty(option.git)
+                        
+                        msg = ['Visit ', link.windows, ' to install Git for Windows...'];
                         
                         obj.dispMsg('status', 'Unable to find ''git.exe''...');
                         obj.dispMsg('status', msg);
                         obj.dispMsg('header', 'EXIT');
                         
+                        cd(userPath);
                         return
                         
                     end
@@ -399,7 +444,7 @@ classdef Chromatography
                 option.git = deblank(strtrim(gitPath));
                                 
             % ---------------------------------------
-            % Unix
+            % Mac / Linux
             % ---------------------------------------
             elseif isunix && isempty(option.git)
 
@@ -408,20 +453,31 @@ classdef Chromatography
                 if gitStatus
                     
                     if ismac
-                        msg = ['Visit ', link.mac, ' to and install Git for OSX...'];
+                        msg = ['Visit ', link.mac, ' to install Git for OSX...'];
                     else
-                        msg = ['Visit ', link.linux, ' to and install Git for Linux...'];
+                        msg = ['Visit ', link.linux, ' to install Git for Linux...'];
                     end
                     
                     obj.dispMsg('status', 'Unable to find ''git'' executable...');
                     obj.dispMsg('status', msg);
                     obj.dispMsg('header', 'EXIT');
                     
+                    cd(userPath);
                     return
                     
                 end
                 
                 option.git = deblank(strtrim(gitPath));
+                
+            end
+            
+            if isempty(option.git)
+                
+                obj.dispMsg('status', 'Unable to find ''git'' executable...');
+                obj.dispMsg('header', 'EXIT');
+                
+                cd(userPath);
+                return
                 
             end
             
@@ -444,6 +500,7 @@ classdef Chromatography
                 obj.dispMsg('error', 'Error executing ''git --version''...');
                 obj.dispMsg('header', 'EXIT');
                 
+                cd(userPath);
                 return
                 
             end
@@ -451,14 +508,35 @@ classdef Chromatography
             % ---------------------------------------
             % Check git repository
             % ---------------------------------------
-            [gitTest, ~] = system(['"', option.git, '" status']);
+            [gitInit, ~] = system(['"', option.git, '" status']);
             
-            if gitTest
+            if gitInit
                 
                 obj.dispMsg('status', 'Initializing git repository...');
 
-                [~,~] = system(['"', git, '" init']);
-                [~,~] = system(['"', git, '" remote add origin ', obj.url, '.git']);
+                [~,~] = system(['"', option.git, '" init']);
+                [gitStatus,~] = system(['"', option.git, '" remote add origin ', obj.url, '.git']);
+                
+                if gitStatus
+                    
+                    try
+                        rmdir('.git', 's');
+                    catch
+                    end
+                    
+                    obj.dispMsg('error', 'Unable to connect to online repository...');
+                    obj.dispMsg('header', 'EXIT');
+                    
+                    cd(userPath);
+                    return
+                    
+                end
+                
+                if option.force
+                    [~,~] = system(['"', option.git, '" reset --hard origin/master']);
+                else
+                    [~,~] = system(['"', option.git, '" checkout master']);
+                end
                 
             end
             
@@ -467,35 +545,40 @@ classdef Chromatography
             % ---------------------------------------
             obj.dispMsg('status', ['Fetching latest updates from ', obj.url]);
 
-            [~,~] = system(['"', option.git, '" pull']);
+            [~,~] = system(['"', option.git, '" fetch origin']);
             
-            if gitTest
+            [gitTest, gitBranch] = system(['"', option.git, '" rev-parse --abbrev-ref HEAD']);
 
-                if option.force
-                    gitCmd = '" checkout -f master';
-                else
-                    gitCmd = '" checkout master';
-                end
-                
-                [~,~] = system(['"', option.git, gitCmd]);
-                
+            if ~gitTest && ischar(gitBranch)
+                gitBranch = deblank(strtrim(gitBranch));
             end
             
-            % ---------------------------------------
-            % Checkout branch
-            % ---------------------------------------
-            if ~isempty(option.branch)
-                
-                if option.force
-                    gitCmd = ['" checkout -f ', option.branch];
-                else
-                    gitCmd = ['" checkout ', option.branch];
+            if ~isempty(gitBranch) && ~isempty(option.branch)
+                if ~strcmpi(option.branch, gitBranch) && option.force
+                    [~,~] = system(['"', option.git, '" checkout -f ', option.branch]);
+                    
+                elseif ~strcmpi(option.branch, gitBranch) && ~option.force
+                    [~,~] = system(['"', option.git, '" checkout ', option.branch]);
                 end
-                
-                [~,~] = system(['"', option.git, gitCmd]);
-                
             end
-        
+            
+            if option.reset
+                [gitStatus,~] = system(['"', option.git, '" reset --hard @{upstream}']);
+            elseif ~isempty(option.branch)
+                [gitStatus,~] = system(['"', option.git, '" pull --rebase origin ', option.branch]);
+            else
+                [gitStatus,~] = system(['"', option.git, '" pull --rebase origin']);
+            end
+            
+            pause(0.5);
+            cd(userPath);
+            
+            if gitStatus
+                obj.dispMsg('error', 'Error updating toolbox...');
+                obj.dispMsg('header', 'EXIT');
+                return
+            end
+            
             % ---------------------------------------
             % Status
             % ---------------------------------------
@@ -552,7 +635,7 @@ classdef Chromatography
                     
                 case 'version'
                     fprintf(' Chromatography Toolbox v');
-                    fprintf('%s \n', obj.version);
+                    fprintf('%s \n', Chromatography.version);
                     
                 case 'newline'
                     fprintf('\n');
@@ -579,27 +662,18 @@ classdef Chromatography
         
         
         function x = getPlatform()
-            
-            if ismac()
-                x = 'mac';
-            elseif isunix()
-                x = 'linux';
-            elseif ispc()
-                x = 'windows';
-            else
-                x = 'unknown';
-            end
-            
+            x = computer;
         end
         
         function x = getEnvironment()
             
             if ~isempty(ver('MATLAB'))
-                x = 'matlab';
+                x = ver('MATLAB');
+                x = ['MATLAB ', x.Release];
             elseif ~isempty(ver('OCTAVE'))
-                x = 'octave';
+                x = 'OCTAVE';
             else
-                x = 'unknown';
+                x = 'UNKNOWN';
             end
             
         end
