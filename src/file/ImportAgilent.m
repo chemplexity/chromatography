@@ -460,7 +460,7 @@ end
 function str = parsebytes(x)
 
 if x > 1E9
-    str = [num2str(x/1E6, '%.1f'), ' GB'];
+    str = [num2str(x/1E9, '%.1f'), ' GB'];
 elseif x > 1E6
     str = [num2str(x/1E6, '%.1f'), ' MB'];
 elseif x > 1E3
