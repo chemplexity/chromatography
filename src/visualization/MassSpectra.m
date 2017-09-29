@@ -54,7 +54,7 @@ function varargout = MassSpectra(varargin)
 %       7.5 (default) | number
 %
 %   'barwidth' -- width of individual bars
-%       7 (default) | number
+%       1 (default) | number
 %
 %   ----------------------------------------------------------------------
 %   Plot Export
@@ -76,105 +76,105 @@ function varargout = MassSpectra(varargin)
 % ---------------------------------------
 % Defaults
 % ---------------------------------------
-default.scale    = 'relative';
-default.height   = 0.44;
-default.width    = 0.42;
-default.xlim     = 'auto';
-default.ylim     = 'auto';
-default.labels   = 'on';
-default.fontname = 'avenir';
-default.fontsize = 7.5;
-default.barwidth = 7.0;
-default.filename = [datestr(date,'YYYYmmdd'), '_mass_spectra'];
-default.export   = 'off';
+%default.scale    = 'relative';
+%default.height   = 0.44;
+%default.width    = 0.42;
+%default.xlim     = 'auto';
+%default.ylim     = 'auto';
+%default.labels   = 'on';
+%default.fontname = 'avenir';
+%default.fontsize = 7.5;
+%default.barwidth = 7.0;
+%default.filename = [datestr(date,'YYYYmmdd'), '_mass_spectra'];
+%default.export   = 'off';
 
 % ---------------------------------------
 % Input
 % ---------------------------------------
-p = inputParser;
+%p = inputParser;
 
-addRequired(p, 'mz',...
-    @(x) validateattributes(x, {'numeric'}, {'nonempty'}));
+%addRequired(p, 'mz',...
+%    @(x) validateattributes(x, {'numeric'}, {'nonempty'}));
 
-addRequired(p, 'y',...
-    @(x) validateattributes(x, {'numeric'}, {'nonempty'}));
+%addRequired(p, 'y',...
+%    @(x) validateattributes(x, {'numeric'}, {'nonempty'}));
 
-addParameter(p, 'scale',...
-    default.scale,...
-    @(x) validateattributes(x, {'char'}, {'nonempty'}));
+%addParameter(p, 'scale',...
+%    default.scale,...
+%    @(x) validateattributes(x, {'char'}, {'nonempty'}));
 
-addParameter(p, 'height',...
-    default.height,...
-    @(x) validateattributes(x, {'char'}, {'nonempty'}));
+%addParameter(p, 'height',...
+%    default.height,...
+%    @(x) validateattributes(x, {'char'}, {'nonempty'}));
 
-addParameter(p, 'width',...
-    default.width,...
-    @(x) validateattributes(x, {'char'}, {'nonempty'}));
+%addParameter(p, 'width',...
+%    default.width,...
+%    @(x) validateattributes(x, {'char'}, {'nonempty'}));
 
-addParameter(p, 'xlim',...
-    default.xlim,...
-    @(x) validateattributes(x, {'numeric'}, {'numel', 2}));
+%addParameter(p, 'xlim',...
+%    default.xlim,...
+%    @(x) validateattributes(x, {'numeric'}, {'numel', 2}));
 
-addParameter(p, 'ylim',...
-    default.xlim,...
-    @(x) validateattributes(x, {'numeric'}, {'numel', 2}));
+%addParameter(p, 'ylim',...
+%    default.xlim,...
+%    @(x) validateattributes(x, {'numeric'}, {'numel', 2}));
 
-addParameter(p, 'labels',...
-    default.labels,...
-    @(x) validateattributes(x, {'char'}, {'nonempty'}));
+%addParameter(p, 'labels',...
+%    default.labels,...
+%    @(x) validateattributes(x, {'char'}, {'nonempty'}));
 
-addParameter(p, 'fontname',...
-    default.fontname,...
-    @(x) validateattributes(x, {'char'}, {'nonempty'}));
+%addParameter(p, 'fontname',...
+%    default.fontname,...
+%    @(x) validateattributes(x, {'char'}, {'nonempty'}));
 
-addParameter(p, 'fontsize',...
-    default.fontsize,...
-    @(x) validateattributes(x, {'char'}, {'nonempty'}));
+%addParameter(p, 'fontsize',...
+%    default.fontsize,...
+%    @(x) validateattributes(x, {'char'}, {'nonempty'}));
 
-addParameter(p, 'filename',...
-    default.filename,...
-    @(x) validateattributes(x, {'char'}, {'nonempty'}));
+%addParameter(p, 'filename',...
+%    default.filename,...
+%    @(x) validateattributes(x, {'char'}, {'nonempty'}));
 
-addParameter(p, 'export',...
-    default.export,...
-    @(x) validateattributes(x, {'char'}, {'nonempty'}));
+%addParameter(p, 'export',...
+%    default.export,...
+%    @(x) validateattributes(x, {'char'}, {'nonempty'}));
 
 % ---------------------------------------
 % Parse
 % ---------------------------------------
-mz = p.Results.mz;
-y  = p.Results.y;
+%mz = p.Results.mz;
+%y  = p.Results.y;
 
-fig = [];
+%fig = [];
 
-fig.scale    = p.Results.scale;
-fig.height   = p.Results.height;
-fig.width    = p.Results.width; 
-fig.xlim     = p.Results.xlim;
-fig.ylim     = p.Results.ylim;
-fig.labels   = p.Results.labels;
-fig.fontname = p.Results.fontname;
-fig.fontsize = p.Results.fontsize;
-fig.filename = p.Results.filename;
-fig.export   = p.Results.export;
+%fig.scale    = p.Results.scale;
+%fig.height   = p.Results.height;
+%fig.width    = p.Results.width; 
+%fig.xlim     = p.Results.xlim;
+%fig.ylim     = p.Results.ylim;
+%fig.labels   = p.Results.labels;
+%fig.fontname = p.Results.fontname;
+%fig.fontsize = p.Results.fontsize;
+%fig.filename = p.Results.filename;
+%fig.export   = p.Results.export;
 
 % ---------------------------------------
 % Validate
 % ---------------------------------------
-if ~any(strcmp(fonts, options.font.name))
-    
-    if any(strcmp(fonts, 'Avenir Next'))
-        fig.fontname = 'Avenir Next';
-    elseif any(strcmp(fonts, 'Lucida Sans'))
-        fig.fontname = 'Lucida Sans';
-    elseif any(strcmp(fonts, 'Helvetica Neue'))
-        fig.fontname = 'Helvetica Neue';
-    elseif any(strcmp(fonts, 'Century Gothic'))
-        fig.fontname = 'Century Gothic';
-    else
-        fig.fontname = 'Arial';
-    end
-end
+%if ~any(strcmp(fonts, options.font.name))
+%    
+%    if any(strcmp(fonts, 'Avenir Next'))
+%        fig.fontname = 'Avenir Next';
+%    elseif any(strcmp(fonts, 'Lucida Sans'))
+%        fig.fontname = 'Lucida Sans';
+%    elseif any(strcmp(fonts, 'Helvetica Neue'))
+%        fig.fontname = 'Helvetica Neue';
+%    elseif any(strcmp(fonts, 'Century Gothic'))
+%        fig.fontname = 'Century Gothic';
+%    else
+%        fig.fontname = 'Arial';
+%    end
+%end
 
 % Check input
 [mz, y, options] = parse(varargin);
@@ -330,12 +330,25 @@ if strcmpi(options.labels, 'on')
     
     % Determine noise
     dy = ylocal(1,:) > circshift(ylocal, [0,-1]);
-    dy(2,:) = ylocal(1,:) > circshift(ylocal, [0, 1]);
+    dy(1,end) = 1;
+    
+    dy(2,:) = ylocal(1,:) > circshift(ylocal, [0,1]);
+    dy(2,1) = 1;
+    
     dy(3,:) = dy(1,:) & dy(2,:);
     
+    % Determine lone peaks
+    xspan = (options.xlimits(2) - options.xlimits(1)) * 0.05;
+    
+    dx(1,:) = [diff(xlocal), inf];
+    dx(2,:) = [inf, diff(xlocal)];
+    dy(4,:) = dx(1,:) >= xspan & dx(2,:) >= xspan;
+    
+    dy(5,:) = (dx(1,:) >= xspan | dx(2,:) >= xspan) & (dy(1,:) | dy(2,:));
+    
     % Filter noise
-    xlocal = xlocal(dy(3,:));
-    ylocal = ylocal(dy(3,:));
+    xlocal = xlocal(dy(3,:) | dy(4,:) | dy(5,:));
+    ylocal = ylocal(dy(3,:) | dy(4,:) | dy(5,:));
     
     % Filter values below height threshold
     xlocal(ylocal < max(y(window)) * options.threshold) = [];
@@ -548,6 +561,10 @@ options.empty = axes(...
     'selectionhighlight', 'off',...
     'position', get(options.axes,'position')+[-0.003,-0.0038,0,0]);
 
+% Set axis limits
+set(options.empty, 'xlim', options.xlimits);
+set(options.empty, 'ylim', options.ylimits);
+
 % Link axes to allow zooming
 axes(options.axes);
 linkaxes([options.axes, options.empty]);
@@ -614,7 +631,6 @@ end
 % Check data
 if isnumeric(varargin{1})
     mz = varargin{1};
-    
 else
     error('Undefined input arguments of type ''mz''.');
 end
@@ -802,7 +818,7 @@ if ~isempty(input('xlim'))
     if ~isnumeric(xlimits) || any(strcmpi(xlimits, {'default', 'auto'}))
         options.xlimits = [];
         
-    elseif xlimits(2) < xlimits(1) || length(xlimits) ~= 2;
+    elseif xlimits(2) < xlimits(1) || length(xlimits) ~= 2
         options.xlimits = [];
         
     else
@@ -841,17 +857,17 @@ if ~isempty(input('barwidth'))
     options.bar.width = varargin{input('barwidth')+1};
     
     if ~isnumeric(options.bar.width)
-        options.bar.width = 7;
+        options.bar.width = 1;
         
     elseif options.bar.width <= 0 || options.bar.width > 99
-        options.bar.width = 7;
+        options.bar.width = 1;
         
     else
         options.bar.width = options.bar.width(1);
     end
     
 else
-    options.bar.width = 7;
+    options.bar.width = 1;
 end
 
 

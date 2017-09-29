@@ -6,30 +6,13 @@
 %  Contents
 %
 %    1.0 Initialize
-%
 %    2.0 Import Data
-%    2.1 Import/Append Data
-%
 %    3.0 Centroid
-%    3.1 Centroid Parameters
-%
 %    4.0 Baseline
-%    4.1 Baseline Parameters
-%    4.2 Baseline Parameters
-%
 %    5.0 Smooth
-%    5.1 Smoothing Parameters
-%    5.2 Smoothing Parameters
-%
 %    6.0 Peak Integration
-%    6.1 Peak Parameters
-%    6.2 Peak Parameters
-%
-%    7.0 Visualize
-%    7.1 Visualize Parameters
-%
-%    8.0 Mass Spectra
-%    8.1 Mass Spectra Export
+%    7.0 Plot Chromatogram
+%    8.0 Plot Mass Spectra
 
 
 %% 1.0 Initialize
@@ -52,11 +35,8 @@ data = obj.import('filetype', '.CDF', 'append', data);
 % Centroid mass values for all samples
 data = obj.centroid(data);
 
-%% 3.1 Centroid Parameters
+%% 3.1 Centroid Selected Samples
 i = 1;
-
-% Restore original data
-data = obj.reset(data);
 
 % Centroid mass values for selected samples
 data = obj.centroid(data, 'samples', i);
@@ -193,7 +173,7 @@ fprintf(['\nError: ', num2str(data(i).xic.peaks.error(1,index), '%.2f'), '%%\n']
 
 clear ions index residuals
 
-%% 7.0 Visualize
+%% 7.0 View Chromatograms
 
 % Plot overlay of all chromatograms in data
 obj.visualize(data);
@@ -217,15 +197,14 @@ obj.visualize(data, ...
     'samples',  'all',...
     'ions',     'tic',...
     'legend',   'on',...
-    'scale',    'full',...
+    'scale',    'normalized',...
     'layout',   'stacked',...
-    'scope',    'local',...
     'color',    'black',...
     'baseline', 'corrected',...
     'export',   'off');
 
 %% 8.0 Mass Spectra
-i = 2;
+i = 1;
 
 % Plot mass spectra for largest peak in TIC
 data = obj.integrate(data, 'samples', i);
@@ -247,7 +226,7 @@ MassSpectra(mz, y(index, :))
 clear x y z center width index
 
 %% 8.1 Mass Spectra Export
-i = 2;
+i = 1;
 
 % Export mass spectra to 300 dpi .PNG file
 MassSpectra(data(i).mz, data(i).xic.values,...

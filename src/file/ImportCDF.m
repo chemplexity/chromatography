@@ -101,7 +101,7 @@ else
 end
 
 % Parameter: 'content'
-if ~any(strcmpi(option.content, {'default', 'all', 'header'}))
+if ~any(strcmpi(option.content, {'default', 'all', 'header', 'metadata'}))
     option.content = 'all';
 end
 
@@ -217,7 +217,7 @@ for i = 1:length(file)
             data = parseinfo(f, data);
             data = parsedata(f, data);
             
-        case {'header'}
+        case {'metadata', 'header'}
             
             data = parseinfo(f, data);
             
@@ -461,7 +461,6 @@ for i = 1:numAttr
     
 end
 
-% Convert datetime to ISO 8601
 dateFields = {...
     'experiment_date_time_stamp',...
     'netcdf_file_date_time_stamp',...
@@ -472,6 +471,7 @@ dateFields = {...
     'date_time_stamp',...
     'HP_injection_time'};
 
+% Convert datetime to ISO 8601
 for i = 1:length(dateFields)
     
     if isfield(data, dateFields{i}) && ~isempty(data(end,1).(dateFields{i}))
@@ -653,11 +653,6 @@ end
 % Data = datetime
 % ---------------------------------------
 function str = parsedate(str)
-
-% Platform
-if exist('OCTAVE_VERSION', 'builtin')
-    return
-end
 
 % ISO 8601
 formatOut = 'yyyy-mm-ddTHH:MM:SS';

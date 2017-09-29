@@ -32,13 +32,13 @@ function varargout = ImportThermo(varargin)
 %   data = ImportThermo('file', '00159F.RAW')
 %   data = ImportThermo('file', {'/Data/2016/04/', '00201B.RAW'})
 %   data = ImportThermo('file', {'/ThermoData/2014/'}, 'depth', 4)
-%   data = ImportThermo('content', 'header', 'depth', 8)
+%   data = ImportThermo('content', 'metadata', 'depth', 8)
 %   data = ImportThermo('verbose', 'off')
 %
 % ------------------------------------------------------------------------
 % References
 % ------------------------------------------------------------------------
-%   'unfinnigan'
+%   'unfinnigan' (https://code.google.com/archive/p/unfinnigan/)
 
 % ---------------------------------------
 % Defaults
@@ -101,7 +101,7 @@ else
 end
 
 % Parameter: 'content'
-if ~any(strcmpi(option.content, {'default', 'all', 'header'}))
+if ~any(strcmpi(option.content, {'default', 'all', 'metadata', 'header'}))
     option.content = 'all';
 end
 
@@ -209,7 +209,7 @@ for i = 1:length(file)
             datao{i} = parseinfo(f, data);
             %data(i,1) = parsedata(f, data(i,1));
             
-        case {'header'}
+        case {'metadata', 'header'}
             
             datao{i} = parseinfo(f, data);
             
@@ -222,7 +222,7 @@ end
 % ---------------------------------------
 % Exit
 % ---------------------------------------
-%status(option.verbose, 'stats', length(datao), toc, sum([data.file_size]));
+status(option.verbose, 'stats', length(datao), toc, sum([data.file_size]));
 status(option.verbose, 'exit');
 
 varargout{1} = datao;
@@ -290,12 +290,12 @@ end
 % ---------------------------------------
 function [file, status] = FileUI(file)
 
-% JFileChooser (Java)
 if ~usejava('swing')
     status = 2;
     return
 end
 
+% JFileChooser (Java)
 fc = javax.swing.JFileChooser(java.io.File(pwd));
 
 % Options
@@ -328,7 +328,9 @@ if status == fc.APPROVE_OPTION
         if isstruct(f)
             file = [file; f];
         end
+        
     end
+    
 end
 
 end
@@ -363,7 +365,7 @@ while searchDepth >= 0
         
         [~, ~, fileExt] = fileparts(file(i).Name);
         
-        if any(strcmpi(fileExt, {'.m', '.git', '.lnk'}))
+        if any(strcmpi(fileExt, {'.git', '.lnk'}))
             continue
         elseif file(i).directory == 1
             file = parsedirectory(file, i, fileType);
@@ -377,6 +379,7 @@ while searchDepth >= 0
     else
         break
     end
+    
 end
 
 end
@@ -436,7 +439,7 @@ end
 end
 
 % ---------------------------------------
-% File header
+% File metadata
 % ---------------------------------------
 function data = parseinfo(f, data)
 
@@ -451,8 +454,10 @@ switch data.file_header.version
     
     case {7, 8}
         data.seq_row = SeqRowA(f, data.seq_row_offset);
+    
     case {50, 57}
         data.seq_row = SeqRowB(f, data.seq_row_offset);
+    
     case {60, 62, 63, 64, 66}
         data.seq_row = SeqRowC(f, data.seq_row_offset); 
         
@@ -469,10 +474,13 @@ switch data.file_header.version
     
     case {7, 8}
         data.raw_file_info = RawFileInfo8(f, data.raw_file_info_offset);
+    
     case {50, 57, 60, 62, 63}
         data.raw_file_info = RawFileInfo32(f, data.raw_file_info_offset);
+    
     case {64}
         data.raw_file_info = RawFileInfo64(f, data.raw_file_info_offset, 1008);
+    
     case {66}
         data.raw_file_info = RawFileInfo64(f, data.raw_file_info_offset, 1024);
 
@@ -483,6 +491,7 @@ switch data.file_header.version
     
     case {7, 8}
         data.run_header_offset = ftell(f);
+    
     case {50, 57, 60, 62, 63, 64, 66}
         data.run_header_offset = data.raw_file_info.preamble.run_header_addr;
         
@@ -492,8 +501,10 @@ switch data.file_header.version
     
     case {7, 8}
         data.run_header = RunHeader8(f, data.run_header_offset);
+    
     case {50, 57, 60, 62, 63}
         data.run_header = RunHeader32(f, data.run_header_offset);
+    
     case {64, 66}
         data.run_header = RunHeader64(f, data.run_header_offset);
 
@@ -937,8 +948,8 @@ data.time = fread(file.name, n, 'float64=>single', 64);
 % Read total intensity values
 fseek(file.name, offset+32, 'bof');
 data.tic.values = fread(file.name, n, 'float64=>single', 64);
-end
 
+end
 
 function [file, data] = ScanData(file, data)
 
@@ -987,9 +998,6 @@ for i = 1:length(levels)
             % Reshape data
             [data.mz, data.xic.values] = FormatData(file, mz, xic, size, rows);
             
-            % Clear memory
-            clear mz xic
-            
             % MS1 / Header
         case 21
             
@@ -999,8 +1007,8 @@ for i = 1:length(levels)
             
             % Initialize data
             xic = [];
-            mz = [];
-            n = [];
+            mz  = [];
+            n   = [];
             
             for j = 1:length(index)
                 
@@ -1027,9 +1035,11 @@ for i = 1:length(levels)
                     % Read intensity values
                     fseek(file.name, offset+8, 'bof');
                     xic(end+1:end+n(j)) = fread(file.name, n(j), 'float32=>single', 4);
+                    
                 else
                     n(end+1) = 0;
                 end
+                
             end
             
             % Variables
@@ -1042,9 +1052,6 @@ for i = 1:length(levels)
             
             % Reshape data
             [data.mz, data.xic.values] = FormatData(file, mz', xic, size, rows);
-            
-            % Clear memory
-            clear mz xic
             
             % MS2 / Centroid
         case 18
@@ -1096,9 +1103,11 @@ for i = 1:length(levels)
                     
                     % Update column index
                     cols(end+1) = n;
+                    
                 else
                     cols(end+1) = 0;
                 end
+                
             end
             
             % Variables
@@ -1117,8 +1126,6 @@ for i = 1:length(levels)
             % Reshape data
             [data.ms2.mz, data.ms2.xic] = FormatData(file, mz', xic, size, rows);
             
-            % Clear memory
-            clear mz xic
     end
 end
 
@@ -1135,9 +1142,6 @@ z = unique(mz, 'sorted');
 
 % Determine column index for reshaping
 [~, column_index] = ismember(mz, z);
-
-% Clear m/z from memory
-clear mz
 
 % Determine data index
 index.end = size;
@@ -1160,10 +1164,8 @@ for i = 1:length(index.start)
     
     % Reshape instensity values
     y(i, column_index(m:n)) = xic(m:n);
+    
 end
-
-% Clear xic from memory
-clear xic
 
 % Output data
 varargout{1} = z';

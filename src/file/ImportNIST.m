@@ -29,34 +29,38 @@ function data = ImportNIST(varargin)
 % Examples
 % ------------------------------------------------------------------------
 %   data = ImportNIST()
-%   data = ImportNIST('file', {'/Data/2016/'}, 'depth', 4)
+%   data = ImportNIST('file', {'/Data/2016/', '/Data/2015/'}, 'depth', 4)
 %   data = ImportNIST('file', '56-55-3.MSP', 'verbose', 'off')
 
 % ---------------------------------------
 % Data
 % ---------------------------------------
-data.file_path        = [];
-data.file_name        = [];
-data.file_size        = [];
-data.compound_name    = [];
-data.compound_formula = [];
-data.compound_mw      = [];
-data.cas_id           = [];
-data.nist_id          = [];
-data.db_id            = [];
-data.comments         = [];
-data.num_peaks        = [];
-data.mz               = [];
-data.intensity        = [];
+data = struct(...
+    'file_path',           [],...
+    'file_name',           [],...
+    'file_size',           [],...
+    'compound_name',       [],...
+    'compound_synonym',    {},...
+    'compound_formula',    [],...
+    'compound_mw',         [],...
+    'compound_exact_mass', [],...
+    'cas_id',              [],...
+    'nist_id',             [],...
+    'db_id',               [],...
+    'comments',            [],...
+    'num_peaks',           [],...
+    'mz',                  [],...
+    'intensity',           []);
 
 % ---------------------------------------
 % Defaults
 % ---------------------------------------
-default.file    = [];
-default.depth   = 1;
-default.content = 'all';
-default.verbose = 'on';
-default.formats = {'.MSP'};
+default = struct(...
+    'file',    [],...
+    'depth',   1,...
+    'content', 'all',...
+    'verbose', true,...
+    'format',  {'.MSP'});
 
 % ---------------------------------------
 % Platform
@@ -73,7 +77,7 @@ p = inputParser;
 addParameter(p, 'file',    default.file);
 addParameter(p, 'depth',   default.depth,   @isscalar);
 addParameter(p, 'content', default.content, @ischar);
-addParameter(p, 'verbose', default.verbose, @ischar);
+addParameter(p, 'verbose', default.verbose);
 
 parse(p, varargin{:});
 
@@ -110,15 +114,17 @@ else
 end
 
 % Parameter: 'content'
-if ~any(strcmpi(option.content, {'default', 'all', 'header'}))
+if ~any(strcmpi(option.content, {'default', 'all', 'header', 'metadata'}))
     option.content = 'all';
 end
 
 % Parameter: 'verbose'
-if any(strcmpi(option.verbose, {'off', 'no', 'n', 'false', '0'}))
+if isnumeric(option.verbose) && ~any(option.verbose == [0,1])
+    option.verbose = default.verbose;
+elseif any(strcmpi(option.verbose, {'off', 'no', 'n', 'false', '0'}))
     option.verbose = false;
 else
-    option.verbose = true;
+    option.verbose = default.verbose;
 end
 
 % ---------------------------------------
@@ -155,7 +161,7 @@ if sum([file.directory]) == 0
     option.depth = 0;
 else
     status(option.verbose, 'subfolder_search');
-    file = parsesubfolder(file, option.depth, default.formats);
+    file = parsesubfolder(file, option.depth, default.format);
 end
 
 % ---------------------------------------
@@ -163,7 +169,7 @@ end
 % ---------------------------------------
 [~,~,ext] = cellfun(@(x) fileparts(x), {file.Name}, 'uniformoutput', 0);
 
-file(cellfun(@(x) ~any(strcmpi(x, default.formats)), ext)) = [];
+file(cellfun(@(x) ~any(strcmpi(x, default.format)), ext)) = [];
 
 if isempty(file)
     status(option.verbose, 'selection_error');
@@ -188,25 +194,6 @@ for i = 1:length(file)
     end
     
     % ---------------------------------------
-    % Properties
-    % ---------------------------------------
-    [filePath, fileName, fileExt] = fileparts(file(i).Name);
-    
-    data(i,1).file_path = filePath;
-    data(i,1).file_name = [fileName, fileExt];
-    data(i,1).file_size = subsref(dir(file(i).Name), substruct('.', 'bytes'));
-    
-    % ---------------------------------------
-    % Status
-    % ---------------------------------------
-    [~, statusPath] = fileparts(data(i,1).file_path);
-    statusPath = ['..', filesep, statusPath, filesep, data(i,1).file_name];
-    
-    status(option.verbose, 'loading_file', i, length(file));
-    status(option.verbose, 'file_name', statusPath);
-    status(option.verbose, 'loading_stats', data(i,1).file_size);
-    
-    % ---------------------------------------
     % Read
     % ---------------------------------------
     f = fileread(file(i).Name);
@@ -215,17 +202,52 @@ for i = 1:length(file)
         continue
     end
     
-    switch option.content
+    f = parsefile(f);
+    
+    for j = 1:length(f)
+    
+        % ---------------------------------------
+        % File properties
+        % ---------------------------------------
+        [filePath, fileName, fileExt] = fileparts(file(i).Name);
+    
+        data(end+1,1).file_path = filePath;
+        data(end,1).file_name = [fileName, fileExt];
+        data(end,1).file_size = length(f{j}) + 4;
+    
+        % ---------------------------------------
+        % Status
+        % ---------------------------------------
+        [~, statusPath] = fileparts(data(end,1).file_path);
+        statusPath = ['..', filesep, statusPath, filesep, data(end,1).file_name];
+    
+        if length(f) > 1
+            n = [num2str(i), '-', num2str(j)];
+        else
+            n = i;
+        end
         
-        case {'all', 'default'}
+        status(option.verbose, 'loading_file', n, length(file));
+        status(option.verbose, 'file_name', statusPath);
+        status(option.verbose, 'loading_stats', data(end,1).file_size);
+    
+        if data(end,1).file_size == 0
+            continue
+        end
+    
+        switch option.content
+        
+            case {'all', 'default'}
             
-            data(i,1) = parseinfo(f, data(i,1));
-            data(i,1) = parsedata(f, data(i,1));
+                data(end,1) = parseinfo(f{j}, data(end,1));
+                data(end,1) = parsedata(f{j}, data(end,1));
             
-        case {'header',}
+            case {'metadata', 'header'}
             
-            data(i,1) = parseinfo(f, data(i,1));
+                data(end,1) = parseinfo(f{j}, data(end,1));
             
+        end
+    
     end
     
 end
@@ -299,12 +321,12 @@ end
 % ---------------------------------------
 function [file, status] = FileUI(file)
 
-% JFileChooser (Java)
 if ~usejava('swing')
     status = 2;
     return
 end
 
+% JFileChooser (Java)
 fc = javax.swing.JFileChooser(java.io.File(pwd));
 
 % Options
@@ -337,7 +359,9 @@ if status == fc.APPROVE_OPTION
         if isstruct(f)
             file = [file; f];
         end
+        
     end
+    
 end
 
 end
@@ -386,6 +410,7 @@ while searchDepth >= 0
     else
         break
     end
+    
 end
 
 end
@@ -410,7 +435,62 @@ for i = 1:length(filePath)
             file = [file; fileName];
         end
     end
+    
 end
+
+end
+
+% ---------------------------------------
+% File contents
+% ---------------------------------------
+function f = parsefile(f)
+
+if ischar(f)
+    
+    f = strsplit(f, '\r\n\r\n', 'delimitertype', 'regularexpression');
+   
+    if iscell(f) && isempty(f{end})
+        f(end) = [];
+    end
+    
+end
+
+end
+
+% ---------------------------------------
+% File metadata
+% ---------------------------------------
+function data = parseinfo(f, data)
+
+data.compound_name       = parsefield(f, 'Name');
+data.compound_synonym    = parsefield(f, 'Synon');
+data.compound_formula    = parsefield(f, 'Formula');
+data.compound_mw         = parsefield(f, 'MW');
+data.compound_exact_mass = parsefield(f, 'ExactMass');
+data.cas_id              = parsefield(f, 'CAS([#]|NO)');
+data.nist_id             = parsefield(f, 'NIST([#]|NO)');
+data.db_id               = parsefield(f, 'DB([#]|NO)');
+data.comments            = parsefield(f, 'Comment[s]?');
+data.num_peaks           = parsefield(f, 'Peaks');
+
+data.compound_mw         = parsenumber(data.compound_mw);
+data.compound_exact_mass = parsenumber(data.compound_exact_mass);
+data.num_peaks           = parsenumber(data.num_peaks);
+
+if ~isempty(data.compound_synonym) && ischar(data.compound_synonym)
+    data.compound_synonym = {data.compound_synonym};
+end
+
+% PRECURSORMZ
+
+end
+
+% ---------------------------------------
+% File data
+% ---------------------------------------
+function data = parsedata(f, data)
+
+[data.mz, data.intensity] = parsearray(f);
 
 end
 
@@ -445,59 +525,30 @@ end
 end
 
 % ---------------------------------------
-% File header
-% ---------------------------------------
-function data = parseinfo(f, data)
-
-data.compound_name    = parsefield(f, 'Name');
-data.compound_formula = parsefield(f, 'Formula');
-data.compound_mw      = parsefield(f, 'MW');
-data.cas_id           = parsefield(f, 'CAS[#]');
-data.nist_id          = parsefield(f, 'NIST[#]');
-data.db_id            = parsefield(f, 'DB[#]');
-data.comments         = parsefield(f, 'Comments');
-data.num_peaks        = parsefield(f, 'Peaks');
-
-if ~isempty(data.compound_mw)
-    data.compound_mw = parsenumber(data.compound_mw);
-end
-
-if ~isempty(data.num_peaks)
-    data.num_peaks = parsenumber(data.num_peaks);
-end
-
-end
-
-% ---------------------------------------
-% File data
-% ---------------------------------------
-function data = parsedata(f, data)
-
-[data.mz, data.intensity] = parsearray(f);
-
-end
-
-% ---------------------------------------
 % Data = string
 % ---------------------------------------
 function str = parsefield(f, name)
 
 switch name
     
-    case {'CAS[#]'}
-        strRegEx = ['(?:', name, '[:]\s*)(\S[ ]|\S+)+(?:(\r|[;]))'];
+    case {'CAS([#]|NO)'}
+        strRegExp = ['(?:', name, '[:]\s*)(\S[ ]|\S+)+(?:(\r|[;]))'];
         
     otherwise
-        strRegEx = ['(?:', name, '[:]\s*)(\S[ ]+|\S+)+(?:(\r|[;]))'];
+        strRegExp = ['(?:', name, '[:]\s*)(\S[ ]+|\S+)+(?:(\r|[;]))'];
         
 end
 
-str = regexp(f, strRegEx, 'tokens', 'once');
+str = regexpi(f, strRegExp, 'tokens');
 
 if isempty(str)
     str = '';
 else
-    str = strtrim(deblank(str{1}));
+    str = cellfun(@(x) strtrim(deblank(x{1})), str, 'uniformoutput', 0);
+end
+
+if iscell(str) && length(str) == 1
+    str = str{1};
 end
 
 end
@@ -505,13 +556,19 @@ end
 % ---------------------------------------
 % Data = number
 % ---------------------------------------
-function x = parsenumber(str)
+function str = parsenumber(str)
+
+if isempty(str) || ~ischar(str)
+    return
+end
 
 x = str2double(str);
 
-if isnan(x)
+if isnan(str)
     x = str;
 end
+
+str = x;
 
 end
 
@@ -520,7 +577,7 @@ end
 % ---------------------------------------
 function [x, y] = parsearray(f)
 
-str = regexp(f, '(\d+ \d+)', 'match');
+str = regexp(f, '(\d+ +\d+)', 'match');
 
 if isempty(str)
     x = [];

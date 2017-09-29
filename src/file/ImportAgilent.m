@@ -32,50 +32,54 @@ function data = ImportAgilent(varargin)
 %   data = ImportAgilent('file', '00159F.D')
 %   data = ImportAgilent('file', {'/Data/2016/04/', '00201B.D'})
 %   data = ImportAgilent('file', {'/Data/2016/'}, 'depth', 4)
-%   data = ImportAgilent('content', 'header', 'depth', 8)
+%   data = ImportAgilent('content', 'metadata', 'depth', 8)
 %   data = ImportAgilent('verbose', 'off')
 
 % ---------------------------------------
 % Data
 % ---------------------------------------
-data.file_path       = [];
-data.file_name       = [];
-data.file_size       = [];
-data.file_info       = [];
-data.file_version    = [];
-data.sample_name     = [];
-data.sample_info     = [];
-data.barcode         = [];
-data.operator        = [];
-data.datetime        = [];
-data.instrument      = [];
-data.instmodel       = [];
-data.inlet           = [];
-data.method_name     = [];
-data.seqindex        = [];
-data.vial            = [];
-data.replicate       = [];
-data.glp_flag        = [];
-data.data_source     = [];
-data.firmware_rev    = [];
-data.software_rev    = [];
-data.dir_type        = [];
-data.dir_offset      = [];
-data.data_offset     = [];
-data.num_records     = [];
-data.start_time      = [];
-data.end_time        = [];
-data.channel_max      = [];
-data.channel_min      = [];
-data.channel_detector = [];
-data.channel_desc     = [];
-data.sampling_rate   = [];
-data.time            = [];
-data.intensity       = [];
-data.channel         = [];
-data.time_units      = [];
-data.intensity_units = [];
-data.channel_units   = [];
+data = struct(...
+    'file_path',        [],...
+    'file_name',        [],...
+    'file_size',        [],...
+    'file_info',        [],...
+    'file_version',     [],...
+    'sample_name',      [],...
+    'sample_info',      [],...
+    'barcode',          [],...
+    'operator',         [],...
+    'datetime',         [],...
+    'instrument',       [],...
+    'instmodel',        [],...
+    'inlet',            [],...
+    'method_name',      [],...
+    'seqindex',         [],...
+    'vial',             [],...
+    'replicate',        [],...
+    'glp_flag',         [],...
+    'data_source',      [],...
+    'firmware_rev',     [],...
+    'software_rev',     [],...
+    'dir_type',         [],...
+    'dir_offset',       [],...
+    'data_offset',      [],...
+    'num_records',      [],...
+    'start_time',       [],...
+    'end_time',         [],...
+    'channel_max',      [],...
+    'channel_min',      [],...
+    'channel_detector', [],...
+    'channel_desc',     [],...
+    'signal_version',   [],... 
+    'signal_slope',     [],...
+    'signal_intercept', [],...
+    'sampling_rate',    [],...
+    'time',             [],...
+    'intensity',        [],...
+    'channel',          [],...
+    'time_units',       [],...
+    'intensity_units',  [],...
+    'channel_units',    []);
 
 % ---------------------------------------
 % Defaults
@@ -138,7 +142,7 @@ else
 end
 
 % Parameter: 'content'
-if ~any(strcmpi(option.content, {'default', 'all', 'header'}))
+if ~any(strcmpi(option.content, {'default', 'all', 'metadata', 'header'}))
     option.content = 'all';
 end
 
@@ -223,7 +227,7 @@ for i = 1:length(file)
     
     if strcmpi(parentExt, '.D')
         data(i,1).file_path = parentPath;
-        data(i,1).file_name = [parentName, parentExt, '/', fileName, fileExt];
+        data(i,1).file_name = [parentName, parentExt, filesep, fileName, fileExt];
     else
         data(i,1).file_path = filePath;
         data(i,1).file_name = [fileName, fileExt];
@@ -257,7 +261,7 @@ for i = 1:length(file)
             data(i,1) = parseinfo(f, data(i,1));
             data(i,1) = parsedata(f, data(i,1));
             
-        case {'header'}
+        case {'metadata', 'header'}
             
             data(i,1) = parseinfo(f, data(i,1));
             
@@ -336,12 +340,12 @@ end
 % ---------------------------------------
 function [file, status] = FileUI(file)
 
-% JFileChooser (Java)
 if ~usejava('swing')
     status = 2;
     return
 end
 
+% JFileChooser (Java)
 fc = javax.swing.JFileChooser(java.io.File(pwd));
 
 % Options
@@ -485,7 +489,7 @@ end
 end
 
 % ---------------------------------------
-% File header
+% File metadata
 % ---------------------------------------
 function data = parseinfo(f, data)
 
@@ -502,6 +506,7 @@ end
 switch data.file_version
     
     case {'2'}
+        
         data.file_info        = fpascal(f,   4,    'uint8');
         data.sample_name      = fpascal(f,   24,   'uint8');
         data.sample_info      = fpascal(f,   86,   'uint8');
@@ -515,6 +520,7 @@ switch data.file_version
         data.replicate        = fnumeric(f,  256,  'int16');
         
     case {'8', '81', '30', '31'}
+        
         data.file_info        = fpascal(f,   4,    'uint8');
         data.sample_name      = fpascal(f,   24,   'uint8');
         data.barcode          = fpascal(f,   86,   'uint8');
@@ -528,6 +534,7 @@ switch data.file_version
         data.replicate        = fnumeric(f,  256,  'int16');
         
     case {'130', '131', '179', '181'}
+        
         data.file_info        = fpascal(f,   347,  'uint16');
         data.sample_name      = fpascal(f,   858,  'uint16');
         data.barcode          = fpascal(f,   1369, 'uint16');
@@ -545,35 +552,59 @@ end
 switch data.file_version
     
     case {'81', '179', '181'}
-        data.start_time       = fnumeric(f,  282,  'float32') / 6E4;
-        data.end_time         = fnumeric(f,  286,  'float32') / 6E4;
+        
+        data.start_time       = fnumeric(f,  282,  'float32');
+        data.end_time         = fnumeric(f,  286,  'float32');
         data.channel_max      = fnumeric(f,  290,  'float32');
         data.channel_min      = fnumeric(f,  294,  'float32');
         
     case {'2', '8', '30', '31', '130', '131'}
-        data.start_time       = fnumeric(f,  282,  'int32') / 6E4;
-        data.end_time         = fnumeric(f,  286,  'int32') / 6E4;
+        
+        data.start_time       = fnumeric(f,  282,  'int32');
+        data.end_time         = fnumeric(f,  286,  'int32');
         data.channel_max      = fnumeric(f,  290,  'int32');
         data.channel_min      = fnumeric(f,  294,  'int32');
         
 end
 
+if ~isempty(data.start_time)
+    data.start_time = data.start_time / 6E4;
+end
+
+if ~isempty(data.end_time)
+    data.end_time = data.end_time / 6E4;
+end
+
 switch data.file_version
     
     case {'2'}
-        data.dir_type         = fnumeric(f,  258,  'int16');
-        data.dir_offset       = fnumeric(f,  260,  'int32') * 2 - 2;
-        data.data_offset      = fnumeric(f,  264,  'int32') * 2 - 2;
-        data.num_records      = fnumeric(f,  278,  'int32');
         
-    case {'8', '30', '31', '81', '130', '131', '179', '181'}
         data.dir_type         = fnumeric(f,  258,  'int16');
         data.dir_offset       = fnumeric(f,  260,  'int32');
-        data.data_offset      = (fnumeric(f, 264,  'int32') - 1) * 512;
+        data.data_offset      = fnumeric(f,  264,  'int32');
         data.num_records      = fnumeric(f,  278,  'int32');
         
-        if data.dir_type
+        if ~isempty(data.dir_offset)
+            data.dir_offset = data.dir_offset * 2 - 2;
+        end
+        
+        if ~isempty(data.data_offset)
+            data.data_offset = data.data_offset * 2 - 2;
+        end
+        
+    case {'8', '30', '31', '81', '130', '131', '179', '181'}
+        
+        data.dir_type         = fnumeric(f,  258,  'int16');
+        data.dir_offset       = fnumeric(f,  260,  'int32');
+        data.data_offset      = fnumeric(f,  264,  'int32');
+        data.num_records      = fnumeric(f,  278,  'int32');
+        
+        if data.dir_type && ~isempty(data.dir_offset)
             data.dir_offset = (data.dir_offset - 1) * 512;
+        end
+        
+        if ~isempty(data.data_offset)
+            data.data_offset = (data.data_offset - 1) * 512;
         end
         
 end
@@ -581,12 +612,14 @@ end
 switch data.file_version
     
     case {'30'}
+        
         data.glp_flag         = fnumeric(f,  318,  'int32');
         data.data_source      = fpascal(f,   322,  'uint8');
         data.firmware_rev     = fpascal(f,   355,  'uint8');
         data.software_rev     = fpascal(f,   405,  'uint8');
         
-    case {'130', '179'}
+    case {'130', '179'}%, '181'}
+        
         data.glp_flag         = fnumeric(f,  3085, 'int32');
         data.data_source      = fpascal(f,   3089, 'uint16');
         data.firmware_rev     = fpascal(f,   3601, 'uint16');
@@ -594,42 +627,48 @@ switch data.file_version
         
 end
 
+% Acquisition
 switch data.file_version
     
+    case {'2'}
+        
+        data.intensity_units  = 'counts';
+        data.channel_units    = 'm/z';
+        
     case {'8', '81', '30'}
+        
         data.channel_detector = fnumeric(f,  514,  'int16');
         data.channel_units    = fpascal(f,   580,  'uint8');
         data.channel_desc     = fpascal(f,   596,  'uint8');
         
     case {'31'}
+        
         data.channel_detector = fnumeric(f,  342,  'int16');
         data.channel_units    = fpascal(f,   326,  'uint8');
         data.channel_desc     = fpascal(f,   344,  'uint8');
         
     case {'130', '179', '181'}
+        
         data.channel_detector = fnumeric(f,  4106, 'int16');
         data.channel_units    = fpascal(f,   4172, 'uint16');
         data.channel_desc     = fpascal(f,   4213, 'uint16');
         
     case {'131'}
+        
         data.channel_detector = fnumeric(f,  3134, 'int16');
         data.channel_units    = fpascal(f,   3093, 'uint16');
         data.channel_desc     = fpascal(f,   3136, 'uint16');
         
 end
 
-% Parse datetime
 if ~isempty(data.datetime)
     data.datetime = parsedate(data.datetime);
 end
 
-% Parse instrument
 data.instrument = parseinstrument(data);
-
-% Fix formatting
-data.instmodel = upper(data.instmodel);
-data.inlet     = upper(data.inlet);
-data.operator  = upper(data.operator);
+data.instmodel  = upper(data.instmodel);
+data.inlet      = upper(data.inlet);
+data.operator   = upper(data.operator);
 
 end
 
@@ -660,7 +699,7 @@ switch data.file_version
     
     case {'2'}
         
-        data = fpacket(f, data, data.data_offset);
+        data = fscan(f, data, data.data_offset);
         
     case {'8', '30', '130'}
         
@@ -680,19 +719,22 @@ switch data.file_version
         
         data.intensity = fdoublearray(f, data.data_offset);
         data.time      = ftime(data.start_time, data.end_time, numel(data.intensity));
+        
 end
 
 % Units
 switch data.file_version
     
-    case {'2', '8', '30', '31', '81', '130', '131', '179', '181'}
+    case {'2'}
         
         if ~isempty(data.time)
             data.time_units = 'minutes';
         end
         
-        if ~isempty(data.channel_desc)
-            data.intensity_units = data.channel_desc;
+    case {'8', '30', '31', '81', '130', '131', '179', '181'}
+        
+        if ~isempty(data.time)
+            data.time_units = 'minutes';
         end
         
 end
@@ -700,68 +742,78 @@ end
 % Scaling
 switch data.file_version
     
-    case {'8'}
-        
-        version   = fnumeric(f, 542, 'int32');
-        intercept = fnumeric(f, 636, 'float64');
-        slope     = fnumeric(f, 644, 'float64');
-        
-        switch version
-            case {1, 2, 3}
-                data.intensity = data.intensity .* 1.33321110047553;
-            otherwise
-                data.intensity = data.intensity .* slope + intercept;
-        end
-        
     case {'30'}
         
-        version   = fnumeric(f, 542, 'int32');
-        intercept = fnumeric(f, 636, 'float64');
-        slope     = fnumeric(f, 644, 'float64');
+        data.signal_version = fnumeric(f, 542, 'int32');
         
-        switch version
+        switch data.signal_version
             case {1}
-                data.intensity = data.intensity .* 1;
+                data.signal_intercept = 0;
+                data.signal_slope     = 1;
             case {2}
-                data.intensity = data.intensity .* 0.00240841663372301;
+                data.signal_intercept = 0;
+                data.signal_slope     = 0.00240841663372301;
             otherwise
-                data.intensity = data.intensity .* slope + intercept;
+                data.signal_intercept = fnumeric(f, 636, 'float64');
+                data.signal_slope     = fnumeric(f, 644, 'float64');
+        end
+        
+    case {'130'}
+        
+        data.signal_version = fnumeric(f, 4134, 'int32');
+        
+        switch data.signal_version
+            case {1}
+                data.signal_intercept = 0;
+                data.signal_slope     = 1;
+            case {2}
+                data.signal_intercept = 0;
+                data.signal_slope     = 0.00240841663372301;
+            otherwise
+                data.signal_intercept = fnumeric(f, 4724, 'float64');
+                data.signal_slope     = fnumeric(f, 4732, 'float64');
+        end
+        
+    case {'8'}
+        
+        data.signal_version = fnumeric(f, 542, 'int32');
+        
+        switch data.signal_version
+            case {1, 2, 3}
+                data.signal_intercept = 0;
+                data.signal_slope     = 1.33321110047553;
+            otherwise
+                data.signal_intercept = fnumeric(f, 636, 'float64');
+                data.signal_slope     = fnumeric(f, 644, 'float64');
         end
         
     case {'81'}
         
-        intercept = fnumeric(f, 636, 'float64');
-        slope     = fnumeric(f, 644, 'float64');
-        
-        data.intensity = data.intensity .* slope + intercept;
-        
-    case {'130'}
-        
-        version   = fnumeric(f, 4134, 'int32');
-        intercept = fnumeric(f, 4724, 'float64');
-        slope     = fnumeric(f, 4732, 'float64');
-        
-        switch version
-            case {1}
-                data.intensity = data.intensity .* 1;
-            case {2}
-                data.intensity = data.intensity .* 0.00240841663372301;
-            otherwise
-                data.intensity = data.intensity .* slope + intercept;
-        end
+        data.signal_intercept = fnumeric(f, 636, 'float64');
+        data.signal_slope     = fnumeric(f, 644, 'float64');
         
     case {'179', '181'}
         
-        intercept = fnumeric(f, 4724, 'float64');
-        slope     = fnumeric(f, 4732, 'float64');
+        data.signal_intercept = fnumeric(f, 4724, 'float64');
+        data.signal_slope     = fnumeric(f, 4732, 'float64');
         
-        data.intensity = data.intensity .* slope + intercept;
+end
+
+switch data.file_version
+    
+    case {'8', '30', '31', '81', '130', '131', '179', '181'}
+     
+        if ~isempty(data.intensity)
+            if ~isempty(data.signal_slope) && ~isempty(data.signal_intercept)
+                data.intensity = data.intensity .* data.signal_slope + data.signal_intercept;
+            end
+        end
         
 end
 
 % Sampling Rate
 if ~isempty(data.time)
-    data.sampling_rate = round(1./mean(diff(data.time)));
+    data.sampling_rate = round(1./mean(diff(data.time.*60)));
 end
 
 end
@@ -922,9 +974,9 @@ x = fread(f, count, type, skip, 'b');
 end
 
 % ---------------------------------------
-% Data = packet
+% Data = mass spectra scan (quick)
 % ---------------------------------------
-function data = fpacket(f, data, offset)
+function data = fscan(f, data, offset)
 
 n = [];
 y = [];
@@ -971,8 +1023,7 @@ function data = fdirectory(f, offset, scans)
 data = struct(...
     'spectrum_offset', [],...
     'retention_time',  [],...
-    'total_abundance', []...
-    );
+    'total_abundance', []);
 
 fseek(f, offset, 'bof');
 
@@ -988,9 +1039,9 @@ data.retention_time  = data.retention_time  / 6E4;
 end
 
 % ---------------------------------------
-% Data = mass spectra
+% Data = mass spectra scan (long)
 % ---------------------------------------
-function data = fspectra(f, offset)
+function data = fscanmz(f, offset)
 
 data = struct(...
     'spectrum_offset',  [],...
@@ -1003,8 +1054,7 @@ data = struct(...
     'base_mass',        [],...
     'base_abundance',   [],...
     'mass_values',      [],...
-    'abundance_values', []...
-    );
+    'abundance_values', []);
 
 for i = 1:length(offset)
     
@@ -1039,9 +1089,9 @@ end
 end
 
 % ---------------------------------------
-% Data = wavelength spectrum
+% Data = wavelength scan
 % ---------------------------------------
-function data = fspectrum(f, offset, detector)
+function data = fscanvis(f, offset, detector)
 
 data = struct(...
     'spectrum_offset',    [],...
@@ -1053,8 +1103,7 @@ data = struct(...
     'wavelength_step',    [],...
     'spectrum_attribute', [],...
     'additional_info',    [],...
-    'intensity_values',   []...
-    );
+    'intensity_values',   []);
 
 for i = 1:length(offset)
     
@@ -1132,11 +1181,15 @@ end
 % ---------------------------------------
 function x = ftime(start, stop, count)
 
-if count > 2
-    x = linspace(start, stop, count)';
+if start >= stop
+    x = zeros(count,1);
+elseif count > 2
+    x = linspace(start, stop, count);
 else
-    x = [start; stop];
+    x = [start, stop];
 end
+
+x = x(:);
 
 end
 
@@ -1194,7 +1247,7 @@ end
 function x = fdoubledelta(f, offset)
 
 fseek(f, 0, 'eof');
-n  = ftell(f);
+n = ftell(f);
 
 fseek(f, offset, 'bof');
 x  = zeros(floor(n/2), 1);

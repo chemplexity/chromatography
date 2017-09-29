@@ -219,7 +219,13 @@ for i = 1:length(samples)
         switch target
         
             case 'tic'
-                names = options.name(i);
+                
+                if ~isempty(options.name{i})
+                    names = options.name(i);
+                else
+                    names = {''};
+                end
+                
             case 'all'
                 names(length(z)) = {''};
                 mz = z(:);
