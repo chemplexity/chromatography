@@ -355,7 +355,7 @@ end
 % CHANGE REASON: This is the Octave way of initialising an Java object. According to this source [1] it looks like it also works with MATLAB
 % [1] http://www.ece.northwestern.edu/local-apps/matlabhelp/techdoc/ref/javaobject.html
 
-fc = javaObject("javax.swing.JFileChooser");
+fc = javaObject('javax.swing.JFileChooser');
 
 % Options
 fc.setFileSelectionMode(fc.FILES_AND_DIRECTORIES);
@@ -366,13 +366,13 @@ fc.setAcceptAllFileFilterUsed(false);
 
 % CHANGE REASON: The com.mathworks.* Java package does of course not exist in Octave. Since this merely filters the UI I disabled it completely, but the following changes replicate the functionality using standard Java classes
 
-allowedFileExtensions = javaArray ("java.lang.String", 4);
-allowedFileExtensions(1) = "d"
-allowedFileExtensions(2) = "ms"
-allowedFileExtensions(3) = "ch"
-allowedFileExtensions(4) = "uv"
+allowedFileExtensions = javaArray ('java.lang.String', 4);
+allowedFileExtensions(1) = 'd'
+allowedFileExtensions(2) = 'ms'
+allowedFileExtensions(3) = 'ch'
+allowedFileExtensions(4) = 'uv'
 
-agilent = javaObject("javax.swing.filechooser.FileNameExtensionFilter", "Agilent files (*.D, *.MS, *.CH, *.UV)", allowedFileExtensions);
+agilent = javaObject('javax.swing.filechooser.FileNameExtensionFilter', 'Agilent files (*.D, *.MS, *.CH, *.UV)', allowedFileExtensions);
 
 fc.addChoosableFileFilter(agilent);
 
