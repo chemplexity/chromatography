@@ -102,20 +102,25 @@ end
 % ---------------------------------------
 p = inputParser;
 
-addParameter(p, 'file',    default.file);
-addParameter(p, 'depth',   default.depth);
-addParameter(p, 'content', default.content, @ischar);
-addParameter(p, 'verbose', default.verbose, @ischar);
+% CHANGE REASON: addParameter is undefined as of Octave 4.0.1, which is what I am using. It may have changed in more recent versions
+
+%addParameter(p, 'file',    default.file);
+%addParameter(p, 'depth',   default.depth);
+%addParameter(p, 'content', default.content, @ischar);
+%addParameter(p, 'verbose', default.verbose, @ischar);
 
 parse(p, varargin{:});
 
 % ---------------------------------------
 % Options
 % ---------------------------------------
-option.file    = p.Results.file;
-option.depth   = p.Results.depth;
-option.content = p.Results.content;
-option.verbose = p.Results.verbose;
+
+% CHANGE REASON: p would be uninitialised because of the prior change otherwise, which lead to more errors. This is just a 'short-circuit'
+
+option.file    = default.file;
+option.depth   = default.depth;
+option.content = default.content;
+option.verbose = default.verbose;
 
 % ---------------------------------------
 % Validate
@@ -346,7 +351,11 @@ if ~usejava('swing')
 end
 
 % JFileChooser (Java)
-fc = javax.swing.JFileChooser(java.io.File(pwd));
+
+% CHANGE REASON: This is the Octave way of initialising an Java object. According to this source [1] it looks like it also works with MATLAB
+% [1] http://www.ece.northwestern.edu/local-apps/matlabhelp/techdoc/ref/javaobject.html
+
+fc = javaObject('javax.swing.JFileChooser');
 
 % Options
 fc.setFileSelectionMode(fc.FILES_AND_DIRECTORIES);
@@ -354,13 +363,16 @@ fc.setMultiSelectionEnabled(true);
 fc.setAcceptAllFileFilterUsed(false);
 
 % Filter: Agilent (.D, .MS, .CH, .UV)
-agilent = com.mathworks.hg.util.dFilter;
 
-agilent.setDescription('Agilent files (*.D, *.MS, *.CH, *.UV)');
-agilent.addExtension('d');
-agilent.addExtension('ms');
-agilent.addExtension('ch');
-agilent.addExtension('uv');
+% CHANGE REASON: The com.mathworks.* Java package does of course not exist in Octave. Since this merely filters the UI I disabled it completely, but the following changes replicate the functionality using standard Java classes
+
+allowedFileExtensions = javaArray ('java.lang.String', 4);
+allowedFileExtensions(1) = 'd'
+allowedFileExtensions(2) = 'ms'
+allowedFileExtensions(3) = 'ch'
+allowedFileExtensions(4) = 'uv'
+
+agilent = javaObject('javax.swing.filechooser.FileNameExtensionFilter', 'Agilent files (*.D, *.MS, *.CH, *.UV)', allowedFileExtensions);
 
 fc.addChoosableFileFilter(agilent);
 
