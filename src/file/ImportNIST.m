@@ -36,21 +36,27 @@ function data = ImportNIST(varargin)
 % Data
 % ---------------------------------------
 data = struct(...
-    'file_path',           [],...
-    'file_name',           [],...
-    'file_size',           [],...
-    'compound_name',       [],...
-    'compound_synonym',    {},...
-    'compound_formula',    [],...
-    'compound_mw',         [],...
-    'compound_exact_mass', [],...
-    'cas_id',              [],...
-    'nist_id',             [],...
-    'db_id',               [],...
-    'comments',            [],...
-    'num_peaks',           [],...
-    'mz',                  [],...
-    'intensity',           []);
+    'file_path',                [],...
+    'file_name',                [],...
+    'file_size',                [],...
+    'compound_name',            [],...
+    'compound_synonym',         {},...
+    'compound_formula',         [],...
+    'compound_mw',              [],...
+    'compound_exact_mass',      [],...
+    'compound_retention_time',  [],...
+    'compound_retention_index', [],...
+    'cas_id',                   [],...
+    'nist_id',                  [],...
+    'db_id',                    [],...
+    'smiles',                   [],...
+    'inchikey',                 [],...
+    'ion_mode',                 [],...
+    'collision_energy',         [],...
+    'comments',                 [],...
+    'num_peaks',                [],...
+    'mz',                       [],...
+    'intensity',                []);
 
 % ---------------------------------------
 % Defaults
@@ -462,26 +468,34 @@ end
 % ---------------------------------------
 function data = parseinfo(f, data)
 
-data.compound_name       = parsefield(f, 'Name');
-data.compound_synonym    = parsefield(f, 'Synon');
-data.compound_formula    = parsefield(f, 'Formula');
-data.compound_mw         = parsefield(f, 'MW');
-data.compound_exact_mass = parsefield(f, 'ExactMass');
-data.cas_id              = parsefield(f, 'CAS([#]|NO)');
-data.nist_id             = parsefield(f, 'NIST([#]|NO)');
-data.db_id               = parsefield(f, 'DB([#]|NO)');
-data.comments            = parsefield(f, 'Comment[s]?');
-data.num_peaks           = parsefield(f, 'Peaks');
+data.compound_name            = parsefield(f, 'Name');
+data.compound_synonym         = parsefield(f, 'Synon');
+data.compound_formula         = parsefield(f, 'Formula');
+data.compound_mw              = parsefield(f, 'MW');
+data.compound_exact_mass      = parsefield(f, 'ExactMass');
+data.compound_retention_time  = parsefield(f, 'RetentionTime');
+data.compound_retention_index = parsefield(f, 'RetentionIndex');
+data.cas_id                   = parsefield(f, 'CAS([#]|NO)');
+data.nist_id                  = parsefield(f, 'NIST([#]|NO)');
+data.db_id                    = parsefield(f, 'DB([#]|NO)');
+data.smiles                   = parsefield(f, 'Smiles');
+data.inchikey                 = parsefield(f, 'Inchikey');
+data.ion_mode                 = parsefield(f, 'IonMode');
+data.collision_energy         = parsefield(f, 'CollisionEnergy');
+data.comments                 = parsefield(f, 'Comment[s]?');
+data.num_peaks                = parsefield(f, 'Peaks');
 
-data.compound_mw         = parsenumber(data.compound_mw);
-data.compound_exact_mass = parsenumber(data.compound_exact_mass);
-data.num_peaks           = parsenumber(data.num_peaks);
+data.compound_mw              = parsenumber(data.compound_mw);
+data.compound_exact_mass      = parsenumber(data.compound_exact_mass);
+data.compound_retention_time  = parsenumber(data.compound_retention_time);
+data.compound_retention_index = parsenumber(data.compound_retention_index);
+data.num_peaks                = parsenumber(data.num_peaks);
 
 if ~isempty(data.compound_synonym) && ischar(data.compound_synonym)
     data.compound_synonym = {data.compound_synonym};
 end
 
-% PRECURSORMZ
+% TODO PRECURSORMZ
 
 end
 
@@ -532,11 +546,11 @@ function str = parsefield(f, name)
 switch name
     
     case {'CAS([#]|NO)'}
-        strRegExp = ['(?:', name, '[:]\s*)(\S[ ]|\S+)+(?:(\r|[;]))'];
+        strRegExp = ['(?:', name, '[:]\s*)(\S[ ]|\S+)+(?:(\r|[;]|\n))'];
         
     otherwise
-        strRegExp = ['(?:', name, '[:]\s*)(\S[ ]+|\S+)+(?:(\r|[;]))'];
-        
+        strRegExp = ['(?:', name, '[:]\s*)(\S[ ]+|\S+)+(?:(\r|[;])|\n)'];
+       
 end
 
 str = regexpi(f, strRegExp, 'tokens');
@@ -564,8 +578,8 @@ end
 
 x = str2double(str);
 
-if isnan(str)
-    x = str;
+if isnan(x)
+    x = [];
 end
 
 str = x;
@@ -577,13 +591,19 @@ end
 % ---------------------------------------
 function [x, y] = parsearray(f)
 
-str = regexp(f, '(\d+ +\d+)', 'match');
+str = regexp(f, '(\d+( |\t)+\d+)', 'match');
 
 if isempty(str)
     x = [];
     y = [];
 else
-    xy = cellfun(@(x) strsplit(x,' '), str, 'uniformoutput', 0);
+    % Check if tab delimited
+    if (strfind(str{1}, char(9)))
+        xy = cellfun(@(x) strsplit(x,'\t'), str, 'uniformoutput', 0);
+    else
+        xy = cellfun(@(x) strsplit(x,' '), str, 'uniformoutput', 0);
+    end
+    
     xy = reshape(str2double([xy{:}]), 2, []);
     x = xy(1,:);
     y = xy(2,:);
